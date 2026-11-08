@@ -16,7 +16,15 @@ padrão validado.
 """
 import argparse, json, os, pathlib, sys
 
-sys.path.insert(0, os.environ.get("VE_PKG_DIR") or str(pathlib.Path(__file__).resolve().parents[1]))
+def _raiz_pacote(arquivo):
+    """Primeira pasta acima do script que contém video_editores/ (raiz do checkout ou site-packages da roda)."""
+    for d in pathlib.Path(arquivo).resolve().parents:
+        if (d / "video_editores" / "__init__.py").is_file():
+            return str(d)
+    return str(pathlib.Path(arquivo).resolve().parents[1])
+
+
+sys.path.insert(0, os.environ.get("VE_PKG_DIR") or _raiz_pacote(__file__))
 from video_editores import modelos  # noqa: E402
 from video_editores.nucleo.ffmpeg import decodificar_audio  # noqa: E402
 

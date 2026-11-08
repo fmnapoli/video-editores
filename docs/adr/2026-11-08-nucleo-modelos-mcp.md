@@ -60,12 +60,16 @@ fica fora deste ADR.
 - O conhecimento de *como* editar (gates humanos, decisões de design, convenções de pastas) continua nas skills;
   o `instructions` do servidor só resume as convenções e manda pedir aprovação antes de render longo e entrega.
 
-### ADR-12 — Skills para outros agentes só por demanda
+### ADR-12 — Skills para outros agentes geradas da fonte única
 
-- O formato `SKILL.md` (frontmatter + instruções) é o que os agentes de código convergiram a ler; o porte é de
-  texto, não de código, porque os scripts e a CLI já são agnósticos. Com o MCP, um agente sem shell local também
-  consegue executar. Não se mantém uma segunda cópia das skills até existir um segundo agente em uso real; quando
-  existir, a cópia deve apontar para `video-editores <op>` em vez de caminhos do plugin.
+- O formato `SKILL.md` (frontmatter + instruções) é o que os agentes de código convergiram a ler (padrão Agent
+  Skills); o porte é de texto, não de código, porque os scripts e a CLI já são agnósticos. Com o MCP, um agente sem
+  shell local também consegue executar.
+- A demanda chegou no mesmo dia (Codex, OpenCode e Kiro). Em vez de uma segunda cópia editada à mão, as skills são
+  **geradas** pelo `video-editores integrar <agente>`: cópia para a pasta do agente, `${CLAUDE_PLUGIN_ROOT}` trocado
+  pelo caminho real, cabeçalho explicando como executar fora do Claude Code (CLI/MCP, subagentes → sequência,
+  aprovação → perguntar), mais o registro do servidor MCP e as regras do projeto no formato de cada agente.
+  Idempotente e reversível. Pastas e formatos usados estão em `docs/agentes.md`, com as fontes oficiais.
 
 ## Alternativas consideradas
 
@@ -107,5 +111,5 @@ fica fora deste ADR.
 | 3. Validar em GPU: `VE_DEVICE=cuda`, NVENC, medir ganho real | pendente (sem GPU aqui) | 1 dia com a máquina |
 | 4. Backends novos: BiRefNet/MatAnyone (vídeo), whisper large-v3 | pendente | 2–3 dias cada, com comparação visual |
 | 5. HTTP atrás de autenticação + storage compartilhado na plataforma | pendente | 2 dias, depende da infra |
-| 6. Skills para outro agente (ADR-12) | sob demanda | 1 dia por agente, só texto |
+| 6. Skills para outro agente (ADR-12): Codex, OpenCode, Kiro via `video-editores integrar` | feito (0.6.0), geradas da fonte única | — |
 | 7. Modelo próprio de segmentação/ASR | sob demanda | registro leva minutos; o modelo é outro projeto |

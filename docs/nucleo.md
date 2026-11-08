@@ -92,6 +92,11 @@ export VE_MODELOS_EXTRA="seg:meu=meupacote.seg:MeuSegmentador" VE_SEG=meu
 video-editores modelos      # deve listar "meu"
 ```
 
+## Outros agentes (Codex, OpenCode, Kiro)
+
+`video-editores integrar codex|opencode|kiro|todos [--projeto DIR | --usuario]` instala as skills, registra o servidor MCP
+e grava as regras no formato de cada agente. Detalhes, pastas e limitações em [agentes.md](agentes.md).
+
 ## Servidor MCP
 
 Invólucro fino sobre o mesmo catálogo (ADR-11): ferramentas `listar_operacoes`, `listar_modelos`,

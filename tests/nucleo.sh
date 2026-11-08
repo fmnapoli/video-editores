@@ -86,4 +86,47 @@ if command -v uv >/dev/null; then
 else
   echo "  (uv ausente: teste do MCP pulado)"
 fi
+# integração com Codex, OpenCode e Kiro (escopo de projeto): skills portadas, MCP registrado, regras; idempotente; remoção limpa
+mkdir -p integ/.codex && printf '[model]\nname = "x"\n\n[mcp_servers.outro]\ncommand = "y"\n' > integ/.codex/config.toml
+printf '# Meu projeto\n\nRegras minhas.\n' > integ/AGENTS.md
+python3 -m video_editores.cli integrar todos --projeto integ >/dev/null
+python3 -m video_editores.cli integrar todos --projeto integ >/dev/null   # 2ª vez: nada duplica
+python3 - <<'PY'
+import json, re, pathlib, tomllib
+p = pathlib.Path("integ")
+sk = sorted(x.name for x in (p / ".agents/skills").iterdir()); assert len(sk) == 20 and "videoaula" in sk, sk
+assert sorted(x.name for x in (p / ".kiro/skills").iterdir()) == sk
+for s in (p / ".kiro/skills").glob("*/SKILL.md"):
+    t = s.read_text(); fm = re.match(r"---\n(.*?)\n---", t, re.S).group(1)
+    assert re.search(r"^name: " + re.escape(s.parent.name) + "$", fm, re.M), s      # Kiro exige name == pasta
+    assert "CLAUDE_PLUGIN_ROOT" not in t and "Fora do Claude Code" in t, s
+assert (p / ".agents/skills/video-docs/glossario-ingles.json").is_file()
+ag = (p / "AGENTS.md").read_text(); assert ag.startswith("# Meu projeto") and ag.count("video-editores:inicio") == 1, ag
+oc = json.loads((p / "opencode.json").read_text())["mcp"]["servers"]["video-editores"]; assert oc["type"] == "local" and oc["command"][-2] == "--raiz"
+ki = json.loads((p / ".kiro/settings/mcp.json").read_text())["mcpServers"]["video-editores"]; assert ki["command"] and "args" in ki
+cx = tomllib.loads((p / ".codex/config.toml").read_text()); assert cx["model"]["name"] == "x" and cx["mcp_servers"]["outro"]["command"] == "y"
+assert cx["mcp_servers"]["video-editores"]["args"][-1].endswith("integ")
+st = (p / ".kiro/steering/video-editores.md").read_text(); assert st.startswith("---\ninclusion: always") and st.count("inicio -->") == 1
+PY
+python3 -m video_editores.cli integrar todos --projeto integ --remover >/dev/null
+test ! -e integ/.agents/skills/videoaula && test ! -e integ/.kiro/steering/video-editores.md
+grep -q "Regras minhas" integ/AGENTS.md && ! grep -q "video-editores:inicio" integ/AGENTS.md
+python3 -c "import tomllib; d=tomllib.loads(open('integ/.codex/config.toml').read()); assert 'video-editores' not in d['mcp_servers'] and d['mcp_servers']['outro']"
+pass "integrar: Codex, OpenCode e Kiro (skills, MCP, regras), idempotente, remoção preserva o que não é nosso"
+
+if command -v uv >/dev/null; then
+  # o comando que os agentes vão executar sobe o servidor por stdio e responde
+  uv run --quiet --with "mcp>=2" python -I - "$ROOT" "$T" <<'PY' 2>"$T/stdio.err" || { cat "$T/stdio.err"; exit 1; }
+import asyncio, sys
+from mcp import Client, StdioServerParameters
+root, raiz = sys.argv[1], sys.argv[2]
+async def m():
+    p = StdioServerParameters(command="uv", args=["run", "--quiet", "--with", "mcp>=2", "--directory", root, "python", "-m", "video_editores.mcp_server", "--raiz", raiz])
+    async with Client(p) as c:
+        assert len((await c.list_tools()).tools) >= 15
+        assert (await c.call_tool("versao", {})).structured_content["raiz"] == raiz
+asyncio.run(m())
+PY
+  pass "MCP por stdio: o comando registrado nos agentes sobe e responde"
+fi
 echo "nucleo ok"

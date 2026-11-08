@@ -7,6 +7,7 @@
       [--direto] usa o Python atual em vez de `uv run`
   video-editores tarefas [ID]                 estado das tarefas em segundo plano
   video-editores mcp [--http PORTA] [--raiz DIR]   servidor MCP (stdio por padrão)
+  video-editores integrar codex|opencode|kiro|todos [--projeto DIR|--usuario]   skills + MCP + regras noutro agente
 
 Exemplos:
   video-editores transcrever originais/aula.mp4 --prompt "Python, lista, dicionário"
@@ -52,6 +53,9 @@ def main(argv=None):
         t = Tarefas(os.getcwd())
         print(json.dumps(t.status(args[0]) if args else t.listar(), ensure_ascii=False, indent=1))
         return 0
+    if cmd == "integrar":
+        from .integrar import main as integrar_main
+        return integrar_main(args)
     if cmd == "mcp":
         from .mcp_server import main as mcp_main
         return mcp_main(args)

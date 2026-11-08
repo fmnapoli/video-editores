@@ -20,12 +20,21 @@ import argparse
 import hashlib
 import json
 import os
+import pathlib
 import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "..", "video-docs", "scripts"))
-sys.path.insert(0, os.environ.get("VE_PKG_DIR") or os.path.join(HERE, "..", "..", ".."))
+def _raiz_pacote(arquivo):
+    """Primeira pasta acima do script que contém video_editores/ (raiz do checkout ou site-packages da roda)."""
+    for d in pathlib.Path(arquivo).resolve().parents:
+        if (d / "video_editores" / "__init__.py").is_file():
+            return str(d)
+    return str(pathlib.Path(arquivo).resolve().parents[1])
+
+
+sys.path.insert(0, os.environ.get("VE_PKG_DIR") or _raiz_pacote(__file__))
 import pronuncia  # noqa: E402
 from video_editores import modelos  # noqa: E402
 from video_editores.modelos.tts_edge import VOZ_PADRAO as VOZ  # noqa: E402

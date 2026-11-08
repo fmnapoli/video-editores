@@ -27,6 +27,8 @@ Plugin do Claude Code que transforma a IA na sua editora de vídeo: **20 skills*
 
 No Claude Code, os skills aparecem com o prefixo do plugin (ex.: `/video-editores:corte`). Também são chamados automaticamente pela descrição ("tira os silêncios desse vídeo").
 
+Funciona também no **Codex**, no **OpenCode** e no **Kiro**: `video-editores integrar codex|opencode|kiro|todos` instala as mesmas skills, registra o servidor MCP e grava as regras do projeto no formato de cada agente ([docs/agentes.md](docs/agentes.md)).
+
 Por baixo das skills há um núcleo que funciona **sem o Claude**: a CLI `video-editores <operação>` roda qualquer script, os modelos de IA (transcrição, recorte de pessoa, narração) são trocáveis por configuração (`VE_ASR`, `VE_SEG`, `VE_TTS`, `VE_DEVICE=cuda`, `VE_ENCODER=h264_nvenc`), e um servidor MCP expõe as mesmas operações a outros agentes, com tarefas em segundo plano. Detalhes em [docs/nucleo.md](docs/nucleo.md).
 
 ## Instalação rápida
@@ -48,6 +50,7 @@ Sem Claude Code (CLI) ou para outro agente (MCP):
 
 ```bash
 uv tool install "video-editores @ git+https://github.com/fmnapoli/video-editores"      # CLI: video-editores listar
+video-editores integrar todos            # Codex + OpenCode + Kiro neste projeto (skills, MCP, regras)
 claude mcp add video-editores -- uvx --from "video-editores[mcp] @ git+https://github.com/fmnapoli/video-editores" video-editores-mcp --raiz "$PWD"
 ```
 
@@ -82,6 +85,7 @@ Passo a passo completo: [docs/tutorial.md](docs/tutorial.md).
 | [Convenções](docs/convencoes.md) | pastas, nomes, ordem, formatos, loudness, privacidade, licenças |
 | [Arquitetura](docs/arquitetura.md) | camadas, ADRs, fluxo de dados, testes |
 | [Núcleo](docs/nucleo.md) | CLI `video-editores`, modelos trocáveis e GPU, servidor MCP, backend próprio |
+| [Outros agentes](docs/agentes.md) | Codex, OpenCode e Kiro: `video-editores integrar`, onde cada um lê skills, MCP e regras |
 | [ADR núcleo/MCP](docs/adr/2026-11-08-nucleo-modelos-mcp.md) | decisão de abstrair modelos, CLI e MCP; integração com GPU; roteiro |
 | [Solução de problemas](docs/troubleshooting.md) | sintomas comuns e correções |
 | [video-docs](docs/video-docs-LEIAME.md) | harness de vídeos de documentação |

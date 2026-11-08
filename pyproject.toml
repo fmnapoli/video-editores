@@ -1,6 +1,6 @@
 [project]
 name = "video-editores"
-version = "0.5.0"
+version = "0.6.0"
 description = "Núcleo de edição de vídeo por IA local (transcrição, recorte de pessoa, montagem, legenda) com CLI e servidor MCP; usado pelas skills do plugin video-editores."
 readme = "README.md"
 license = "MIT"
@@ -35,8 +35,4 @@ packages = ["video_editores"]
 # para que os caminhos relativos entre eles (HERE/../..) continuem válidos.
 [tool.hatch.build.targets.wheel.force-include]
 "scripts" = "video_editores/recursos/scripts"
-"skills/videoaula/scripts" = "video_editores/recursos/skills/videoaula/scripts"
-"skills/videoaula/templates" = "video_editores/recursos/skills/videoaula/templates"
-"skills/video-animado/scripts" = "video_editores/recursos/skills/video-animado/scripts"
-"skills/video-animado/templates" = "video_editores/recursos/skills/video-animado/templates"
-"skills/video-docs/scripts" = "video_editores/recursos/skills/video-docs/scripts"
+"skills" = "video_editores/recursos/skills"

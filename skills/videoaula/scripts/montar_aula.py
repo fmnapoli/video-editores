@@ -18,9 +18,17 @@ aula.json (campos principais; exemplo completo em ../templates/aula-exemplo.json
   abertura/encerramento: {"cena":"Abertura", "xoff":380}     overlays Manim do 1º e do último trecho de locutor
 Só biblioteca padrão + ffmpeg. Codificador por VE_ENCODER (libx264 padrão; h264_nvenc etc. em máquina com GPU).
 """
-import json, os, shlex, subprocess, sys
+import json, os, pathlib, shlex, subprocess, sys
 
-sys.path.insert(0, os.environ.get("VE_PKG_DIR") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+def _raiz_pacote(arquivo):
+    """Primeira pasta acima do script que contém video_editores/ (raiz do checkout ou site-packages da roda)."""
+    for d in pathlib.Path(arquivo).resolve().parents:
+        if (d / "video_editores" / "__init__.py").is_file():
+            return str(d)
+    return str(pathlib.Path(arquivo).resolve().parents[1])
+
+
+sys.path.insert(0, os.environ.get("VE_PKG_DIR") or _raiz_pacote(__file__))
 from video_editores.nucleo.ffmpeg import codec_video  # noqa: E402
 
 FPS = 30

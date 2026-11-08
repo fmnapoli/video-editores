@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.0 — 2026-11-08
+Compatível com **Codex**, **OpenCode** e **Kiro** (ADR-12 implementado): `video-editores integrar codex|opencode|kiro|todos [--projeto DIR|--usuario] [--remover]`.
+- Skills geradas da fonte única: as 20 SKILL.md copiadas para `.agents/skills/` (Codex e OpenCode) e `.kiro/skills/` (Kiro), com `${CLAUDE_PLUGIN_ROOT}` trocado pelo caminho real dos scripts, cabeçalho explicando CLI/MCP, subagentes e gates fora do Claude Code, e arquivos de referência ao lado (glossário, references/). Nomes já satisfazem Kiro (name = pasta, kebab-case).
+- Servidor MCP registrado no formato de cada agente: `[mcp_servers."video-editores"]` em `.codex/config.toml` (ou `~/.codex/config.toml`), `mcp.servers` em `opencode.json`, `mcpServers` em `.kiro/settings/mcp.json` (com `autoApprove` das ferramentas de leitura). O comando escolhe binário instalado > checkout com `uv run` > `uvx` do GitHub. Edição preserva o resto do arquivo (TOML por bloco, JSON por chave).
+- Regras do projeto: bloco marcado em `AGENTS.md` (Codex, OpenCode) e steering `inclusion: always` (Kiro); idempotente, `--remover` desfaz só o que é nosso.
+- Roda inclui `skills/` inteiro em `recursos/`, então `uv tool install … && video-editores integrar todos` funciona sem clonar. Bootstrap dos scripts acha o pacote subindo a árvore (checkout ou site-packages), sem depender de `VE_PKG_DIR`.
+- `AGENTS.md` no repositório para quem desenvolve o plugin com Codex/OpenCode/Kiro. Testes: integração dos três agentes (idempotência, remoção, TOML preservado, Kiro name = pasta) e o servidor MCP por stdio com o comando que os agentes executam. Docs: `agentes.md`, README, arquitetura (ADR-12), ADR.
+
 ## 0.5.0 — 2026-11-08
 Núcleo em camadas: modelos de IA trocáveis, CLI única e servidor MCP (ADR-10 a 12, `docs/adr/2026-11-08-nucleo-modelos-mcp.md`). Motivado pela proposta de abstrair o modelo, servir outros agentes e rodar numa plataforma com GPUs.
 - **Pacote `video_editores`** (`pyproject.toml`, hatchling; a roda leva `scripts/` e `skills/*/scripts` em `recursos/`): `modelos/` com os papéis ASR, Segmentador e TTS, backends `faster-whisper`, `rembg`, `edge`, registro por nome e `VE_MODELOS_EXTRA` para backend próprio; configuração por `VE_ASR`/`VE_SEG`/`VE_TTS`/`VE_DEVICE`/`VE_ENCODER`, `video-editores.toml` ou padrão; `deps(device)` de cada backend alimenta o `uv run --with` (cuda → `onnxruntime-gpu`).

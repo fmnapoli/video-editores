@@ -77,8 +77,10 @@ Quatro camadas (0.5.0):
 - **Motivo:** agentes sem shell local (plataforma interna com GPUs) usam as mesmas capacidades; o know-how de edição continua nas skills.
 - **Consequência:** servidor e projeto compartilham storage; o modo HTTP não autentica e fica atrás de proxy/VPN.
 
-### ADR-12 — Skills para outros agentes só por demanda (0.5.0)
-- O porte é de texto (`SKILL.md` é lido por vários agentes) e deve apontar para `video-editores <op>`; não se mantém cópia até existir um segundo agente em uso. ADR completo com alternativas, integração com GPU e roteiro: [adr/2026-11-08-nucleo-modelos-mcp.md](adr/2026-11-08-nucleo-modelos-mcp.md).
+### ADR-12 — Skills para outros agentes geradas, não mantidas à mão (0.5.0, implementado em 0.6.0)
+- **Decisão:** as SKILL.md do plugin são a única fonte; `video-editores integrar codex|opencode|kiro` as copia para a pasta que cada agente lê (`.agents/skills/` para Codex e OpenCode, `.kiro/skills/` para Kiro), troca `${CLAUDE_PLUGIN_ROOT}` pelo caminho real, acrescenta um cabeçalho de execução fora do Claude Code, registra o servidor MCP no formato de cada um (`config.toml`, `opencode.json`, `mcp.json`) e grava as regras do projeto (`AGENTS.md` ou steering). Idempotente e reversível com `--remover`.
+- **Motivo:** o formato SKILL.md convergiu entre os agentes (padrão Agent Skills); uma segunda cópia editada à mão divergiria em semanas.
+- **Consequência:** o que é específico do Claude Code (subagentes, slash do plugin) vira orientação no cabeçalho; os gates humanos passam a depender de o agente parar e perguntar, como o texto pede. Detalhes em [agentes.md](agentes.md). ADR completo: [adr/2026-11-08-nucleo-modelos-mcp.md](adr/2026-11-08-nucleo-modelos-mcp.md).
 
 ## Fluxo de dados
 
