@@ -1,0 +1,7 @@
+{
+  "fixes": {
+    "231.58": "E também temos outro tipo de dado em Python, o dado booleano.",
+    "937.93": null
+  },
+  "corr": [["\\bidei\\b", "dei"], ["\\bhola\\b", "\"olá\""], ["\\bparentes\\b", "parênteses"]]
+}

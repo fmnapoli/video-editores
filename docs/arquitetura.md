@@ -53,6 +53,16 @@ Três camadas:
 - O montador (`build.py`) entra intacto como skill. Os outros skills herdam as convenções dele (pastas, `originais/` imutável, QA por frames, privacidade).
 - O ruff é configurado para aceitar o estilo compacto do `build.py`, sem reformatar.
 
+### ADR-08 — Paralelismo em dois níveis (0.4.0)
+- **Contexto:** numa videoaula de 20 min, o recorte de pessoa por IA em CPU leva horas e a autoria de 9 cenas Manim leva dezenas de minutos; subagentes não aceleram render e processos não escrevem cenas.
+- **Decisão:** computação pesada em **processos** detached e dimensionados pela máquina (`matte_workers.sh N`, `render_cenas.sh -j`, `montar_aula.py --jobs`); autoria independente (uma cena por diagrama, call-outs, revisão de folhas) em **subagentes** com a mesma base e área segura; o encadeamento com dependência de dados (corte → remap → EDL → concat) e os gates continuam sequenciais.
+- **Consequência:** o tempo de parede cai para o máximo entre "render em segundo plano" e "autoria", em vez da soma; o custo é a consistência visual, garantida pela base compartilhada e pela folha de verificação.
+
+### ADR-09 — Áudio contínuo na montagem por blocos
+- **Contexto:** vídeo final montado por blocos independentes (locutor, diagrama, código, cartela) codificados em separado.
+- **Decisão:** o `montar_aula.py concat` junta só o vídeo dos blocos e constrói **uma** trilha de áudio a partir do corte, com silêncio/whoosh inseridos nos instantes das cartelas; fronteiras alinhadas ao frame.
+- **Motivo:** AAC por bloco acumula priming e arredondamento (medido: 21 ms em 8 blocos; dezenas de blocos passam de 100 ms) e a sincronia labial no fim do vídeo é o que o aluno percebe primeiro.
+
 ## Fluxo de dados
 
 ```
@@ -65,6 +75,15 @@ _tomada.mp4 ─→ auto-editor ─→ _corte.mp4 ─→ [efeitos visuais] ─→
 ```
 
 Cada etapa lê o arquivo da etapa anterior e escreve um novo; nada é sobrescrito. Para refazer uma etapa, basta rodar de novo a partir do arquivo anterior.
+
+Videoaula redesenhada (`/videoaula`), tudo no tempo do vídeo cortado depois do remap:
+```
+originais/aula.mp4 ─ scenedetect + cenas_modo.py ─→ cenas.json (locutor/quadro/codigo)
+                   ─ transcribe.py ─→ .transcript.json
+                   ─ auto-editor (--cut-out, --export v1) ─→ _corte.mp4 + _corte.v1.json ─ remap_tempos.py ─→ cenas_corte.json, transcript_corte.*
+aula.json ─ identidade.py ─→ identidade/        matte_workers.sh ─→ mattes/talk_*.mp4 (+_alpha)       Manim (base_cenas, cartelas, diagramas) ─→ *.mov
+montar_aula.py edl → render (blocos/NNN_*.mp4) → concat (vídeo concat + áudio contínuo) ─ finalizar.sh ─→ lettering → loudnorm → saida/<slug>.mp4 + legendas/<slug>.srt
+```
 
 ## Testes
 

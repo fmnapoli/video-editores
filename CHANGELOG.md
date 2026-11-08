@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.4.0 — 2026-11-08
+Videoaula redesenhada e paralelismo em dois níveis. Lições de uma aula de Python de 20 min (3 modos visuais, 9 diagramas, 6 capítulos → 17,5 min).
+- **`/videoaula`** (20º skill): aula gravada (professor + quadro/Excalidraw + IDE, webcam circular) → versão com cenário novo por recorte de IA, diagramas Manim sincronizados por palavra no lugar do quadro, IDE reenquadrada por grupos de layout, abertura com checklist, separadores por capítulo, encerramento, lower third, call-outs, SRT e −14 LUFS; 4 gates (design, visual, piloto, entrega). Tudo dirigido por `aula.json`.
+- Scripts da skill: `cenas_modo.py` (modos visuais por cena), `remap_tempos.py` (tempos do original → corte pelo `--export v1` do auto-editor, sem retranscrever), `identidade.py` (fundo, chips, anel, lower third, base/tampa do painel de código), `matte.py` + `matte_workers.sh` (recorte por IA em streaming, N processos balanceados, stdin-safe), `render_cenas.sh` (Manim em paralelo, separadores por `Separador:N`), `montar_aula.py` (EDL alinhada ao frame, blocos em paralelo com `--jobs`, concat com **áudio contínuo**), `legenda_aula.py` (SRT com frases inteiras e ajustes das frases cortadas), `finalizar.sh`. Modelos: `base_cenas.py` (`Timed`/`Trecho`, `att()` por palavra, área segura do círculo), `cartelas.py`, `diagramas_exemplo.py`, `aula-exemplo.json`, `ajustes-exemplo.json`, `textos-exemplo.json`.
+- Paralelismo (ADR-08): processos para o que é computação (recorte, render de cenas e de blocos), subagentes para a autoria (uma cena Manim por subagente, revisão só da folha), sequencial onde há dependência de dados ou gate. Documentado no skill, no `/animacao` e na arquitetura.
+- `transcribe.py`: decodifica o áudio com o ffmpeg (PyAV 19 removeu `metadata_errors` e quebrava o faster-whisper 1.2).
+- `/corte`: cortes manuais com `--cut-out` (um por trecho, array em zsh), `--export v1` para remapear tempos; margem 0,3 s como padrão de aula.
+- `/tela-verde`: recorte sem tela verde passa a usar `matte.py` (streaming, sombra, máscara separada) em vez de adaptar o `text_behind.py`.
+- `doctor.sh`, README e instalação: `uv tool install scenedetect` (o extra `[opencv]` não existe mais).
+- `troubleshooting.md`: PyAV × faster-whisper, 504 do CDN de releases do GitHub (espelho Hugging Face com md5), `--cut-out` em zsh, laço `while read` que perde a lista para o filho, deriva de áudio em montagem por blocos, título × chip, layouts da IDE, `ImageDraw` em RGBA, processos que morrem com a sessão.
+- Smoke test cobre `remap_tempos.py`, `montar_aula.py edl/map` e `legenda_aula.py` com dados sintéticos; lint inclui `skills/videoaula/scripts`.
+
+
 ## 0.3.0 — 2026-11-08
 Vídeo 100% animado por código e lições de um vídeo de 24 cenas para gestores.
 - **`/video-animado`** (19º skill): sem bruto; a narração é gerada antes e dita a duração de cada `Scene` do Manim; instantes por fração da fala; cenas fecham com fade sobre o fundo fixo e a troca de fundo é um fade entre imagens (nunca preto); gates de roteiro e piloto; conteúdo acima da faixa da legenda.

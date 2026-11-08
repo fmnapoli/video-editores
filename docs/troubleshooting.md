@@ -85,3 +85,18 @@
 
 ## `/video-docs`
 Veja [video-docs-LEIAME.md](video-docs-LEIAME.md) ("Pontos que mais pegam") e `skills/video-docs/SKILL.md` ("Pegadinhas que custaram tempo"). Erro de rede no edge-tts significa que a montagem precisa de internet.
+
+## `/videoaula` (e tudo que transcreve ou recorta pessoa)
+
+| Sintoma | Causa | Solução |
+|---|---|---|
+| `transcribe.py`: `open() got an unexpected keyword argument 'metadata_errors'` | PyAV 19 removeu o argumento que o faster-whisper 1.2 ainda passa; `av<15` não tem wheel e pede pkg-config | o `transcribe.py` 0.4 decodifica o áudio com o ffmpeg e passa um array ao modelo; atualize o plugin |
+| rembg trava em `Downloading ... github.com/danielgatis/rembg/releases/download/...` ou dá `504 Gateway Time-out` | a rede (gateway corporativo) barra o CDN de releases do GitHub | baixe o mesmo `.onnx` de um espelho no Hugging Face (ex.: `skillsafe-ai/u2net-human-seg`) para `~/.rembg/models/u2net_human_seg/u2net_human_seg.onnx` e confira o md5 com o oficial (`c09ddc2e0104f800e3e1bb4652583d1f`) |
+| `auto-editor ... --cut-out A,B C,D` → `Could not open input file: C,D` | cada trecho exige o próprio flag; em zsh, variável string não faz word-splitting | `CO=(--cut-out 1sec,2sec --cut-out 9sec,11sec); auto-editor IN.mp4 "${CO[@]}" ...` |
+| trabalhador de recorte processa só o 1º trecho e "termina" | laço `while read` cujo filho (`uv run`) engoliu o resto da lista pelo stdin herdado | `< /dev/null` no comando filho, ou `mapfile` + `for` (é o que o `matte_workers.sh` faz) |
+| áudio dessincroniza alguns frames no fim do vídeo montado por blocos | blocos codificados separadamente têm priming de AAC e durações arredondadas | `montar_aula.py concat` monta **uma** trilha de áudio contínua do corte e alinha as fronteiras ao frame; confira `vídeo == áudio` na saída |
+| título do diagrama por cima do chip de capítulo | `to_edge(UP)` com folga pequena | `titulo()` da `base_cenas.py` usa `buff=1.35`; conteúdo da área do círculo: nada com x > 3,4 abaixo de y < −1,3 |
+| código da IDE ilegível depois de reenquadrar | janela muda de layout ao longo da gravação (explorer aberto, fechado, zoom diferente) | um `crop` por grupo de layout em `codigo_grupos` (`aula.json`); meça com um frame e régua de 100 px |
+| mockup/overlay com caixa branca opaca onde devia ser translúcida | `ImageDraw` sobre RGBA substitui o pixel, não compõe | desenhe numa camada própria e use `alpha_composite` (como em `identidade.py`) |
+| processo de fundo morre quando a sessão do Claude Code reinicia | filhos da sessão recebem SIGHUP | lance com `setsid nohup ... < /dev/null &` e acompanhe por log; `matte_workers.sh` e os renders longos sempre assim |
+| scenedetect: `does not have an extra named 'opencv'` | o extra sumiu no 0.7 | `uv tool install scenedetect` |

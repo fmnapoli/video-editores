@@ -124,7 +124,53 @@ python3 "$VA/folha_cenas.py" cenas.json mp4 --fracao 0.9 --saida folha.png >/dev
 pass "video-animado: piloto por --cenas e folha_cenas"
 cd ..
 
-bash -n "$S"/*.sh && python3 -c 'import ast, sys; [ast.parse(open(f, encoding="utf-8").read(), f) for f in sys.argv[1:]]' "$S"/*.py "$ROOT"/skills/video-docs/scripts/*.py "$ROOT"/skills/video-animado/scripts/*.py "$ROOT"/skills/video-animado/templates/*.py
+# videoaula: remap de tempos, EDL e legenda com dados sintéticos (sem IA, sem render)
+VA2="$ROOT/skills/videoaula/scripts"
+mkdir -p va2 && cd va2
+# corte sintético: 30 fps; mantidos [0,10s) e [12,20s); removido [10,12s)
+echo '{"version":"1","chunks":[[0,300,1],[300,360,99999],[360,600,1]]}' > corte.v1.json
+echo '[{"start":0,"end":5,"kind":"locutor"},{"start":5,"end":15,"kind":"quadro"},{"start":15,"end":20,"kind":"codigo"}]' > cenas.json
+python3 - <<'PY'
+import json
+segs=[]
+def seg(t0,text):
+    ws=[]; cur=t0
+    for w in text.split():
+        ws.append({"start":round(cur,2),"end":round(cur+0.4,2),"word":" "+w}); cur+=0.5
+    segs.append({"start":t0,"end":round(cur,2),"text":text,"words":ws})
+seg(1.0,"Olá turma hoje vamos ver variáveis.")
+seg(9.0,"Este trecho vai ser cortado no meio.")
+seg(16.0,"E agora o código no editor.")
+json.dump({"source":"x","language":"pt","duration":20,"segments":segs},open("in.transcript.json","w"),ensure_ascii=False)
+PY
+python3 "$VA2/remap_tempos.py" corte.v1.json cenas.json in.transcript.json --out . >/dev/null
+python3 - <<'PY'
+import json
+c=json.load(open("cenas_corte.json")); t=json.load(open("transcript_corte.json"))
+assert abs(t["duration"]-18.0)<1e-6, t["duration"]
+assert [x["kind"] for x in c]==["locutor","quadro","codigo"], c
+assert abs(c[2]["cut_start"]-13.0)<1e-6 and abs(c[2]["cut_end"]-18.0)<1e-6, c[2]   # 15s original -> 13s no corte
+w=[w for s in t["segments"] for w in s["words"] if w["word"].strip()=="editor."][0]
+assert abs(w["start"]-(16.0+2.5-2.0))<0.05, w                                          # palavra depois do corte desloca 2 s
+PY
+pass "videoaula: remap_tempos.py (cenas e palavras no tempo do corte)"
+mkdir -p identidade && echo '{}' > identidade/l3_geo.json
+cat > aula.json <<'JSON'
+{"corte":"corte.mp4","corte_v1":"corte.v1.json","transcript":"in.transcript.json","cenas_corte":"cenas_corte.json","identidade":"identidade","manim":"manim","mattes":"mattes","blocos":"blocos",
+ "cartela_dur":2.0,"capitulos":[{"n":1,"titulo":"Variáveis","inicio":5.0}],"diagramas":[{"cena":"D1","inicio":5.0,"fim":13.0}],
+ "circulo":{"cx":1596,"cy":827,"r":186},"codigo_grupos":[{"grupo":"A","orig_ini":15,"orig_fim":20,"crop":[0,0,830,900]}]}
+JSON
+python3 "$VA2/montar_aula.py" aula.json edl > edl.txt
+grep -q "sep " edl.txt && grep -q "D1" edl.txt && grep -q "duração final: 20.0s" edl.txt
+[[ "$(python3 "$VA2/montar_aula.py" aula.json map 7.0)" == "9.000" ]]
+pass "videoaula: montar_aula.py edl (cartela inserida) e map (corte -> final)"
+echo '{"fixes":{"9.0":null},"corr":[["turma","pessoal"]]}' > ajustes.json
+python3 "$VA2/legenda_aula.py" aula.json corte.v1.json in.transcript.json out.srt --ajustes ajustes.json >/dev/null
+grep -q "Olá pessoal" out.srt && ! grep -q "cortado no meio" out.srt && grep -q "00:00:16,000 --> " out.srt
+pass "videoaula: legenda_aula.py (ajustes, remoção da frase cortada, deslocamento da cartela)"
+cd ..
+
+bash -n "$S"/*.sh "$ROOT"/skills/videoaula/scripts/*.sh && python3 -c 'import ast, sys; [ast.parse(open(f, encoding="utf-8").read(), f) for f in sys.argv[1:]]' "$S"/*.py "$ROOT"/skills/video-docs/scripts/*.py "$ROOT"/skills/video-animado/scripts/*.py "$ROOT"/skills/video-animado/templates/*.py "$ROOT"/skills/videoaula/scripts/*.py "$ROOT"/skills/videoaula/templates/*.py
 pass "sintaxe de todos os scripts"
 
 # frontmatter de todos os skills

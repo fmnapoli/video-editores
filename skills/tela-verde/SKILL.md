@@ -21,7 +21,11 @@ Siga `${CLAUDE_PLUGIN_ROOT}/docs/convencoes.md` (pastas, nomes de saída, loudne
 3. Mostre com `/prova`.
 
 ## Sem tela verde (IA, rembg — MIT)
-Use o mesmo pipeline de `"${CLAUDE_PLUGIN_ROOT}/scripts/text_behind.py"` adaptado: para cada frame, `rembg.remove` gera a pessoa com alpha e cola sobre o novo fundo. Processe em trechos e avise que é lento em CPU. Para clipes longos, sugira RobustVideoMatting (GPL-3, melhor estabilidade temporal) com GPU.
+Use `"${CLAUDE_PLUGIN_ROOT}/skills/videoaula/scripts/matte.py"`: streaming ffmpeg → rembg → ffmpeg (nada em disco), máscara a 960x540 suavizada no tempo, sombra, saída composta + máscara separada (`_alpha.mp4`) para recompor com deslocamento:
+```bash
+uv run --with rembg --with onnxruntime --with pillow --with numpy python "${CLAUDE_PLUGIN_ROOT}/skills/videoaula/scripts/matte.py" IN.mp4 0 25.1 fundo.png trabalho/<slug>/pessoa --threads 4
+```
+CPU: 1–3 s por frame; vários trechos em paralelo com `matte_workers.sh` (um trabalhador por ~4 núcleos e 1,3 GB). Lance detached (`setsid nohup`) e avise o tempo. Modelo padrão `u2net_human_seg` (download do GitHub pode dar 504 em rede corporativa: espelho no Hugging Face, ver troubleshooting). Para clipes longos com GPU, RobustVideoMatting (GPL-3) é mais estável.
 
 ## Contorno neon (efeito de Reels)
 Com a máscara do rembg dá para desenhar um contorno colorido na silhueta, sem trocar o fundo:

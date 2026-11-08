@@ -4,9 +4,9 @@ test:            ## teste de fumaça (ffmpeg + python3)
 	bash tests/smoke.sh
 
 lint:            ## shellcheck + ruff (falha se houver erro)
-	@if command -v shellcheck >/dev/null; then shellcheck -S warning scripts/*.sh tests/*.sh exemplos/video-docs/*.sh; else echo "shellcheck ausente, pulando"; fi
-	@if command -v ruff >/dev/null; then ruff check scripts skills/video-docs/scripts skills/video-animado/scripts tests; \
-	 elif command -v uvx >/dev/null; then uvx ruff check scripts skills/video-docs/scripts skills/video-animado/scripts tests; \
+	@if command -v shellcheck >/dev/null; then shellcheck -S warning scripts/*.sh tests/*.sh exemplos/video-docs/*.sh skills/videoaula/scripts/*.sh; else echo "shellcheck ausente, pulando"; fi
+	@if command -v ruff >/dev/null; then ruff check scripts skills/video-docs/scripts skills/video-animado/scripts skills/videoaula/scripts tests; \
+	 elif command -v uvx >/dev/null; then uvx ruff check scripts skills/video-docs/scripts skills/video-animado/scripts skills/videoaula/scripts tests; \
 	 else echo "ruff ausente, pulando"; fi
 
 doctor:          ## verifica dependências

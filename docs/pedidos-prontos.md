@@ -32,6 +32,7 @@ Copie, cole no Claude Code e troque o que estiver entre `< >`. Cada pedido acion
 | "Tira dessa aula três Reels de 45 segundos" | destaques (modo reels) → lettering → legenda |
 | "Só limpa a aula: tira pausas e erros, mantém tudo" | tomada → corte |
 | "Faz um checklist dos passos que eu explico" | checklist |
+| "Refaz essa videoaula com cenário novo, troca o Excalidraw por diagramas animados, põe abertura e separadores, mantém o professor na tela" | videoaula (referencia → corte com remap → identidade → recorte IA → Manim → piloto → lote) |
 
 ## Vlog e vídeo longo
 

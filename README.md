@@ -1,6 +1,6 @@
 # video-editores
 
-Plugin do Claude Code que transforma a IA na sua editora de vídeo: **19 skills** open source, rodando no seu computador, sem SaaS e sem vendor lock-in. Você manda a gravação e pede em português; o `/editar` monta o plano, para nos pontos de aprovação e entrega o vídeo com um relatório do que fez.
+Plugin do Claude Code que transforma a IA na sua editora de vídeo: **20 skills** open source, rodando no seu computador, sem SaaS e sem vendor lock-in. Você manda a gravação e pede em português; o `/editar` monta o plano, para nos pontos de aprovação e entrega o vídeo com um relatório do que fez.
 
 | Skill | O que faz | Ferramenta |
 |---|---|---|
@@ -23,6 +23,7 @@ Plugin do Claude Code que transforma a IA na sua editora de vídeo: **19 skills*
 | `/prova` | Folha de contato, preview e QA | ffmpeg |
 | `/video-docs` | Gravação de tela → vídeo de documentação narrado | edge-tts + `build.py` |
 | `/video-animado` | Vídeo 100% animado por código, narração que dita o tempo de cada cena, sem tela preta | Manim + edge-tts + `montar_cenas.py` |
+| `/videoaula` | Aula gravada (professor + quadro + IDE) → versão redesenhada: cenário novo por IA, diagramas animados no lugar do quadro, capítulos, legenda, −14 LUFS | rembg + Manim + auto-editor + `montar_aula.py` |
 
 No Claude Code, os skills aparecem com o prefixo do plugin (ex.: `/video-editores:corte`). Também são chamados automaticamente pela descrição ("tira os silêncios desse vídeo").
 
@@ -32,7 +33,7 @@ No Claude Code, os skills aparecem com o prefixo do plugin (ex.: `/video-editore
 # dependências base (detalhes e macOS/Windows em docs/instalacao.md)
 sudo apt install ffmpeg fonts-dejavu-core
 curl -LsSf https://astral.sh/uv/install.sh | sh
-uv tool install auto-editor && uv tool install yt-dlp && uv tool install "scenedetect[opencv]"
+uv tool install auto-editor && uv tool install yt-dlp && uv tool install scenedetect
 
 # plugin direto do GitHub
 claude plugin marketplace add fmnapoli/video-editores
@@ -50,6 +51,7 @@ Sem decorar comando. Exemplos (mais em [docs/pedidos-prontos.md](docs/pedidos-pr
 - "Transforma essa aula de 2 horas num vídeo de 10 minutos e tira três Reels."
 - "Faz um checklist do que eu falar e põe a frase forte atrás de mim."
 - "Transforma as gravações em originais/ em vídeos de documentação, um por ação."
+- "Refaz essa videoaula com cenário novo, diagramas animados no lugar do Excalidraw e separadores de assunto, mantendo o professor na tela."
 
 Pipeline padrão de Reels que o `/editar` executa:
 

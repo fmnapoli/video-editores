@@ -38,6 +38,9 @@ Siga `${CLAUDE_PLUGIN_ROOT}/docs/convencoes.md` (pastas, nomes de saída, loudne
 - **Ken Burns em foto (5s)**: `ffmpeg -loop 1 -i foto.jpg -vf "zoompan=z='min(zoom+0.0015,1.3)':d=150:s=1080x1920:fps=30" -pix_fmt yuv420p -t 5 kb.mp4`
 - **Transição entre clipes**: `[0][1]xfade=transition=slideleft:duration=0.3:offset=N`, em que `N` é um número: a duração do primeiro clipe menos 0,3 (calcule com `ffprobe`; `xfade` não aceita expressão).
 
+## Sincronizar com a fala (diagrama que acompanha a narração)
+Use a base `"${CLAUDE_PLUGIN_ROOT}/skills/videoaula/templates/base_cenas.py"`: `Trecho` com `T0`/`DUR` (início e duração do trecho no vídeo), `att(t_abs)` espera até o instante absoluto da palavra (do `.transcript.json`, ou do `transcript_corte.txt` se o vídeo foi cortado) e `fim()` desvanece exatamente no fim do trecho. Vários diagramas independentes: escreva um por subagente (mesma base, mesma área segura) e revise só a folha dos últimos quadros; renderize em paralelo com `skills/videoaula/scripts/render_cenas.sh`.
+
 ## Regras
 - Sempre teste com `-ql` (baixa qualidade) antes do `-qh`.
 - Use `/prova` para mostrar frames da animação ao usuário antes de compor.

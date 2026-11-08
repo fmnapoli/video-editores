@@ -37,7 +37,7 @@ Se outra ferramenta já instalou a fórmula `ffmpeg` enxuta (ocrmypdf, vhs etc.)
 ```bash
 uv tool install auto-editor              # /corte
 uv tool install yt-dlp                   # /referencia
-uv tool install "scenedetect[opencv]"    # /referencia, /efeitos
+uv tool install scenedetect               # /referencia, /efeitos, /videoaula (o extra [opencv] não existe mais no 0.7)
 ```
 
 ## 3. Opcionais por skill

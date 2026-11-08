@@ -114,3 +114,18 @@ Vídeo inteiro em animação por código, sem bruto: a narração (edge-tts) é 
 
 ## /video-docs
 Harness para gravações de tela, documentado em [video-docs-LEIAME.md](video-docs-LEIAME.md) e `skills/video-docs/references/`. Fluxo: inventário → roteiros (com revisão de coerência contra o código) → piloto → lote. Montagem por `spec.json` com `scripts/render-docs.sh`.
+
+## /videoaula
+Reedita uma aula gravada com três modos visuais (professor em tela cheia, quadro branco/Excalidraw com webcam circular, IDE com webcam circular) numa versão com cenário novo e a **mesma narração**. Pipeline dirigido por `trabalho/<slug>/aula.json`:
+
+| Etapa | Script | Paraleliza? |
+|---|---|---|
+| modos visuais por cena | `cenas_modo.py` (sobre o CSV do PySceneDetect) | — |
+| corte (silêncios + cortes manuais) e remap de tempos | auto-editor `--export v1` + `remap_tempos.py` | — |
+| identidade (fundo, chips, anel, lower third, base/tampa do painel de código) | `identidade.py` | — |
+| recorte do professor por IA | `matte.py` via `matte_workers.sh aula.json N` | **N processos** |
+| diagramas e cartelas Manim | `templates/base_cenas.py`, `cartelas.py`; `render_cenas.sh -j N` | **autoria por subagentes; render em N processos** |
+| EDL, blocos, concat com áudio contínuo | `montar_aula.py edl/render --jobs N/concat/map` | **N processos** no render |
+| lettering, loudnorm, SRT, prova | `finalizar.sh` | — |
+
+Gates: design (avaliação + cortes de conteúdo + nome), visual (mockups), piloto (capítulo 1), entrega. Tempo típico numa aula de 20 min em CPU de 8 núcleos: ~2 h de recorte IA (em segundo plano), ~40 min de autoria das cenas, ~15 min de montagem.

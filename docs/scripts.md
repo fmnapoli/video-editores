@@ -123,3 +123,20 @@ Atalho do `render.sh` do video-docs, apontando para `skills/video-docs/scripts/b
 bash scripts/render-docs.sh specs/<slug>/spec.json
 ```
 Formato do spec: `skills/video-docs/references/producao.md`.
+
+## skills/videoaula/scripts/
+Ficam na pasta da skill porque dependem do `aula.json` do projeto (exemplo em `skills/videoaula/templates/aula-exemplo.json`).
+
+| Script | Uso | Saída |
+|---|---|---|
+| `cenas_modo.py` | `uv run --with pillow --with numpy python cenas_modo.py CENAS.csv FRAMES/ cenas.json [--branco 0.55] [--pele 0.12]` | cenas com `kind` ∈ locutor/quadro/codigo |
+| `remap_tempos.py` | `python3 remap_tempos.py CORTE.v1.json cenas.json IN.transcript.json --out PASTA` | `cenas_corte.json`, `transcript_corte.json`, `transcript_corte.txt` (tempos no vídeo cortado) |
+| `identidade.py` | `uv run --with pillow --with numpy python identidade.py aula.json` | `identidade/`: `fundo.png`, `chip_N.png`, `circmask_*.png`, `ring_*.png`, `lower_third.png`, `l3_base_*.png`, `l3_cover_*.png`, `l3_geo.json` |
+| `matte.py` | `uv run --with rembg --with onnxruntime --with pillow --with numpy python matte.py VIDEO INI FIM FUNDO.png OUT [--threads 4] [--model u2net_human_seg]` | `OUT.mp4` (pessoa + sombra sobre o fundo) e `OUT_alpha.mp4` (máscara) |
+| `matte_workers.sh` | `matte_workers.sh aula.json [N]` | `mattes/talk_<ini>.mp4` para cada trecho de locutor, `.done`, `worker*.log` |
+| `render_cenas.sh` | `render_cenas.sh diagramas.py ql\|qh [-j N] Cena1 Cena2 Separador:1` | `media/videos/<modulo>/<540p30\|1080p30>/<Cena>.mov` (alpha) |
+| `montar_aula.py` | `montar_aula.py aula.json edl \| render [--ate T] [--only i,j] [--jobs N] \| concat SAIDA.mp4 [--ate T] \| map T` | `blocos/NNN_<tipo>.mp4` (+ `.ok`), vídeo concatenado com áudio contínuo |
+| `legenda_aula.py` | `legenda_aula.py aula.json CORTE.v1.json IN.transcript.json SAIDA.srt [--ajustes ajustes.json]` | SRT com frases inteiras, tempos finais (corte + cartelas) |
+| `finalizar.sh` | `finalizar.sh aula.json SAIDA.mp4 SAIDA.srt [--textos textos.json] [--ajustes ajustes.json] [--jobs N]` | render de blocos → concat → lettering → loudnorm −14 → SRT → prova |
+
+`aula.json` (campos): `corte`, `corte_v1`, `transcript`, `cenas_corte`, `identidade`, `manim`, `mattes`, `blocos`, `whoosh`, `modos` (nomes dos `kind` no `cenas_corte.json`), `cartela_dur`, `capitulos[] {n, titulo, inicio}` (instante **no corte** em que a cartela entra), `diagramas[] {cena, inicio, fim}`, `circulo {cx, cy, r}` (webcam na gravação), `codigo_grupos[] {grupo, orig_ini, orig_fim, crop}` (tempos no **original**), `abertura`/`encerramento` (`cena`, `xoff`, tempos do overlay), `cores`, `fonte`, `fonte_dir`, `autor`, `subtitulo_autor`, `titulo`, `kicker`.

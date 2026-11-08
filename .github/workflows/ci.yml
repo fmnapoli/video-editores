@@ -10,9 +10,9 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-dejavu-core shellcheck
       - uses: astral-sh/setup-uv@v5
       - name: shellcheck
-        run: shellcheck -S warning scripts/*.sh tests/*.sh exemplos/video-docs/*.sh
+        run: shellcheck -S warning scripts/*.sh tests/*.sh exemplos/video-docs/*.sh skills/videoaula/scripts/*.sh
       - name: ruff
-        run: uvx ruff check scripts skills/video-docs/scripts tests
+        run: uvx ruff check scripts skills/video-docs/scripts skills/video-animado/scripts skills/videoaula/scripts tests
       - name: smoke
         run: bash tests/smoke.sh
       - name: video-docs offline (stub de edge-tts)

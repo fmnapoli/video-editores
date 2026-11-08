@@ -1,0 +1,37 @@
+{
+  "slug": "aula01",
+  "titulo": "Fundamentos do Python",
+  "kicker": "AULA 01",
+  "autor": "Nome do Locutor",
+  "subtitulo_autor": "Aula 01 · Fundamentos do Python",
+  "fonte": "Inter",
+  "fonte_dir": "~/.local/share/fonts/inter",
+  "cores": {"fundo_centro": "#131C33", "fundo_borda": "#0B1220", "acento": "#4B8BBE", "destaque": "#FFD43B", "texto": "#F1F5F9", "texto2": "#94A3B8"},
+
+  "corte": "aula01_corte.mp4",
+  "corte_v1": "aula01_corte.v1.json",
+  "transcript": "aula-python-01.transcript.json",
+  "cenas_corte": "cenas_corte.json",
+  "identidade": "identidade",
+  "manim": "manim/media/videos",
+  "mattes": "mattes",
+  "blocos": "blocos",
+  "whoosh": "sfx/whoosh.wav",
+  "modos": {"locutor": "locutor", "quadro": "quadro", "codigo": "codigo"},
+
+  "cartela_dur": 2.6,
+  "capitulos": [
+    {"n": 1, "titulo": "Programas e algoritmos", "inicio": 19.75},
+    {"n": 2, "titulo": "Tipos de dados", "inicio": 188.0}
+  ],
+  "diagramas": [
+    {"cena": "D1Fluxo", "inicio": 25.1, "fim": 53.3}
+  ],
+  "circulo": {"cx": 1596, "cy": 827, "r": 186},
+  "codigo_grupos": [
+    {"grupo": "A", "orig_ini": 266, "orig_fim": 392, "crop": [462, 165, 1292, 995]},
+    {"grupo": "C", "orig_ini": 578, "orig_fim": 1065, "crop": [412, 155, 1242, 1040]}
+  ],
+  "abertura": {"cena": "Abertura", "xoff": 380, "dur": 19.7, "titulo_t": 0.4, "itens_t": [10.5, 13.2]},
+  "encerramento": {"cena": "Encerramento", "xoff": 380, "dur": 6.9, "inicio_t": 0.3, "proxima_t": 4.6, "proxima": "Próxima aula: condicionais e laços"}
+}

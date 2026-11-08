@@ -1,0 +1,5 @@
+[
+  {"text": "Nome do Locutor\\N{\\fs30\\1c&HB8A394&}Aula 01 · Fundamentos do Python", "start": 22.8, "end": 27.6, "style": "lower", "anim": "slide", "size": 0.046},
+  {"text": "PEP 8 — guia oficial de estilo do Python\\Npeps.python.org/pep-0008", "start": 509.3, "end": 520.0, "style": "lower", "anim": "fade", "size": 0.040},
+  {"text": "{\\1c&H3BD4FF&}Digitado: 900 km\\N{\\1c&HFFFFFF&}900 km ÷ 120 km/h = 7,5 h", "start": 1034.8, "end": 1043.5, "style": "lower", "anim": "fade", "size": 0.040, "pos": [0.585, 0.72]}
+]

@@ -12,7 +12,17 @@ Uso: uv run --with faster-whisper python transcribe.py VIDEO [--model medium] [-
 Mesmo motor do whisper-ctranslate2 usado no video-docs (CTranslate2). O modelo `small`
 erra termos de domínio; `medium` + --prompt é o padrão validado.
 """
-import argparse, json, pathlib, sys
+import argparse, json, pathlib, shutil, subprocess, sys
+
+
+def decode_audio_ffmpeg(path, sr=16000):
+    """Áudio mono float32 a 16 kHz via ffmpeg (numpy já vem com o faster-whisper)."""
+    import numpy as np
+    if not shutil.which("ffmpeg"):
+        return str(path)  # sem ffmpeg, deixa o faster-whisper tentar o PyAV
+    out = subprocess.run(["ffmpeg", "-v", "error", "-i", str(path), "-f", "f32le", "-ac", "1", "-ar", str(sr), "-"],
+                         check=True, capture_output=True).stdout
+    return np.frombuffer(out, dtype=np.float32)
 
 
 def ts(t: float) -> str:
@@ -47,7 +57,10 @@ def main():
 
     src = pathlib.Path(a.input)
     model = WhisperModel(a.model, device=a.device, compute_type="int8" if a.device in ("auto", "cpu") else "auto")
-    segments, info = model.transcribe(str(src), language=None if a.lang == "auto" else a.lang,
+    # Decodifica o áudio com o ffmpeg em vez do PyAV: o PyAV 19 removeu o argumento `metadata_errors` que o
+    # faster-whisper 1.2 ainda passa ("open() got an unexpected keyword argument 'metadata_errors'").
+    audio = decode_audio_ffmpeg(src)
+    segments, info = model.transcribe(audio, language=None if a.lang == "auto" else a.lang,
                                       word_timestamps=True, vad_filter=True,
                                       initial_prompt=a.prompt)
 
