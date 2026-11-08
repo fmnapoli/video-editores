@@ -1,0 +1,95 @@
+{
+ "slug": "demo",
+ "title": "Vídeo de demonstração",
+ "subtitle": "Teste do montador",
+ "acoes": "Nenhuma: bruto sintético (testsrc2)",
+ "out_dir": "saida",
+ "work_dir": "trabalho/demo",
+ "sources": {
+  "a": "originais/demo.mp4"
+ },
+ "scenes": [
+  {
+   "src": "a",
+   "chip": "Abrir a tela",
+   "clips": [
+    [
+     1.0,
+     6.0
+    ]
+   ],
+   "fit": "auto",
+   "tts": "Neste exemplo, o montador corta o trecho do bruto, sintetiza a narração e queima a legenda.",
+   "legend": [
+    "Neste exemplo, o montador corta o trecho do bruto,",
+    "sintetiza a narração e queima a legenda."
+   ],
+   "callouts": [
+    {
+     "at": [
+      2.0,
+      6.0
+     ],
+     "box": [
+      440,
+      260,
+      400,
+      200
+     ],
+     "focus": true,
+     "balloon": "Destaque com foco"
+    }
+   ]
+  },
+  {
+   "src": "a",
+   "chip": "Tarja e seta",
+   "clips": [
+    [
+     10.0,
+     13.0
+    ],
+    [
+     15.0,
+     19.0,
+     1.5
+    ]
+   ],
+   "fit": "auto",
+   "legend": [
+    "Sem campo tts, a voz lê a legenda: faça o deploy,",
+    "confira o dashboard e baixe o backup pela API."
+   ],
+   "callouts": [
+    {
+     "at": [
+      10.5,
+      19.0
+     ],
+     "box": [
+      80,
+      140,
+      300,
+      120
+     ],
+     "balloon": "Balão longe da caixa",
+     "balloon_at": [
+      700,
+      460
+     ]
+    }
+   ],
+   "masks": [
+    {
+     "box": [
+      900,
+      140,
+      300,
+      80
+     ],
+     "label": "dado oculto"
+    }
+   ]
+  }
+ ]
+}

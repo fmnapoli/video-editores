@@ -1,0 +1,8 @@
+{
+  "name": "video-editores",
+  "version": "0.1.0",
+  "description": "13 editores de vídeo como skills do Claude Code, 100% open source e locais (ffmpeg, faster-whisper, auto-editor, Manim, rembg, Blender).",
+  "author": { "name": "Fabrizio Malta Di Napoli" },
+  "license": "MIT",
+  "keywords": ["video", "ffmpeg", "whisper", "editing", "shorts", "reels"]
+}

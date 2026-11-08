@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.venv/
+trabalho/
+saida/
+*.proof.jpg
+*.preview.mp4
+*.proof.txt
+exemplos/video-docs/originais/
+exemplos/video-docs/saida/
+exemplos/video-docs/trabalho/
+.ruff_cache/

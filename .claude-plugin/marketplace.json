@@ -1,0 +1,11 @@
+{
+  "name": "video-editores-local",
+  "owner": { "name": "Fabrizio Malta Di Napoli" },
+  "plugins": [
+    {
+      "name": "video-editores",
+      "source": "./",
+      "description": "13 editores de vídeo open source para o Claude Code."
+    }
+  ]
+}
