@@ -67,6 +67,36 @@ pass "lettering_ass.py respeita a rotação do vídeo"
 echo '{"segments":[]}' > vazio.transcript.json && ! python3 "$S/takes.py" vazio.transcript.json >/dev/null 2>&1
 pass "takes.py aborta em transcrição vazia"
 
+# highlights.py e checklist_ass.py com transcrição sintética (palavras com tempo)
+python3 - <<'PY'
+import json
+segs=[]
+def seg(t0,text):
+    ws=text.split(); cur=t0; wl=[]
+    for w in ws:
+        wl.append({"start":round(cur,2),"end":round(cur+0.3,2),"word":" "+w}); cur+=0.35
+    segs.append({"start":t0,"end":round(cur,2),"text":text,"words":wl,"avg_logprob":-0.2})
+seg(0.5,"Olá, hoje vou mostrar três coisas importantes sobre containers.")
+seg(3.5,"Primeiro, o backup é diário e automático.")
+seg(6.0,"Segundo, o monitoramento roda vinte e quatro por sete.")
+seg(8.8,"Terceiro, rollback em um clique.")
+json.dump({"duration":12,"segments":segs},open("hl.transcript.json","w"),ensure_ascii=False)
+json.dump([{"text":"Backup diário","trigger":"backup"},{"text":"Monitoramento","trigger":"monitoramento"},{"text":"Sem gatilho","trigger":"xyzqq"}],open("itens.json","w"),ensure_ascii=False)
+PY
+python3 "$S/highlights.py" hl.transcript.json --target 6 --keywords "backup,rollback" --min-block 2 >/dev/null
+python3 -c "import json; k=json.load(open('hl.highlights.json'))['keep']; assert 1 <= len(k) <= 3 and sum(e-s for s,e in k) <= 6.5, k"
+python3 "$S/highlights.py" hl.transcript.json --reels 2 --reel-len 4 --min-block 2 --out r.json >/dev/null
+python3 -c "import json; k=json.load(open('r.json'))['keep']; assert len(k)==2 and all(abs((e-s)-4)<0.05 for s,e in k), k"
+pass "highlights.py: corte por alvo e modo reels"
+python3 "$S/checklist_ass.py" in.mp4 itens.json hl.transcript.json --burn out_check.mp4 2>erros.txt >/dev/null
+grep -q "Sem gatilho" erros.txt && grep -c "Dialogue" itens.ass | grep -q "^5$" && test -s out_check.mp4
+pass "checklist_ass.py: 2 itens no tempo da fala, 1 sem gatilho avisado"
+
+# estilos cartao e capa
+echo '[{"text":"Funciona?","start":0,"end":1,"style":"cartao","autor":"@x"},{"text":"A\\NB","start":1,"end":2,"style":"capa","kicker":"k"}]' > t2.json
+python3 "$S/lettering_ass.py" in.mp4 t2.json >/dev/null && grep -q "Cartao" t2.ass && grep -q "\\p1" t2.ass
+pass "lettering_ass.py: estilos cartao e capa"
+
 bash -n "$S"/*.sh && python3 -c 'import ast, sys; [ast.parse(open(f, encoding="utf-8").read(), f) for f in sys.argv[1:]]' "$S"/*.py "$ROOT"/skills/video-docs/scripts/*.py
 pass "sintaxe de todos os scripts"
 

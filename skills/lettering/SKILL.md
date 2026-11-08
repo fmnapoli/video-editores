@@ -1,6 +1,6 @@
 ---
 name: lettering
-description: Adiciona textos estilizados na tela (títulos, palavras-chave, call-outs, lower thirds) com animação (fade, pop, slide) via ASS/libass. Use para /lettering, "coloca um título", "texto na tela", "destaca essa palavra", "lower third com meu nome".
+description: Adiciona textos estilizados na tela (títulos, palavras-chave, call-outs, lower thirds, cartão de comentário, capa de revista) com animação (fade, pop, slide) via ASS/libass. Use para /lettering, "coloca um título", "texto na tela", "destaca essa palavra", "lower third com meu nome", "responde esse comentário com um cartão", "cara de capa de revista".
 ---
 
 # /lettering — texto na tela (ASS, sem drawtext)
@@ -19,7 +19,7 @@ Mesma escolha do `video-docs`: texto em ASS/libass, porque o ffmpeg estático n�
      {"text": "SEM VENDOR LOCK-IN", "start": 12.1, "end": 13.6, "style": "destaque", "anim": "fade"}
    ]
    ```
-   - `style`: `titulo` (topo, branco), `destaque` (amarelo, 30% da altura), `lower` (caixa translúcida, canto inferior esquerdo).
+   - `style`: `titulo` (topo, branco), `destaque` (amarelo, 30% da altura), `lower` (caixa translúcida, canto inferior esquerdo), `cartao` (cartão branco no topo para responder comentário ou painel flutuante; campo extra `autor` para a linha "@usuário"), `capa` (moldura na borda + título grande no terço inferior, estilo revista; campo extra `kicker` para a linha pequena acima).
    - `anim`: `pop`, `fade`, `slide`, `none`. Opcionais: `pos` `[x, y]` em fração da tela, `size` (fração da altura), `color` `#RRGGBB`.
    - `\\N` quebra linha.
 3. Gere e queime:

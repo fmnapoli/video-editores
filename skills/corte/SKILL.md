@@ -1,6 +1,6 @@
 ---
 name: corte
-description: Corta silêncios, respirações e tempo morto de um vídeo falado (talking head, aula, vlog) e entrega um corte seco. Use quando o usuário pedir /corte, "tira os silêncios", "corte seco", "jump cut" ou "deixa mais dinâmico".
+description: Corta silêncios, respirações e tempo morto de um vídeo falado (talking head, aula, vlog) e entrega um corte seco. Use quando o usuário pedir /corte, "tira os silêncios", "corta as pausas", "corte seco", "jump cut" ou "deixa mais dinâmico".
 ---
 
 # /corte — corte seco automático

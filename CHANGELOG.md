@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.0 — 2026-11-07
+Melhorias a partir da análise do concorrente EDIT.IA PRO (`docs/analise-concorrente-editiapro.md`).
+- **`/editar`**: entrada em linguagem natural; tabela de estilos → skills; relatório de edição padronizado; ajustes refazem só a etapa afetada.
+- **`/destaques`** + `highlights.py`: melhores momentos por transcrição para um alvo de duração ou N reels.
+- **`/checklist`** + `checklist_ass.py`: itens com moldura no instante em que são falados.
+- **`/tela-dividida`**: reação, antes/depois, 16:9 → 9:16 e 1:1 (receitas validadas).
+- `/lettering`: estilos `cartao` (resposta a comentário) e `capa` (revista, com moldura e kicker).
+- `/tela-verde`: receita de contorno neon pela máscara do rembg.
+- `docs/pedidos-prontos.md`: pedidos por categoria.
+- Smoke test cobre os scripts novos e os estilos novos.
+
 ## 0.1.1 — 2026-11-07
 Correções a partir de revisão independente (21 achados) e testes das receitas com mídia sintética.
 - `lettering_ass.py`: respeita o metadado de rotação (vídeo de celular saía com texto no tamanho/posição errados); escapa caminhos com espaço, vírgula e `:`.

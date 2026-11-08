@@ -1,17 +1,21 @@
 # video-editores
 
-Plugin do Claude Code com **14 editores de vídeo** como skills: os 13 comandos estilo "editor de reels" e o harness `video-docs` para vídeos de documentação. Tudo open source, roda local, sem SaaS e sem vendor lock-in.
+Plugin do Claude Code que transforma a IA na sua editora de vídeo: **18 skills** open source, rodando no seu computador, sem SaaS e sem vendor lock-in. Você manda a gravação e pede em português; o `/editar` monta o plano, para nos pontos de aprovação e entrega o vídeo com um relatório do que fez.
 
 | Skill | O que faz | Ferramenta |
 |---|---|---|
+| **`/editar`** | Pedido livre → plano → execução com gates → relatório de edição | orquestra os demais |
+| `/destaques` | Melhores momentos de vídeo longo (aula 2 h → 10 min; N reels) | faster-whisper + `highlights.py` |
+| `/checklist` | Itens com moldura que entram no instante em que são falados | `checklist_ass.py` |
+| `/tela-dividida` | Reação, antes/depois, 16:9 → 9:16 e 1:1 | ffmpeg vstack/crop |
 | `/corte` | Corta silêncio e tempo morto | auto-editor |
 | `/tomada` | Detecta tomadas repetidas e fica com a melhor | faster-whisper + `takes.py` |
 | `/legenda` | Legenda automática (SRT ou queimada, estilo reels) | faster-whisper + libass |
 | `/referencia` | Extrai o "DNA" de edição de um vídeo de referência | yt-dlp + PySceneDetect |
-| `/lettering` | Títulos, destaques e lower thirds animados | ASS/libass (`lettering_ass.py`) |
+| `/lettering` | Títulos, destaques, lower thirds, cartão de comentário e capa de revista | ASS/libass (`lettering_ass.py`) |
 | `/animacao` | Motion graphics por código | Manim / ffmpeg |
 | `/texto-atras` | Texto entre o fundo e a pessoa | rembg (U²-Net / BiRefNet) |
-| `/tela-verde` | Chroma key ou troca de fundo por IA | ffmpeg chromakey / rembg |
+| `/tela-verde` | Chroma key, troca de fundo por IA, contorno neon | ffmpeg chromakey / rembg |
 | `/3d` | Texto e objetos 3D com fundo transparente | Blender headless |
 | `/trilha` | Música de fundo com ducking e loudness | ffmpeg sidechaincompress |
 | `/efeitos` | Sound design sincronizado com cortes | ffmpeg (sons sintetizados) |
@@ -36,7 +40,17 @@ claude plugin install video-editores@video-editores-local
 
 Reinicie o Claude Code e rode `make doctor` num clone do repositório para ver o que falta.
 
-## Fluxo típico (reels)
+## Como pedir
+
+Sem decorar comando. Exemplos (mais em [docs/pedidos-prontos.md](docs/pedidos-prontos.md)):
+
+- "Corta as pausas e fica com a última tomada, legenda palavra por palavra."
+- "Edita pro YouTube com os melhores momentos. Onde eu não falo, põe música."
+- "Transforma essa aula de 2 horas num vídeo de 10 minutos e tira três Reels."
+- "Faz um checklist do que eu falar e põe a frase forte atrás de mim."
+- "Transforma as gravações em originais/ em vídeos de documentação, um por ação."
+
+Pipeline padrão de Reels que o `/editar` executa:
 
 ```
 /tomada → /corte → /ganchos → /lettering → /legenda → /trilha → /efeitos → /prova
@@ -49,6 +63,7 @@ Passo a passo completo: [docs/tutorial.md](docs/tutorial.md).
 | Documento | Conteúdo |
 |---|---|
 | [Instalação](docs/instalacao.md) | requisitos por sistema, opcionais por skill, GPU, instalação sem plugin |
+| [Pedidos prontos](docs/pedidos-prontos.md) | pedidos por categoria (Reels, aula, vlog, anúncio, docs) e os skills que executam |
 | [Tutorial](docs/tutorial.md) | do bruto ao reels pronto, e variações (docs, referência, efeitos) |
 | [Skills](docs/skills.md) | entrada, saída, parâmetros, gates e tempo de cada skill |
 | [Scripts](docs/scripts.md) | CLI de cada script, formatos JSON e saídas |
@@ -57,6 +72,7 @@ Passo a passo completo: [docs/tutorial.md](docs/tutorial.md).
 | [Solução de problemas](docs/troubleshooting.md) | sintomas comuns e correções |
 | [video-docs](docs/video-docs-LEIAME.md) | harness de vídeos de documentação |
 | [Contribuindo](CONTRIBUTING.md) | como criar skills e scripts no padrão |
+| [Análise de concorrente](docs/analise-concorrente-editiapro.md) | EDIT.IA PRO: catálogo de estilos, lacunas cobertas e o que ficou de fora |
 
 ## Desenvolvimento
 

@@ -6,6 +6,10 @@ Invocação: `/video-editores:<nome>`, ou em linguagem natural (o Claude escolhe
 
 | Skill | Entrada | Saída | Gate humano | Tempo típico (1 min de vídeo, CPU) |
 |---|---|---|---|---|
+| editar | pedido livre + vídeo | pipeline + relatório de edição | os dos skills chamados | soma |
+| destaques | vídeo longo + alvo | `.highlights.json/.md`, `_destaques.mp4` | **sim**: lista de trechos | transcrição ~1,2× tempo real |
+| checklist | vídeo + itens | `.ass`, `_checklist.mp4` | lista de itens | 10–20 s |
+| tela-dividida | 2 vídeos ou 1 | `_split.mp4` / vertical | prova | 20–60 s |
 | corte | vídeo | `_corte.mp4` | não (avisa se cortar > 45%) | 10–30 s |
 | tomada | vídeo | `.transcript.json`, `.takes.json`, `_tomada.mp4` | **sim**: lista de descartes | 1–2 min |
 | legenda | vídeo (+ transcrição) | `.srt`, `.words.srt`, `_legenda.mp4` | **sim**: texto revisado | 1–2 min |
@@ -22,6 +26,18 @@ Invocação: `/video-editores:<nome>`, ou em linguagem natural (o Claude escolhe
 | video-docs | gravações de tela | `.mp4`, `.srt`, roteiros, inventário | **3 gates** (inventário, roteiros, piloto) | ver LEIAME |
 
 ---
+
+## /editar
+Lê o pedido, escolhe os skills pela tabela de estilos (igual à do catálogo em `docs/pedidos-prontos.md`), executa com os gates e termina com o **relatório de edição**: pausas e tomadas removidas, duração antes/depois, o que foi aplicado, onde está cada arquivo. Ajustes refazem só a etapa afetada.
+
+## /destaques
+`highlights.py` divide a fala em blocos por pausas (`--gap`), pontua por palavras-chave, números, perguntas e marcadores de ênfase, penaliza muletas, e escolhe por pontuação/segundo até o `--target` (ou `--reels N --reel-len S`). Blocos maiores que ~40% do alvo são divididos. Saída `.md` com todos os blocos para o Claude e o usuário refinarem.
+
+## /checklist
+`checklist_ass.py` acha o instante de cada item pela primeira palavra-gatilho na transcrição (sem acento/caixa, a partir do item anterior) ou por `at`, e desenha moldura + itens com ✓ entrando um a um. `--side right` quando a pessoa está à esquerda.
+
+## /tela-dividida
+Receitas ffmpeg validadas: reação (vstack 1080x960 ×2 com `force_original_aspect_ratio=increase`), antes/depois alinhado pela transcrição, 16:9 → 9:16 (recorte central, seguindo a pessoa, ou com fundo borrado) e 1:1.
 
 ## /corte
 Corta silêncio com o auto-editor, com base no volume do áudio.

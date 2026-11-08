@@ -17,8 +17,9 @@ Rode os comandos a partir da raiz do projeto. Os scripts de transcrição gravam
 
 ## Ordem recomendada
 ```
-/referencia (opcional) → /tomada → /corte → /ganchos → /animacao, /3d, /tela-verde, /texto-atras
-→ /lettering → /legenda → /trilha → /efeitos → /prova
+/editar recebe o pedido e monta a ordem. Padrão:
+/referencia (opcional) → /destaques (vídeo longo) → /tomada → /corte → /ganchos → /tela-dividida, /animacao, /3d, /tela-verde, /texto-atras
+→ /checklist → /lettering → /legenda → /trilha → /efeitos → /prova
 ```
 Legenda depois dos efeitos visuais (fica por cima). Áudio por último (cortes mudam o tempo).
 

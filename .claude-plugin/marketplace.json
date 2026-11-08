@@ -5,7 +5,7 @@
     {
       "name": "video-editores",
       "source": "./",
-      "description": "14 editores de vídeo open source para o Claude Code."
+      "description": "18 skills de edição de vídeo open source para o Claude Code: você manda a gravação e pede em português."
     }
   ]
 }

@@ -70,6 +70,19 @@ uv run --with "rembg[cpu]" --with pillow python scripts/text_behind.py IN.mp4 OU
 ```
 Por frame: extrai → segmenta a pessoa → desenha o texto no fundo → recoloca a pessoa por cima. Só o intervalo pedido é processado; o resto do vídeo e o áudio original são preservados. O texto encolhe sozinho até caber em 92% da largura.
 
+## highlights.py
+```bash
+python3 scripts/highlights.py VIDEO.transcript.json --target 600 [--keywords "a,b"] [--keep-intro] [--gap 1.2] [--min-block 4] [--pad 0.15] [--out ARQ]
+python3 scripts/highlights.py VIDEO.transcript.json --reels 3 --reel-len 45
+```
+Saídas: `<nome>.highlights.json` (`keep` para o `render_spans.sh`, mais `blocks` com pontuação) e `<nome>.highlights.md` (tabela legível; trechos escolhidos em negrito). Heurística determinística; a decisão final é do Claude com o usuário.
+
+## checklist_ass.py
+```bash
+python3 scripts/checklist_ass.py VIDEO itens.json VIDEO.transcript.json [--side left|right] [--start S] [--end S] [--font F] [--accent "#FF6B35"] [--burn SAIDA.mp4]
+```
+`itens.json`: lista de `{"text", "trigger"}` ou `{"text", "at"}`. Imprime o instante de cada item; itens sem gatilho vão para o stderr e ficam de fora.
+
 ## proof.sh
 ```bash
 bash scripts/proof.sh VIDEO [N_FRAMES=12]

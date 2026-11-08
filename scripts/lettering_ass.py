@@ -10,7 +10,9 @@ JSON (lista):
   {"text": "IMPORTANTE", "start": 9, "end": 11, "style": "destaque", "anim": "fade",
    "pos": [0.5, 0.25], "color": "#FFD54F", "size": 0.09}
 ]
-style: titulo | lower | destaque     anim: fade | pop | slide | none
+style: titulo | lower | destaque | cartao | capa     anim: fade | pop | slide | none
+  cartao: cartão branco com texto escuro no topo (resposta a comentário, painel flutuante). Use "autor" para a linha "@usuário".
+  capa: moldura na borda do quadro + título grande no terço inferior (estilo revista). "kicker" opcional acima do título.
 pos: centro em fração da tela (x, y). size: altura da fonte em fração da altura do vídeo.
 "\\N" quebra linha.
 
@@ -58,6 +60,8 @@ PRESETS = {
     "titulo":   ((0.5, 0.18), 0.062, "#FFFFFF", 5),
     "destaque": ((0.5, 0.30), 0.065, "#FFD54F", 5),
     "lower":    ((0.05, 0.84), 0.040, "#FFFFFF", 4),
+    "cartao":   ((0.5, 0.14), 0.036, "#0F172A", 5),
+    "capa":     ((0.5, 0.80), 0.085, "#FFFFFF", 5),
 }
 
 
@@ -79,8 +83,10 @@ def main():
         X, Y = int(W * x), int(H * y)
         an = it.get("anim", "fade")
         tags = [f"\\an{align}", f"\\fs{px}", f"\\1c{c}", "\\b1"]
-        if it.get("style") != "lower":
+        if it.get("style") not in ("lower", "cartao"):
             tags += ["\\bord" + str(max(2, px // 14)), "\\3c&H000000&"]
+        if it.get("style") == "cartao":
+            tags += ["\\bord14", "\\3c&H00FFFFFF&", "\\4c&H00FFFFFF&"]
         if an == "slide":
             tags.append(f"\\move({-W // 3},{Y},{X},{Y},0,300)")
             tags.append("\\fad(0,200)")
@@ -90,7 +96,19 @@ def main():
                 tags.append("\\fad(200,200)")
             elif an == "pop":
                 tags.append("\\fscx40\\fscy40\\t(0,180,\\fscx112\\fscy112)\\t(180,280,\\fscx100\\fscy100)\\fad(0,200)")
-        lines.append(f"Dialogue: 0,{t(it['start'])},{t(it['end'])},{'Lower' if it.get('style') == 'lower' else 'Base'},,0,0,0,,{{{''.join(tags)}}}{it['text']}")
+        style_name = {"lower": "Lower", "cartao": "Cartao"}.get(it.get("style"), "Base")
+        text = it["text"]
+        if it.get("style") == "cartao" and it.get("autor"):
+            text = f"{{\\fs{int(px*0.75)}\\1c&H7A7A7A&}}{it['autor']}{{\\fs{px}\\1c{c}}}\\N{text}"
+        if it.get("style") == "capa":
+            m = int(min(W, H) * 0.035)
+            frame = f"m {m} {m} l {W-m} {m} l {W-m} {H-m} l {m} {H-m} l {m} {m} m {m+8} {m+8} l {m+8} {H-m-8} l {W-m-8} {H-m-8} l {W-m-8} {m+8} l {m+8} {m+8}"
+            lines.append(f"Dialogue: 0,{t(it['start'])},{t(it['end'])},Base,,0,0,0,,{{\\an7\\pos(0,0)\\fad(200,200)\\1c{c}\\bord0\\shad0\\p1}}{frame}{{\\p0}}")
+            if it.get("kicker"):
+                n_lines = it["text"].count("\\N") + 1
+                ky = Y - int(px * 1.15 * n_lines / 2) - int(px * 0.45)
+                lines.append(f"Dialogue: 1,{t(it['start'])},{t(it['end'])},Base,,0,0,0,,{{\\an5\\pos({X},{ky})\\fs{int(px*0.32)}\\1c{c}\\bord2\\3c&H000000&\\fad(200,200)}}{it['kicker'].upper()}")
+        lines.append(f"Dialogue: 1,{t(it['start'])},{t(it['end'])},{style_name},,0,0,0,,{{{''.join(tags)}}}{text}")
 
     ass = f"""[Script Info]
 ScriptType: v4.00+
@@ -102,6 +120,7 @@ ScaledBorderAndShadow: yes
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
 Style: Base,{a.font},48,&H00FFFFFF,&H00FFFFFF,&H00000000,&H80000000,1,0,0,0,100,100,0,0,1,3,0,5,10,10,10,1
 Style: Lower,{a.font},48,&H00FFFFFF,&H00FFFFFF,&H70000000,&H70000000,1,0,0,0,100,100,0,0,3,12,0,4,10,10,10,1
+Style: Cartao,{a.font},48,&H002A170F,&H002A170F,&H00FFFFFF,&H00FFFFFF,1,0,0,0,100,100,0,0,3,14,0,5,10,10,10,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text

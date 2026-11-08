@@ -1,6 +1,6 @@
 ---
 name: tela-verde
-description: Remove fundo verde (chroma key) ou, sem tela verde, recorta a pessoa por IA e troca o fundo por imagem, vídeo ou cor. Use para /tela-verde, "tira o fundo", "chroma key", "troca o fundo".
+description: Remove fundo verde (chroma key) ou, sem tela verde, recorta a pessoa por IA e troca o fundo por imagem, vídeo ou cor; também contorno neon na silhueta. Use para /tela-verde, "tira o fundo", "chroma key", "troca o fundo", "me recorta e troca o cenário", "contorno neon".
 ---
 
 # /tela-verde — troca de fundo
@@ -22,6 +22,13 @@ Siga `${CLAUDE_PLUGIN_ROOT}/docs/convencoes.md` (pastas, nomes de saída, loudne
 
 ## Sem tela verde (IA, rembg — MIT)
 Use o mesmo pipeline de `"${CLAUDE_PLUGIN_ROOT}/scripts/text_behind.py"` adaptado: para cada frame, `rembg.remove` gera a pessoa com alpha e cola sobre o novo fundo. Processe em trechos e avise que é lento em CPU. Para clipes longos, sugira RobustVideoMatting (GPL-3, melhor estabilidade temporal) com GPU.
+
+## Contorno neon (efeito de Reels)
+Com a máscara do rembg dá para desenhar um contorno colorido na silhueta, sem trocar o fundo:
+1. Extraia os frames do trecho e gere a máscara da pessoa (`rembg.remove(img, only_mask=True)`).
+2. Dilate a máscara (Pillow `ImageFilter.MaxFilter(15)`), subtraia a original → anel; pinte o anel com a cor neon, aplique `GaussianBlur(6)` para o brilho e componha sobre o frame original, com a pessoa por cima.
+3. Remonte com ffmpeg e substitua o trecho como no `text_behind.py` (mesma estrutura de script; copie-o e troque a composição).
+Cor típica: `#FF6B35` (laranja) ou `#39FF14` (verde neon). Trechos de 1–3 s, como no `/texto-atras`.
 
 ## Regras
 - Fundo novo deve ter a mesma resolução/proporção do vídeo (o `scale2ref` resolve, mas avise se for distorcer).
