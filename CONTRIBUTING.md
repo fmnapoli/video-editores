@@ -25,6 +25,10 @@ make lint     # shellcheck + ruff
 7. Documente o skill em `docs/skills.md` e adicione uma linha no README.
 
 ## Novo script
+
+Todo script novo entra também no catálogo (`video_editores/nucleo/catalogo.py`), com nome estável, uso e dependências por papel (`"asr"`, `"seg"`, `"tts"`) ou pacote. Com isso ele aparece em `video-editores listar`, no servidor MCP e no teste que confere que todo script do catálogo existe. Se usar um modelo de IA, não importe o pacote do modelo direto: use `video_editores.modelos.get_asr/get_segmentador/get_tts` e exponha `--backend`. Se codificar vídeo, use `video_editores.nucleo.ffmpeg.codec_video()`.
+
+### Passos
 - Lógica determinística vai para script, não para o texto do skill.
 - Python: `argparse`, docstring com o uso, só biblioteca padrão quando der; dependências via `uv run --with` (nunca `pip install` global).
 - Bash: `set -euo pipefail`, sem warnings do shellcheck.

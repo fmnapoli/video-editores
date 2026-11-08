@@ -27,6 +27,8 @@ Plugin do Claude Code que transforma a IA na sua editora de vídeo: **20 skills*
 
 No Claude Code, os skills aparecem com o prefixo do plugin (ex.: `/video-editores:corte`). Também são chamados automaticamente pela descrição ("tira os silêncios desse vídeo").
 
+Por baixo das skills há um núcleo que funciona **sem o Claude**: a CLI `video-editores <operação>` roda qualquer script, os modelos de IA (transcrição, recorte de pessoa, narração) são trocáveis por configuração (`VE_ASR`, `VE_SEG`, `VE_TTS`, `VE_DEVICE=cuda`, `VE_ENCODER=h264_nvenc`), e um servidor MCP expõe as mesmas operações a outros agentes, com tarefas em segundo plano. Detalhes em [docs/nucleo.md](docs/nucleo.md).
+
 ## Instalação rápida
 
 ```bash
@@ -41,6 +43,13 @@ claude plugin install video-editores@video-editores-local
 ```
 
 Reinicie o Claude Code e rode `make doctor` num clone do repositório para ver o que falta.
+
+Sem Claude Code (CLI) ou para outro agente (MCP):
+
+```bash
+uv tool install "video-editores @ git+https://github.com/fmnapoli/video-editores"      # CLI: video-editores listar
+claude mcp add video-editores -- uvx --from "video-editores[mcp] @ git+https://github.com/fmnapoli/video-editores" video-editores-mcp --raiz "$PWD"
+```
 
 ## Como pedir
 
@@ -72,6 +81,8 @@ Passo a passo completo: [docs/tutorial.md](docs/tutorial.md).
 | [Scripts](docs/scripts.md) | CLI de cada script, formatos JSON e saídas |
 | [Convenções](docs/convencoes.md) | pastas, nomes, ordem, formatos, loudness, privacidade, licenças |
 | [Arquitetura](docs/arquitetura.md) | camadas, ADRs, fluxo de dados, testes |
+| [Núcleo](docs/nucleo.md) | CLI `video-editores`, modelos trocáveis e GPU, servidor MCP, backend próprio |
+| [ADR núcleo/MCP](docs/adr/2026-11-08-nucleo-modelos-mcp.md) | decisão de abstrair modelos, CLI e MCP; integração com GPU; roteiro |
 | [Solução de problemas](docs/troubleshooting.md) | sintomas comuns e correções |
 | [video-docs](docs/video-docs-LEIAME.md) | harness de vídeos de documentação |
 | [Contribuindo](CONTRIBUTING.md) | como criar skills e scripts no padrão |
@@ -80,6 +91,7 @@ Passo a passo completo: [docs/tutorial.md](docs/tutorial.md).
 
 ```bash
 make test           # teste de fumaça com vídeo sintético (ffmpeg + python3)
+bash tests/nucleo.sh        # núcleo: modelos, catálogo, CLI, tarefas e MCP em processo (uv)
 bash tests/docs_offline.sh  # montador do video-docs offline (stub do edge-tts)
 make lint           # shellcheck + ruff
 make docs-example   # exemplo do video-docs (precisa de internet para o edge-tts)

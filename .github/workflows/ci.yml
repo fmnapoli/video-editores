@@ -12,9 +12,13 @@ jobs:
       - name: shellcheck
         run: shellcheck -S warning scripts/*.sh tests/*.sh exemplos/video-docs/*.sh skills/videoaula/scripts/*.sh
       - name: ruff
-        run: uvx ruff check scripts skills/video-docs/scripts skills/video-animado/scripts skills/videoaula/scripts tests
+        run: uvx ruff check video_editores scripts skills/video-docs/scripts skills/video-animado/scripts skills/videoaula/scripts tests
       - name: smoke
         run: bash tests/smoke.sh
+      - name: núcleo (CLI, modelos, tarefas, MCP em processo)
+        run: bash tests/nucleo.sh
+      - name: roda instalável (hatchling) e CLI a partir dela
+        run: uv build --quiet && uvx --from "$(ls dist/*.whl)" video-editores listar | grep -q aula-finalizar
       - name: video-docs offline (stub de edge-tts)
         run: bash tests/docs_offline.sh
   macos:
@@ -29,5 +33,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
       - name: smoke
         run: bash tests/smoke.sh
+      - name: núcleo (CLI, modelos, tarefas, MCP em processo)
+        run: bash tests/nucleo.sh
       - name: video-docs offline (stub de edge-tts)
         run: bash tests/docs_offline.sh

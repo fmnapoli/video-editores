@@ -17,7 +17,6 @@ O glossário (pronuncia.py do video-docs) vale só para a fala; o montar_cenas.p
 original para a legenda. Com a voz multilíngue o glossário padrão não entra: passe --glossario.
 """
 import argparse
-import asyncio
 import hashlib
 import json
 import os
@@ -26,9 +25,10 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "..", "video-docs", "scripts"))
+sys.path.insert(0, os.environ.get("VE_PKG_DIR") or os.path.join(HERE, "..", "..", ".."))
 import pronuncia  # noqa: E402
-
-VOZ = "pt-BR-ThalitaMultilingualNeural"
+from video_editores import modelos  # noqa: E402
+from video_editores.modelos.tts_edge import VOZ_PADRAO as VOZ  # noqa: E402
 
 
 def carrega_spec(caminho):
@@ -45,21 +45,14 @@ def duracao(p):
     return float(out.strip())
 
 
-async def fala(texto, voz, mp3, words):
-    import edge_tts
-    com = edge_tts.Communicate(texto, voz, boundary="WordBoundary")
-    ws = []
-    with open(mp3, "wb") as f:
-        async for ch in com.stream():
-            if ch["type"] == "audio":
-                f.write(ch["data"])
-            elif ch["type"] == "WordBoundary":
-                ws.append({"t": ch["offset"] / 1e7, "d": ch["duration"] / 1e7, "w": ch["text"]})
+def fala(texto, voz, mp3, words, backend=None):
+    """Sintetiza com o backend de TTS configurado (VE_TTS, padrão edge-tts) e grava as fronteiras de palavra."""
+    ws = modelos.get_tts(backend).sintetizar(texto, voz, mp3)
     with open(words, "w", encoding="utf-8") as f:
         json.dump(ws, f, ensure_ascii=False)
 
 
-async def main():
+def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("spec")
     ap.add_argument("--out", help="pasta de saída (padrão trabalho/<slug>/tts)")
@@ -67,6 +60,7 @@ async def main():
     ap.add_argument("--glossario", help="JSON {termo: pronúncia}; vale só para a fala")
     ap.add_argument("--lead", type=float, default=0.6, help="silêncio antes da fala (s)")
     ap.add_argument("--tail", type=float, default=0.8, help="silêncio depois da fala (s)")
+    ap.add_argument("--backend", help="backend de TTS (padrão: VE_TTS ou edge)")
     a = ap.parse_args()
 
     spec = carrega_spec(a.spec)
@@ -86,7 +80,7 @@ async def main():
         h = hashlib.sha1((voz + texto).encode("utf-8")).hexdigest()[:10]
         mp3, words, tag = (os.path.join(out, f"{cid}.{ext}") for ext in ("mp3", "words.json", "hash"))
         if not (os.path.exists(mp3) and os.path.exists(tag) and open(tag).read() == h):
-            await fala(texto, voz, mp3, words)
+            fala(texto, voz, mp3, words, a.backend)
             open(tag, "w").write(h)
         d = duracao(mp3)
         total = round(a.lead + d + a.tail, 2)
@@ -99,4 +93,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

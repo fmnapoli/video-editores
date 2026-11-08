@@ -1,6 +1,8 @@
 # Referência dos scripts
 
-Ficam em `scripts/` e podem ser usados sem o Claude. Os scripts Python que precisam de pacotes rodam com `uv run --with <pacote>`, sem instalar nada globalmente.
+Ficam em `scripts/` e podem ser usados sem o Claude. Os scripts Python que precisam de pacotes rodam com `uv run --with <pacote>`, sem instalar nada globalmente. Desde a 0.5.0 todos têm um nome estável na CLI `video-editores <operação>` (que resolve o `uv run --with` sozinho) e no servidor MCP; a tabela nome → script está em [nucleo.md](nucleo.md).
+
+Os scripts que usam modelos de IA (`transcribe.py`, `text_behind.py`, `matte.py`, `tts_cenas.py`) aceitam `--backend` e respeitam `VE_ASR`/`VE_SEG`/`VE_TTS`/`VE_DEVICE`; `matte.py` e `montar_aula.py` codificam com `VE_ENCODER`.
 
 ## transcribe.py
 Transcrição com timestamps por palavra (faster-whisper, motor CTranslate2, o mesmo do whisper-ctranslate2 usado no video-docs).

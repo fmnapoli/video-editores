@@ -8,21 +8,19 @@ Gera, ao lado do arquivo de entrada:
 
 Uso: uv run --with faster-whisper python transcribe.py VIDEO [--model medium] [--lang pt]
      [--prompt "vocabulário do domínio: Kubernetes, ArgoCD, Terraform"] [--out-dir trabalho/meu-video] [--words-per-cue 3]
+     [--backend faster-whisper]      (ou VE_ASR=...; `video-editores transcrever` resolve as dependências sozinho)
 
-Mesmo motor do whisper-ctranslate2 usado no video-docs (CTranslate2). O modelo `small`
-erra termos de domínio; `medium` + --prompt é o padrão validado.
+O motor é o backend de ASR configurado em video_editores.modelos (padrão faster-whisper, CTranslate2, o mesmo
+do whisper-ctranslate2 usado no video-docs). O modelo `small` erra termos de domínio; `medium` + --prompt é o
+padrão validado.
 """
-import argparse, json, pathlib, shutil, subprocess, sys
+import argparse, json, os, pathlib, sys
 
+sys.path.insert(0, os.environ.get("VE_PKG_DIR") or str(pathlib.Path(__file__).resolve().parents[1]))
+from video_editores import modelos  # noqa: E402
+from video_editores.nucleo.ffmpeg import decodificar_audio  # noqa: E402
 
-def decode_audio_ffmpeg(path, sr=16000):
-    """Áudio mono float32 a 16 kHz via ffmpeg (numpy já vem com o faster-whisper)."""
-    import numpy as np
-    if not shutil.which("ffmpeg"):
-        return str(path)  # sem ffmpeg, deixa o faster-whisper tentar o PyAV
-    out = subprocess.run(["ffmpeg", "-v", "error", "-i", str(path), "-f", "f32le", "-ac", "1", "-ar", str(sr), "-"],
-                         check=True, capture_output=True).stdout
-    return np.frombuffer(out, dtype=np.float32)
+decode_audio_ffmpeg = decodificar_audio  # compatibilidade com quem importava daqui
 
 
 def ts(t: float) -> str:
@@ -47,29 +45,19 @@ def main():
     ap.add_argument("--lang", default="pt", help="código ISO ou auto")
     ap.add_argument("--out-dir", default=None, help="pasta de saída (padrão: trabalho/<nome>/ se existir trabalho/, senão ao lado da entrada)")
     ap.add_argument("--words-per-cue", type=int, default=3)
-    ap.add_argument("--device", default="auto")
+    ap.add_argument("--device", default=None, help="auto|cpu|cuda (padrão: VE_DEVICE ou auto)")
+    ap.add_argument("--backend", default=None, help="backend de ASR (padrão: VE_ASR ou faster-whisper)")
     a = ap.parse_args()
 
-    try:
-        from faster_whisper import WhisperModel
-    except ImportError:
-        sys.exit("faster-whisper não instalado: pip install faster-whisper")
-
     src = pathlib.Path(a.input)
-    model = WhisperModel(a.model, device=a.device, compute_type="int8" if a.device in ("auto", "cpu") else "auto")
+    dev = a.device or modelos.config()["device"]
+    asr = modelos.get_asr(a.backend, modelo=a.model, device=dev)
     # Decodifica o áudio com o ffmpeg em vez do PyAV: o PyAV 19 removeu o argumento `metadata_errors` que o
     # faster-whisper 1.2 ainda passa ("open() got an unexpected keyword argument 'metadata_errors'").
-    audio = decode_audio_ffmpeg(src)
-    segments, info = model.transcribe(audio, language=None if a.lang == "auto" else a.lang,
-                                      word_timestamps=True, vad_filter=True,
-                                      initial_prompt=a.prompt)
-
-    segs, words = [], []
-    for s in segments:
-        ws = [{"start": w.start, "end": w.end, "word": w.word} for w in (s.words or [])]
-        segs.append({"start": s.start, "end": s.end, "text": s.text.strip(), "words": ws,
-                     "avg_logprob": s.avg_logprob, "no_speech_prob": s.no_speech_prob})
-        words.extend(ws)
+    tr = asr.transcrever(decodificar_audio(src), lang=a.lang, prompt=a.prompt)
+    info = tr
+    segs = tr.to_dict(str(src))["segments"]
+    words = [w for s in segs for w in s["words"]]
 
     if a.out_dir:
         out_dir = pathlib.Path(a.out_dir)

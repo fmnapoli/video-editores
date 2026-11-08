@@ -74,7 +74,7 @@ Validado em nov/2026 numa aula de Python de 20 min (3 modos visuais, 9 diagramas
 ## Paralelismo — onde cabe e onde não
 | Trabalho | Como paralelizar | Limite |
 |---|---|---|
-| Recorte IA dos trechos de locutor | `matte_workers.sh aula.json N` (processos, balanceados por duração); com GPU NVIDIA, `matte.py --gpu` + `onnxruntime-gpu` | ~1,3 GB RAM e núcleos/N threads por trabalhador |
+| Recorte IA dos trechos de locutor | `matte_workers.sh aula.json N` (processos, balanceados por duração); com GPU NVIDIA, `VE_DEVICE=cuda` (troca para `onnxruntime-gpu` sozinho) e `VE_ENCODER=h264_nvenc` | ~1,3 GB RAM e núcleos/N threads por trabalhador |
 | Render das cenas Manim | `render_cenas.sh ... -j N` | ~1 GB por render em 1080p |
 | Render dos blocos ffmpeg | `montar_aula.py render --jobs N` | núcleos/4 |
 | Autoria das cenas Manim, call-outs, revisão de folhas | **subagentes**, um por cena, depois que os tempos existem | consistência: todos recebem a mesma base e área segura |

@@ -10,3 +10,8 @@ exemplos/video-docs/originais/
 exemplos/video-docs/saida/
 exemplos/video-docs/trabalho/
 .ruff_cache/
+.video-editores/
+dist/
+*.egg-info/
+video_editores/recursos/
+uv.lock

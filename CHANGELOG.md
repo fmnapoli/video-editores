@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.0 — 2026-11-08
+Núcleo em camadas: modelos de IA trocáveis, CLI única e servidor MCP (ADR-10 a 12, `docs/adr/2026-11-08-nucleo-modelos-mcp.md`). Motivado pela proposta de abstrair o modelo, servir outros agentes e rodar numa plataforma com GPUs.
+- **Pacote `video_editores`** (`pyproject.toml`, hatchling; a roda leva `scripts/` e `skills/*/scripts` em `recursos/`): `modelos/` com os papéis ASR, Segmentador e TTS, backends `faster-whisper`, `rembg`, `edge`, registro por nome e `VE_MODELOS_EXTRA` para backend próprio; configuração por `VE_ASR`/`VE_SEG`/`VE_TTS`/`VE_DEVICE`/`VE_ENCODER`, `video-editores.toml` ou padrão; `deps(device)` de cada backend alimenta o `uv run --with` (cuda → `onnxruntime-gpu`).
+- `nucleo/ffmpeg.py`: sondagem, decodificação de áudio para ASR e `codec_video()` (libx264, h264_nvenc, hevc_nvenc, h264_videotoolbox, h264_vaapi). `nucleo/catalogo.py`: nome estável de cada operação → script, uso, dependências, se é longa; única fonte da CLI, do MCP e da documentação.
+- **CLI `video-editores`**: `listar`, `modelos`, `tarefas`, `mcp` e qualquer operação do catálogo (`transcrever`, `prova`, `aula-recorte-paralelo`, `aula-finalizar`, …), com `--fundo` para segundo plano. `tarefas.py`: processos detached com código de saída em arquivo.
+- **Servidor MCP** (`video-editores-mcp`, SDK `mcp>=2`, stdio ou `--http PORTA`): `executar_operacao` genérica, ferramentas tipadas (`transcrever`, `recortar_pessoa`, `lettering`, `prova`, `videoaula_montar`, `videoaula_finalizar`), `tarefa_status/esperar/cancelar`, `tarefas_listar`, `ler_texto`, `versao`; caminhos restritos a `--raiz`.
+- Scripts adaptados sem mudar a CLI: `transcribe.py`, `text_behind.py`, `matte.py`, `tts_cenas.py` usam o backend configurado (`--backend`); `matte.py` e `montar_aula.py` codificam por `VE_ENCODER`; `matte_workers.sh` escolhe o onnxruntime pelo `VE_DEVICE`. Validado com os modelos reais num trecho da Aula 01 (transcrição e recorte idênticos em comportamento).
+- `doctor.sh` mostra backends, dispositivo efetivo, GPU e codificadores do ffmpeg. `tests/nucleo.sh` + `tests/mcp_test.py` (cliente MCP em memória) no CI, mais build da roda e CLI a partir dela. Docs: `nucleo.md`, ADR, arquitetura (4 camadas, ADR-01 revisto), README, instalação, scripts, CONTRIBUTING.
+- Não feito, por decisão (ADR-12 e roteiro do ADR): skills para outros agentes só quando houver um segundo agente em uso; validação em GPU e backends de video matting (BiRefNet/MatAnyone) dependem de uma máquina com GPU.
+
 ## 0.4.0 — 2026-11-08
 Videoaula redesenhada e paralelismo em dois níveis. Lições de uma aula de Python de 20 min (3 modos visuais, 9 diagramas, 6 capítulos → 17,5 min).
 - **`/videoaula`** (20º skill): aula gravada (professor + quadro/Excalidraw + IDE, webcam circular) → versão com cenário novo por recorte de IA, diagramas Manim sincronizados por palavra no lugar do quadro, IDE reenquadrada por grupos de layout, abertura com checklist, separadores por capítulo, encerramento, lower third, call-outs, SRT e −14 LUFS; 4 gates (design, visual, piloto, entrega). Tudo dirigido por `aula.json`.

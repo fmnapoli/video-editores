@@ -3,9 +3,16 @@
 # balanceados por duração. Cada trecho vira mattes/talk_<ini>.mp4 (+ _alpha.mp4) e um .done; reexecutar só faz o que falta.
 # Uso: matte_workers.sh aula.json [N_TRABALHADORES=2]
 # Dimensione pela máquina: cada trabalhador usa ~1,3 GB de RAM e (núcleos/N) threads; confira `nproc` e `free -g`.
+# GPU NVIDIA: VE_DEVICE=cuda troca o onnxruntime pelo onnxruntime-gpu e liga o CUDAExecutionProvider no matte.py.
 set -euo pipefail
 CFG="$1"; N="${2:-2}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
+PLUG="$(cd "$HERE/../../.." && pwd)"
+export VE_PKG_DIR="${VE_PKG_DIR:-$PLUG}"   # onde o matte.py acha o pacote video_editores
+# pacotes do backend de segmentação configurado (VE_SEG/VE_DEVICE), um --with por pacote
+mapfile -t WITHS < <(PYTHONPATH="$VE_PKG_DIR" python3 -c "
+from video_editores import modelos
+for p in modelos.deps('seg'): print('--with'); print(p)")
 cd "$(dirname "$CFG")"; CFG="$(basename "$CFG")"
 read -r CUT FUNDO MATTES LOCUTOR < <(python3 -c "
 import json,sys; c=json.load(open(sys.argv[1])); print(c['corte'], c['identidade']+'/fundo.png', c.get('mattes','mattes'), c.get('modos',{}).get('locutor','locutor'))" "$CFG")
@@ -30,7 +37,7 @@ worker() {
     read -r _ s e name <<< "$l"
     [[ -f "$MATTES/$name.done" ]] && continue
     # `< /dev/null` é obrigatório: sem ele o processo filho engole o resto da lista (stdin herdado)
-    uv run --with rembg --with onnxruntime --with pillow --with numpy python -I "$HERE/matte.py" \
+    uv run "${WITHS[@]}" python -I "$HERE/matte.py" \
       "$CUT" "$s" "$e" "$FUNDO" "$MATTES/$name" --threads "$THREADS" < /dev/null && touch "$MATTES/$name.done"
   done
   echo "trabalhador $w: fim"

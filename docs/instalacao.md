@@ -87,3 +87,12 @@ make -C ~/src/video-editores test        # teste de fumaça (~10 s)
 | Blender (Cycles) | grande; EEVEE já é rápido em GPU integrada |
 
 Sem GPU tudo funciona. Use trechos curtos para os passos de IA.
+
+Com GPU, nada a instalar à mão: `VE_DEVICE=cuda` faz o backend de segmentação declarar `onnxruntime-gpu` e o faster-whisper usar `float16`; `VE_ENCODER=h264_nvenc` troca o libx264 no recorte e nos blocos da videoaula. `make doctor` mostra o dispositivo efetivo e os codificadores do seu ffmpeg. Detalhes e `video-editores.toml` em [nucleo.md](nucleo.md).
+
+## 7. CLI e servidor MCP (opcional)
+
+```bash
+uv tool install "video-editores @ git+https://github.com/fmnapoli/video-editores"   # video-editores listar | modelos | <operação>
+claude mcp add video-editores -- uvx --from "video-editores[mcp] @ git+https://github.com/fmnapoli/video-editores" video-editores-mcp --raiz /caminho/do/projeto
+```

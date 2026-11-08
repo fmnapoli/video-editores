@@ -14,6 +14,10 @@ muito melhores, ~3-5x mais lento; recomendado com GPU).
 """
 import argparse, pathlib, shutil, subprocess, sys, tempfile
 
+import os
+sys.path.insert(0, os.environ.get("VE_PKG_DIR") or str(pathlib.Path(__file__).resolve().parents[1]))
+from video_editores import modelos  # noqa: E402
+
 
 def sh(*cmd):
     subprocess.run(cmd, check=True)
@@ -38,13 +42,13 @@ def main():
     ap.add_argument("--color", default="#FFFFFF")
     ap.add_argument("--y", type=float, default=0.35, help="posição vertical do centro do texto (0-1)")
     ap.add_argument("--model", default="u2net_human_seg")
+    ap.add_argument("--backend", default=None, help="backend de segmentação (padrão: VE_SEG ou rembg)")
     a = ap.parse_args()
 
     try:
         from PIL import Image, ImageDraw, ImageFont
-        from rembg import new_session, remove
     except ImportError:
-        sys.exit("faltam dependências: pip install 'rembg[cpu]' pillow")
+        sys.exit("faltam dependências: uv run --with rembg --with onnxruntime --with pillow --with numpy ...")
 
     fps = probe_fps(a.input)
     tmp = pathlib.Path(tempfile.mkdtemp(prefix="tb_"))
@@ -53,7 +57,7 @@ def main():
     sh("ffmpeg", "-hide_banner", "-loglevel", "error", "-ss", str(a.start), "-to", str(a.end),
        "-i", a.input, str(fr / "%06d.png"))
 
-    session = new_session(a.model)
+    seg = modelos.get_segmentador(a.backend, modelo=a.model, device=modelos.device())
     frames = sorted(fr.glob("*.png"))
     font = None
     for i, p in enumerate(frames, 1):
@@ -70,7 +74,7 @@ def main():
             while d.textlength(a.text, font=font) > W * 0.92 and px > 10:
                 px = int(px * 0.92)
                 font = font.font_variant(size=px)
-        person = remove(img, session=session)  # RGBA com alpha = pessoa
+        person = seg.recortar(img)  # RGBA com alpha = pessoa
         bg = img.copy()
         d = ImageDraw.Draw(bg)
         d.text((W / 2, H * a.y), a.text, font=font, fill=a.color, anchor="mm")

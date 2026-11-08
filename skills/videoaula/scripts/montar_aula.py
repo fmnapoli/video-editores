@@ -16,13 +16,15 @@ aula.json (campos principais; exemplo completo em ../templates/aula-exemplo.json
   circulo: {"cx":1596, "cy":827, "r":186}                    webcam circular na gravação
   codigo_grupos: [{"grupo":"A", "orig_ini":266, "orig_fim":392}]   grupos de recorte (geometria em identidade/l3_geo.json)
   abertura/encerramento: {"cena":"Abertura", "xoff":380}     overlays Manim do 1º e do último trecho de locutor
-Só biblioteca padrão + ffmpeg.
+Só biblioteca padrão + ffmpeg. Codificador por VE_ENCODER (libx264 padrão; h264_nvenc etc. em máquina com GPU).
 """
 import json, os, shlex, subprocess, sys
 
+sys.path.insert(0, os.environ.get("VE_PKG_DIR") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+from video_editores.nucleo.ffmpeg import codec_video  # noqa: E402
+
 FPS = 30
-ENC = ["-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p", "-r", str(FPS),
-       "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-ac", "2"]
+ENC = [*codec_video(crf=18), "-r", str(FPS), "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-ac", "2"]
 CIRC = {"l2": dict(size=420, pos=(1452, 632), ring=(1412, 592)), "l3": dict(size=444, pos=(1404, 190), ring=(1364, 150))}
 
 

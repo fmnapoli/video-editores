@@ -6,27 +6,31 @@
 flowchart LR
   U[Você no Claude Code] -->|"/video-editores:skill" ou linguagem natural| S[Skills<br/>SKILL.md]
   S -->|instruções + gates| C[Claude]
-  C -->|executa| SC[scripts/]
-  C -->|executa| T[Ferramentas<br/>ffmpeg · auto-editor · Manim · Blender]
-  SC --> T
-  SC -->|uv run --with| M[Modelos locais<br/>faster-whisper · rembg/BiRefNet]
+  A[Outro agente<br/>cliente MCP] --> MCP[video-editores-mcp<br/>ferramentas + tarefas]
+  T2[Terminal] --> CLI[video-editores CLI]
+  C -->|executa| SC[scripts/ e skills/*/scripts/]
+  MCP --> CAT[nucleo/catalogo.py]
+  CLI --> CAT
+  CAT --> SC
+  SC --> MOD[modelos/<br/>ASR · Segmentador · TTS]
+  MOD -->|VE_ASR VE_SEG VE_TTS VE_DEVICE| B[Backends<br/>faster-whisper · rembg · edge-tts · próprio]
+  SC --> T[ffmpeg · auto-editor · Manim · Blender]
   T --> F[(Projeto<br/>originais/ trabalho/ saida/)]
-  VD[skills/video-docs<br/>build.py] -->|edge-tts| N[Narração]
-  C --> VD
 ```
 
-Três camadas:
-1. **Skills** (`skills/*/SKILL.md`): o *como* e o *quando*. Dizem o fluxo, os parâmetros, as receitas e onde parar para aprovação. O Claude lê o skill só quando ele é acionado.
-2. **Scripts** (`scripts/`): a parte determinística, que não deve depender de improviso (transcrição, seleção de tomadas, montagem de trechos, ASS, prova). Testáveis sem o Claude.
-3. **Ferramentas externas**: todas open source e chamadas por CLI. Nenhuma é obrigatória para os skills que não a usam.
+Quatro camadas (0.5.0):
+1. **Skills** (`skills/*/SKILL.md`): o *como* e o *quando*. Dizem o fluxo, os parâmetros, as receitas e onde parar para aprovação. O Claude lê o skill só quando ele é acionado. É a única camada que depende do modelo de linguagem (autoria de diagramas, decisões de corte).
+2. **Scripts** (`scripts/`, `skills/*/scripts/`): a parte determinística (transcrição, tomadas, remap, EDL, ASS, prova). Testáveis sem o Claude; cada um roda sozinho.
+3. **Núcleo** (`video_editores/`): `modelos/` com as interfaces de IA e os backends trocáveis; `nucleo/catalogo.py` com o nome estável de cada operação; `cli.py` (`video-editores <op>`), `tarefas.py` (segundo plano) e `mcp_server.py`. Não contém lógica de edição: organiza e expõe os scripts. Detalhes em [nucleo.md](nucleo.md).
+4. **Ferramentas e modelos externos**: open source, por CLI ou pacote Python efêmero (`uv run --with`). Nenhum é obrigatório para quem não o usa.
 
 ## Decisões (ADRs resumidos)
 
-### ADR-01 — Skills + scripts em vez de servidor MCP
+### ADR-01 — Skills + scripts como base (revisto pelo ADR-11)
 - **Contexto:** dava para expor as operações como um servidor MCP.
-- **Decisão:** skills com scripts CLI.
+- **Decisão:** skills com scripts CLI como base.
 - **Motivo:** nada para manter rodando; cada script funciona sozinho no terminal; o skill carrega contexto só quando usado; o fluxo de gates humanos fica no texto do skill, onde é fácil ajustar.
-- **Consequência:** o Claude precisa de shell no computador (Claude Code). Um MCP pode ser adicionado depois sobre os mesmos scripts.
+- **Consequência:** o Claude precisa de shell no computador (Claude Code). Em 0.5.0 o MCP foi adicionado **sobre** os mesmos scripts (ADR-11), sem substituir esta base: quem usa só o Claude Code continua sem nada rodando em segundo plano.
 
 ### ADR-02 — Texto em ASS/libass, nunca `drawtext`
 - **Contexto:** builds estáticos do ffmpeg (johnvansickle) não têm `drawtext`; o video-docs já tinha caído nessa.
@@ -63,6 +67,19 @@ Três camadas:
 - **Decisão:** o `montar_aula.py concat` junta só o vídeo dos blocos e constrói **uma** trilha de áudio a partir do corte, com silêncio/whoosh inseridos nos instantes das cartelas; fronteiras alinhadas ao frame.
 - **Motivo:** AAC por bloco acumula priming e arredondamento (medido: 21 ms em 8 blocos; dezenas de blocos passam de 100 ms) e a sincronia labial no fim do vídeo é o que o aluno percebe primeiro.
 
+### ADR-10 — Núcleo `video_editores` com interfaces de modelo (0.5.0)
+- **Contexto:** cinco scripts dependiam diretamente de um motor de IA (faster-whisper, rembg, edge-tts); trocar motor ou usar GPU exigia editar cada um. Pedido de abstrair o modelo e usar modelos próprios.
+- **Decisão:** três papéis com contrato (ASR, Segmentador, TTS) e backends registrados por nome, configurados por `VE_*`/`video-editores.toml`; `deps(device)` de cada backend alimenta o `uv run --with`; `codec_video()` traduz `VE_ENCODER`; `catalogo.py` nomeia cada operação e a CLI `video-editores` as executa. Scripts continuam independentes e acham o pacote por `VE_PKG_DIR` ou pela raiz do checkout.
+- **Consequência:** GPU e modelo próprio viram configuração; um segundo ponto de entrada (CLI) a manter alinhado com as skills; a autoria por modelo de linguagem continua nas skills, fora da abstração.
+
+### ADR-11 — MCP como invólucro fino com tarefas assíncronas (0.5.0)
+- **Decisão:** `video-editores-mcp` expõe o catálogo como ferramentas (stdio ou streamable HTTP), operações longas voltam com id e são acompanhadas por `tarefa_*`; processos em sessão própria com código de saída em arquivo; todo caminho restrito a `--raiz`; o protocolo transporta caminhos, não mídia.
+- **Motivo:** agentes sem shell local (plataforma interna com GPUs) usam as mesmas capacidades; o know-how de edição continua nas skills.
+- **Consequência:** servidor e projeto compartilham storage; o modo HTTP não autentica e fica atrás de proxy/VPN.
+
+### ADR-12 — Skills para outros agentes só por demanda (0.5.0)
+- O porte é de texto (`SKILL.md` é lido por vários agentes) e deve apontar para `video-editores <op>`; não se mantém cópia até existir um segundo agente em uso. ADR completo com alternativas, integração com GPU e roteiro: [adr/2026-11-08-nucleo-modelos-mcp.md](adr/2026-11-08-nucleo-modelos-mcp.md).
+
 ## Fluxo de dados
 
 ```
@@ -96,4 +113,6 @@ montar_aula.py edl → render (blocos/NNN_*.mp4) → concat (vídeo concat + áu
 
 `tests/docs_offline.sh` roda o montador do `video-docs` de ponta a ponta com um stub do edge-tts (`tests/stub/edge_tts.py`), então o maior script do repositório também é coberto no CI, em Linux e macOS.
 
-Os passos com modelos de IA (Whisper, rembg, Blender) ficam fora do CI por tamanho e tempo; valide-os localmente com um vídeo curto.
+`tests/nucleo.sh` cobre o pacote `video_editores`: registro e configuração dos modelos, `codec_video`, catálogo (todo script existe), CLI, tarefas em segundo plano e o servidor MCP em processo (`tests/mcp_test.py`, cliente em memória do SDK).
+
+Os passos com modelos de IA (Whisper, rembg, Blender) ficam fora do CI por tamanho e tempo; valide-os localmente com um vídeo curto (`video-editores transcrever clip.mp4 --model small` e `video-editores aula-recorte clip.mp4 0 1 fundo.png out`).
