@@ -4,7 +4,7 @@
 
 | Sintoma | Causa | Solução |
 |---|---|---|
-| `No such filter: 'ass'` ou `'subtitles'` | ffmpeg sem libass | use o ffmpeg do apt/brew; confira com `ffmpeg -filters \| grep ass` |
+| `No such filter: 'ass'` ou `'subtitles'` | ffmpeg sem libass | use o ffmpeg do apt/brew; confira com `ffmpeg -filters \| grep ass`. No macOS, outro ffmpeg (Xcode, conda, binário baixado) pode vir antes no PATH: `which -a ffmpeg` e coloque `$(brew --prefix)/bin` primeiro |
 | `No such filter: 'drawtext'` | build estático | não afeta o plugin (não usa drawtext). Se aparecer, algum comando manual usou; troque por `lettering_ass.py` |
 | skills não aparecem no `/` | plugin não instalado ou Claude Code não reiniciado | `claude plugin list`; reinstale e reinicie |
 | `${CLAUDE_PLUGIN_ROOT}` vazio | skills copiados sem o plugin | `export CLAUDE_PLUGIN_ROOT=~/src/video-editores` |
