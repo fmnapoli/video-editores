@@ -117,14 +117,16 @@ pass "integrar: Codex, OpenCode e Kiro (skills, MCP, regras), idempotente, remoÃ
 if command -v uv >/dev/null; then
   # o comando que os agentes vÃ£o executar sobe o servidor por stdio e responde
   uv run --quiet --with "mcp>=2" python -I - "$ROOT" "$T" <<'PY' 2>"$T/stdio.err" || { cat "$T/stdio.err"; exit 1; }
-import asyncio, sys
+import asyncio, os, sys
 from mcp import Client, StdioServerParameters
 root, raiz = sys.argv[1], sys.argv[2]
+real = os.path.realpath(raiz)   # macOS: /var/folders/... -> /private/var/...
 async def m():
     p = StdioServerParameters(command="uv", args=["run", "--quiet", "--with", "mcp>=2", "--directory", root, "python", "-m", "video_editores.mcp_server", "--raiz", raiz])
     async with Client(p) as c:
         assert len((await c.list_tools()).tools) >= 15
-        assert (await c.call_tool("versao", {})).structured_content["raiz"] == raiz
+        v = (await c.call_tool("versao", {})).structured_content
+        assert os.path.realpath(v["raiz"]) == real, (v["raiz"], real)
 asyncio.run(m())
 PY
   pass "MCP por stdio: o comando registrado nos agentes sobe e responde"
