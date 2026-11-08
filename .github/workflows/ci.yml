@@ -22,10 +22,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: brew install ffmpeg shellcheck && brew install --cask font-dejavu
-      - name: usar o ffmpeg do Homebrew (o do runner não tem libass)
+      - name: usar o ffmpeg do Homebrew e diagnosticar libass
         run: |
           echo "$(brew --prefix)/bin" >> "$GITHUB_PATH"
-          "$(brew --prefix)/bin/ffmpeg" -hide_banner -filters | grep -E ' (ass|subtitles) '
+          export PATH="$(brew --prefix)/bin:$PATH"
+          which -a ffmpeg
+          ffmpeg -hide_banner -version | head -3
+          ffmpeg -hide_banner -buildconf | grep -i -E "libass|libfreetype|libfontconfig" || echo "buildconf sem libass"
+          ffmpeg -hide_banner -filters | grep -iE "ass|subtitles" || echo "sem filtros ass/subtitles"
+          brew info ffmpeg | head -5
       - uses: astral-sh/setup-uv@v5
       - name: smoke
         run: bash tests/smoke.sh
