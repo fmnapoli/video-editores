@@ -9,7 +9,7 @@ Tudo roda local. O único serviço externo é o edge-tts, usado só pelo `/video
 | Item | Para quê | Ubuntu/Debian | macOS (Homebrew) | Windows (WSL2) |
 |---|---|---|---|---|
 | Claude Code | executar os skills | `npm i -g @anthropic-ai/claude-code` | idem | idem |
-| ffmpeg ≥ 6 com libass | tudo | `sudo apt install ffmpeg` | `brew install ffmpeg` | `winget install Gyan.FFmpeg` |
+| ffmpeg ≥ 6 com libass | tudo | `sudo apt install ffmpeg` | `brew install ffmpeg-full` (**não** `ffmpeg`, veja abaixo) | WSL2: `sudo apt install ffmpeg` |
 | Python ≥ 3.10 | scripts | `sudo apt install python3` | já vem / `brew install python` | `winget install Python.Python.3.12` |
 | uv | rodar scripts com dependências isoladas | `curl -LsSf https://astral.sh/uv/install.sh \| sh` | `brew install uv` | `winget install astral-sh.uv` |
 | Fonte DejaVu | textos ASS e `video-docs` | `sudo apt install fonts-dejavu-core` | `brew install --cask font-dejavu` | baixar em dejavu-fonts.github.io |
@@ -21,6 +21,16 @@ ffmpeg -hide_banner -filters | grep -E " (ass|subtitles) "
 ```
 
 Builds estáticos sem libass não servem. Builds sem `drawtext` servem: o plugin não usa `drawtext`.
+
+**macOS:** desde a versão 8, a fórmula `ffmpeg` do Homebrew é uma build enxuta, sem libass, freetype e fontconfig, então os filtros `ass` e `subtitles` não existem nela. Instale `ffmpeg-full`, que é keg-only (não entra no PATH sozinho), e coloque-o na frente:
+
+```bash
+brew install ffmpeg-full
+echo 'export PATH="$(brew --prefix ffmpeg-full)/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
+ffmpeg -hide_banner -filters | grep -E " (ass|subtitles) "   # tem que listar os dois
+```
+
+Se outra ferramenta já instalou a fórmula `ffmpeg` enxuta (ocrmypdf, vhs etc.), as duas convivem; o que importa é a ordem no PATH.
 
 ## 2. Ferramentas CLI (recomendadas)
 

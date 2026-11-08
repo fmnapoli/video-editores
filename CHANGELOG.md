@@ -10,6 +10,7 @@ Melhorias a partir da análise do concorrente EDIT.IA PRO (`docs/analise-concorr
 - `/tela-verde`: receita de contorno neon pela máscara do rembg.
 - `docs/pedidos-prontos.md`: pedidos por categoria.
 - Smoke test cobre os scripts novos e os estilos novos.
+- macOS: documentado que a fórmula `ffmpeg` do Homebrew (v8+) vem sem libass; o plugin exige `ffmpeg-full`. CI do macOS passa a usar `ffmpeg-full`; `doctor.sh` e `render-docs.sh` orientam.
 
 ## 0.1.1 — 2026-11-07
 Correções a partir de revisão independente (21 achados) e testes das receitas com mídia sintética.

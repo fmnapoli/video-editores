@@ -12,7 +12,7 @@ command -v ffmpeg  >/dev/null && ok "ffmpeg"  || miss "ffmpeg"  "apt install ffm
 command -v ffprobe >/dev/null && ok "ffprobe" || miss "ffprobe" "vem com o ffmpeg"
 if command -v ffmpeg >/dev/null; then
   ffmpeg -hide_banner -filters 2>/dev/null | grep -qE ' (ass|subtitles) ' && ok "ffmpeg com libass" \
-    || miss "ffmpeg com libass" "use o ffmpeg do apt/brew (builds estáticos sem libass não servem)"
+    || miss "ffmpeg com libass" "Linux: ffmpeg do apt. macOS: 'brew install ffmpeg-full' e ponha \$(brew --prefix ffmpeg-full)/bin antes no PATH (a fórmula 'ffmpeg' do Homebrew vem sem libass desde a v8)"
 fi
 command -v python3 >/dev/null && ok "python3" || miss "python3" "instale Python 3.10+"
 command -v uv      >/dev/null && ok "uv"      || miss "uv" "https://docs.astral.sh/uv/getting-started/installation/"
