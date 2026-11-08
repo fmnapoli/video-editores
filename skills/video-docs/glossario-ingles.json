@@ -1,5 +1,5 @@
 {
- "_leia": "Grafia fonética para vozes pt-BR NÃO multilíngues (ex.: pt-BR-FranciscaNeural), que leem inglês como português. A voz padrão do montador (pt-BR-ThalitaMultilingualNeural) pronuncia inglês nativamente e não usa este arquivo. 'validados' foram ouvidos em produção com a Francisca; 'nao_validados' são propostas, ouça com testar_pronuncia.py --glossario --voz pt-BR-FranciscaNeural. Sigla = chave toda em MAIÚSCULAS, casa só em maiúsculas.",
+ "_leia": "Grafia fonética para vozes pt-BR NÃO multilíngues (ex.: pt-BR-FranciscaNeural), que leem inglês como português. A voz padrão do montador (pt-BR-ThalitaMultilingualNeural) pronuncia inglês nativamente e não usa este arquivo. 'validados' foram ouvidos em produção com a Francisca; 'nao_validados' são propostas, ouça com testar_pronuncia.py --glossario --voz pt-BR-FranciscaNeural. Sigla = chave toda em MAIÚSCULAS, casa só em maiúsculas. 'validados_thalita' são grafias ouvidas em produção com a pt-BR-ThalitaMultilingualNeural (nov/2026), para passar via \"glossary\" quando ela errar o termo.",
  "validados": {
   "backup": "béquepe",
   "cluster": "clôster",
@@ -96,5 +96,16 @@
   "workflow": "uôrk-flôu",
   "workspace": "uôrk-spêis",
   "YAML": "iâmel"
+ },
+ "validados_thalita": {
+  "operator": "operêitor",
+  "orchestrator": "orquestrêitor",
+  "Kubernetes": "cubernétis",
+  "container": "contêiner",
+  "cloud": "cláud",
+  "cluster": "clôster",
+  "REST": "rést",
+  "login": "lóguin",
+  "cache": "quéch"
  }
 }

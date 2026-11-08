@@ -27,7 +27,7 @@ echo "CLIs por skill:"
 command -v auto-editor >/dev/null && ok "auto-editor (/corte)" || miss "auto-editor (/corte)" "uv tool install auto-editor"
 command -v yt-dlp      >/dev/null && ok "yt-dlp (/referencia)" || opt "yt-dlp (/referencia)" "uv tool install yt-dlp"
 command -v scenedetect >/dev/null && ok "scenedetect (/referencia, /efeitos)" || opt "scenedetect" "uv tool install 'scenedetect[opencv]'"
-command -v manim       >/dev/null && ok "manim (/animacao)" || opt "manim (/animacao)" "uv tool install manim"
+command -v manim       >/dev/null && ok "manim (/animacao, /video-animado)" || opt "manim (/animacao, /video-animado)" "uv tool install manim  (se o manimpango falhar por falta de libpango-dev: micromamba create -n manim -c conda-forge manim, ver docs/troubleshooting.md)"
 command -v blender     >/dev/null && ok "blender (/3d)" || opt "blender (/3d)" "https://www.blender.org/download/"
 
 echo "Pacotes Python (baixados sob demanda por 'uv run --with'; nada a instalar):"

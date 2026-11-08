@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0 — 2026-11-08
+Vídeo 100% animado por código e lições de um vídeo de 24 cenas para gestores.
+- **`/video-animado`** (19º skill): sem bruto; a narração é gerada antes e dita a duração de cada `Scene` do Manim; instantes por fração da fala; cenas fecham com fade sobre o fundo fixo e a troca de fundo é um fade entre imagens (nunca preto); gates de roteiro e piloto; conteúdo acima da faixa da legenda.
+- Scripts: `tts_cenas.py` (narração por cena + `tempos.json`, cena muda por `duracao`), `montar_cenas.py` (sincronia pela duração real de cada mp4, legenda frase a frase sem linha órfã e com a grafia original da narração, 48 kHz, `--roteiro`), `folha_cenas.py` (um quadro por cena). Modelo `templates/cena_base.py` e `cenas-exemplo.json`.
+- `video-docs`: a voz multilíngue também erra termos ("operator", "orchestrator"); seção `validados_thalita` no glossário e orientação de ouvir antes do lote.
+- `doctor.sh` e `troubleshooting.md`: Manim sem headers de sistema (micromamba/conda-forge), fonte da marca no fontconfig, `round_corners`, faixa da legenda, taxa de amostragem do `loudnorm`, grafia fonética vazando para a legenda.
+- Smoke test cobre os três scripts novos com cenas sintéticas e o stub do edge-tts.
+
 ## 0.2.0 — 2026-11-07
 Pedido em linguagem natural, vídeo longo e novos estilos.
 - **`/editar`**: entrada em linguagem natural; tabela de estilos → skills; relatório de edição padronizado; ajustes refazem só a etapa afetada.

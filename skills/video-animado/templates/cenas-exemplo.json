@@ -1,0 +1,11 @@
+{
+  "slug": "exemplo",
+  "titulo": "Exemplo de vídeo animado",
+  "voice": "pt-BR-ThalitaMultilingualNeural",
+  "glossary": {"operator": "operêitor", "orchestrator": "orquestrêitor", "Kubernetes": "cubernétis", "container": "contêiner", "cloud": "cláud"},
+  "cenas": [
+    {"id": "EX", "classe": "Exemplo", "titulo": "Três ideias em uma cena",
+     "narracao": "A primeira ideia aparece logo no começo. A segunda entra no meio da fala. E a terceira fecha a cena, com um container e um operator no mesmo cluster na cloud."},
+    {"id": "V1", "classe": "Vinheta", "titulo": "", "duracao": 4.0}
+  ]
+}

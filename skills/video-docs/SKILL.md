@@ -49,6 +49,11 @@ na legenda e no `tts`.
 
 - Sem `tts` na cena, a voz lê os blocos de `legend`. Só escreva `tts` quando a fala
   precisar ser diferente da legenda.
+- A Thalita acerta a maioria, mas não tudo: em nov/2026 "operator" e "orchestrator" saíram
+  errados e precisaram de grafia fonética ("operêitor", "orquestrêitor"); nome de marca também
+  costuma precisar. Ouça os termos do domínio **antes** do lote e trate o glossário como regra,
+  não como exceção. Grafias já validadas com ela: seção `validados_thalita` do `glossario-ingles.json`
+  (entram só via `"glossary"`, porque o padrão não carrega para voz multilíngue).
 - Se a voz errar um termo específico do projeto (nome de produto, comando, sigla), corrija
   só ele no spec: `"glossary": {"kubectl": "cube control"}` (ou caminho de JSON). A troca
   vale só para o texto falado; a legenda mantém a grafia normal. Pronúncia `""` remove.

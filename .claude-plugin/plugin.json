@@ -1,8 +1,17 @@
 {
   "name": "video-editores",
-  "version": "0.2.0",
-  "description": "18 skills de edição de vídeo para o Claude Code: pedido em português, corte, legenda, motion, melhores momentos e vídeos de documentação. 100% open source e local (ffmpeg, faster-whisper, auto-editor, Manim, rembg, Blender).",
-  "author": { "name": "Fabrizio Malta Di Napoli" },
+  "version": "0.3.0",
+  "description": "19 skills de edição de vídeo para o Claude Code: pedido em português, corte, legenda, motion, melhores momentos e vídeos de documentação. 100% open source e local (ffmpeg, faster-whisper, auto-editor, Manim, rembg, Blender).",
+  "author": {
+    "name": "Fabrizio Malta Di Napoli"
+  },
   "license": "MIT",
-  "keywords": ["video", "ffmpeg", "whisper", "editing", "shorts", "reels"]
+  "keywords": [
+    "video",
+    "ffmpeg",
+    "whisper",
+    "editing",
+    "shorts",
+    "reels"
+  ]
 }

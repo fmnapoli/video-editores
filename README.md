@@ -1,6 +1,6 @@
 # video-editores
 
-Plugin do Claude Code que transforma a IA na sua editora de vídeo: **18 skills** open source, rodando no seu computador, sem SaaS e sem vendor lock-in. Você manda a gravação e pede em português; o `/editar` monta o plano, para nos pontos de aprovação e entrega o vídeo com um relatório do que fez.
+Plugin do Claude Code que transforma a IA na sua editora de vídeo: **19 skills** open source, rodando no seu computador, sem SaaS e sem vendor lock-in. Você manda a gravação e pede em português; o `/editar` monta o plano, para nos pontos de aprovação e entrega o vídeo com um relatório do que fez.
 
 | Skill | O que faz | Ferramenta |
 |---|---|---|
@@ -22,6 +22,7 @@ Plugin do Claude Code que transforma a IA na sua editora de vídeo: **18 skills*
 | `/ganchos` | 5 ganchos para os 3 primeiros segundos | Claude + transcrição |
 | `/prova` | Folha de contato, preview e QA | ffmpeg |
 | `/video-docs` | Gravação de tela → vídeo de documentação narrado | edge-tts + `build.py` |
+| `/video-animado` | Vídeo 100% animado por código, narração que dita o tempo de cada cena, sem tela preta | Manim + edge-tts + `montar_cenas.py` |
 
 No Claude Code, os skills aparecem com o prefixo do plugin (ex.: `/video-editores:corte`). Também são chamados automaticamente pela descrição ("tira os silêncios desse vídeo").
 

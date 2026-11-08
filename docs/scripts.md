@@ -93,6 +93,24 @@ bash scripts/proof.sh VIDEO [N_FRAMES=12]
 | `.preview.mp4` | 480p, CRF 30, leve para celular |
 | `.proof.txt` | codec, resolução, fps, áudio, instantes de cada quadro do grid, loudness integrado e true peak |
 
+## tts_cenas.py (video-animado)
+```bash
+uv run --with edge-tts python skills/video-animado/scripts/tts_cenas.py cenas/<slug>.json [--glossario g.json] [--lead 0.6] [--tail 0.8]
+```
+Uma narração por cena, com fronteiras de palavra, e `tempos.json` com `fala`, `total` (= lead + fala + tail) e `lead` por cena; cena sem `narracao` usa `duracao`. Cache por hash de voz + texto falado. O glossário (`pronuncia.py`) vale só para a fala.
+
+## montar_cenas.py (video-animado)
+```bash
+python3 skills/video-animado/scripts/montar_cenas.py cenas/<slug>.json <pasta dos mp4> [--cenas B1,B2] [--saida ...] [--legenda ...] [--fonte "..."] [--tamanho 15] [--margem 22] [--loudness -16] [--roteiro roteiros/roteiro-<slug>.md]
+```
+Concatena `<id>.mp4` na ordem do spec, atrasa e preenche o áudio de cada cena até a duração real do mp4, gera o `.srt` (blocos de 2 linhas, frase a frase, grafia original da narração) e queima com `force_style`. Saída a 48 kHz, `+faststart`; `.srt` em pasta separada; `--roteiro` escreve o roteiro final com tempos, texto falado e legenda.
+
+## folha_cenas.py (video-animado)
+```bash
+python3 skills/video-animado/scripts/folha_cenas.py cenas/<slug>.json <pasta dos mp4> [--fracao 0.9] [--colunas 4]
+```
+Um quadro de cada cena no instante `fracao` da sua duração, em grade; 0,5 mostra o meio da animação, 0,9 o estado final (para ver se algo invade a faixa da legenda).
+
 ## doctor.sh
 ```bash
 bash scripts/doctor.sh

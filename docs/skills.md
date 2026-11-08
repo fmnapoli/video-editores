@@ -24,6 +24,7 @@ Invocação: `/video-editores:<nome>`, ou em linguagem natural (o Claude escolhe
 | ganchos | transcrição | 5 opções + recomendação | escolha | instantâneo |
 | prova | vídeo | `.proof.jpg`, `.preview.mp4`, `.proof.txt` | entrega ao usuário | 10–20 s |
 | video-docs | gravações de tela | `.mp4`, `.srt`, roteiros, inventário | **3 gates** (inventário, roteiros, piloto) | ver LEIAME |
+| video-animado | roteiro + identidade da marca | cenas Manim, `.mp4`, `.srt`, roteiro final | **2 gates** (roteiro, piloto) + prova | ~1 min por cena em 1080p |
 
 ---
 
@@ -107,6 +108,9 @@ Instantes vindos de: trocas de plano (PySceneDetect), `start` dos letterings, re
 
 ## /prova
 Checklist: legenda legível e fora do rosto, textos no lugar, **nenhum dado sensível**, sem frame preto ou congelado, resolução, codec e loudness no alvo.
+
+## /video-animado
+Vídeo inteiro em animação por código, sem bruto: a narração (edge-tts) é gerada antes e dita a duração de cada `Scene` do Manim; as cenas marcam os instantes por fração da fala e fecham com fade sobre o fundo fixo (nunca preto). Scripts: `tts_cenas.py` (narração + `tempos.json`), `montar_cenas.py` (concat + narração + legenda com a grafia original + loudnorm), `folha_cenas.py` (um quadro por cena). Modelo de cena em `skills/video-animado/templates/cena_base.py`.
 
 ## /video-docs
 Harness para gravações de tela, documentado em [video-docs-LEIAME.md](video-docs-LEIAME.md) e `skills/video-docs/references/`. Fluxo: inventário → roteiros (com revisão de coerência contra o código) → piloto → lote. Montagem por `spec.json` com `scripts/render-docs.sh`.

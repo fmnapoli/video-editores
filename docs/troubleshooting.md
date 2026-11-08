@@ -72,5 +72,16 @@
 | render preto | câmera sem enquadrar ou luz fraca; renderize um frame (`-f 45`) e ajuste |
 | `.mov` sem transparência | precisa de `film_transparent = True` e ProRes 4444 `yuva444p10le` |
 
+## `/animacao` e `/video-animado`
+
+| Sintoma | Solução |
+|---|---|
+| `uv tool install manim` falha compilando `manimpango` (`cmanimpango.c ... returned non-zero exit status 1`) | faltam os headers do Pango/Cairo (`libpango1.0-dev libcairo2-dev pkg-config python3-dev`). Sem sudo: `micromamba create -r ~/.local/opt/micromamba -n manim -c conda-forge manim python=3.12` (binário pronto do conda-forge) e `ln -s ~/.local/opt/micromamba/envs/manim/bin/manim ~/.local/bin/manim` |
+| `Text(font="Minha Fonte")` sai em outra fonte | a fonte não está no fontconfig: copie o TTF para `~/.local/share/fonts/`, `fc-cache -f`, confira com `fc-list \| grep -i minha` |
+| `round_corners` num polígono vira bolha | raio grande demais; use ~9 % da altura (`p.round_corners(h * 0.09)`) depois de dimensionar |
+| legenda cobre o rodapé da animação | com 2 linhas em 1080p a faixa vai até y = -2,3 (unidades do Manim); confira com `folha_cenas.py --fracao 0.9` |
+| áudio final a 96 ou 192 kHz | o `loudnorm` sobe a taxa; o `montar_cenas.py` já força `-ar 48000` (faça o mesmo em filtros próprios) |
+| grafia fonética do glossário vaza para a legenda | as fronteiras de palavra do edge-tts trazem a palavra **falada** e sem pontuação; o `montar_cenas.py` recupera o token original da narração (casamento 1 a 1); em pipeline próprio, faça o mesmo |
+
 ## `/video-docs`
 Veja [video-docs-LEIAME.md](video-docs-LEIAME.md) ("Pontos que mais pegam") e `skills/video-docs/SKILL.md` ("Pegadinhas que custaram tempo"). Erro de rede no edge-tts significa que a montagem precisa de internet.

@@ -97,7 +97,34 @@ echo '[{"text":"Funciona?","start":0,"end":1,"style":"cartao","autor":"@x"},{"te
 python3 "$S/lettering_ass.py" in.mp4 t2.json >/dev/null && grep -q "Cartao" t2.ass && grep -q "\\p1" t2.ass
 pass "lettering_ass.py: estilos cartao e capa"
 
-bash -n "$S"/*.sh && python3 -c 'import ast, sys; [ast.parse(open(f, encoding="utf-8").read(), f) for f in sys.argv[1:]]' "$S"/*.py "$ROOT"/skills/video-docs/scripts/*.py
+# video-animado: narração com stub do edge-tts, cenas sintéticas, montagem e folha
+VA="$ROOT/skills/video-animado/scripts"
+mkdir -p va && cd va
+cat > cenas.json <<'JSON'
+{"slug":"va","glossary":{"operator":"operêitor"},"cenas":[
+ {"id":"S1","classe":"S1","titulo":"Um","narracao":"O operator monta tudo na ordem certa. Em menos de três minutos, o ambiente está pronto."},
+ {"id":"S2","classe":"S2","titulo":"Dois","narracao":"Se uma peça cai, ele recria sozinho."},
+ {"id":"V1","classe":"V1","titulo":"","duracao":1.5}]}
+JSON
+PYTHONPATH="$ROOT/tests/stub" python3 "$VA/tts_cenas.py" cenas.json --out tts >/dev/null
+test -s tts/S1.mp3 && test -s tts/S1.words.json && python3 -c "
+import json; t=json.load(open('tts/tempos.json')); assert t['V1']['mudo'] and t['S1']['total']>t['S1']['fala']>0, t"
+grep -q "operêitor" tts/S1.hash || true
+mkdir -p mp4 && for id in S1 S2 V1; do
+  d=$(python3 -c "import json; print(json.load(open('tts/tempos.json'))['$id']['total'])")
+  ffmpeg -v error -y -f lavfi -i "color=c=0x0f172a:size=640x360:rate=30:duration=$d" -c:v libx264 -pix_fmt yuv420p mp4/$id.mp4
+done
+python3 "$VA/montar_cenas.py" cenas.json mp4 --tts tts --saida out/va.mp4 --legenda leg/va.srt --roteiro rot/va.md >/dev/null
+test -s out/va.mp4 && test -s leg/va.srt && test -s rot/va.md
+grep -q "O operator monta tudo na ordem certa." leg/va.srt && ! grep -q "operêitor" leg/va.srt
+A=$(ffprobe -v error -select_streams a:0 -show_entries stream=sample_rate -of csv=p=0 out/va.mp4); [[ "$A" == "48000" ]]
+pass "video-animado: tts_cenas (stub), montar_cenas (legenda com grafia original, 48 kHz) e roteiro"
+python3 "$VA/montar_cenas.py" cenas.json mp4 --tts tts --cenas S2 --saida out/p.mp4 --legenda leg/p.srt >/dev/null && test -s out/p.mp4
+python3 "$VA/folha_cenas.py" cenas.json mp4 --fracao 0.9 --saida folha.png >/dev/null && test -s folha.png
+pass "video-animado: piloto por --cenas e folha_cenas"
+cd ..
+
+bash -n "$S"/*.sh && python3 -c 'import ast, sys; [ast.parse(open(f, encoding="utf-8").read(), f) for f in sys.argv[1:]]' "$S"/*.py "$ROOT"/skills/video-docs/scripts/*.py "$ROOT"/skills/video-animado/scripts/*.py "$ROOT"/skills/video-animado/templates/*.py
 pass "sintaxe de todos os scripts"
 
 # frontmatter de todos os skills
