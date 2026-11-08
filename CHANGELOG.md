@@ -5,3 +5,4 @@
 - `video-docs` (harness de 2026-11-06) incorporado como 14º skill, sem mudanças no montador.
 - Scripts compartilhados: transcribe, takes, render_spans, lettering_ass (ASS, sem drawtext), text_behind, proof, doctor, render-docs.
 - Convenções únicas (`docs/convencoes.md`), teste de fumaça e CI.
+- Documentação: instalação, tutorial, referência de skills e scripts, arquitetura com ADRs, solução de problemas, guia de contribuição.

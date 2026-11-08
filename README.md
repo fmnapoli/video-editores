@@ -21,23 +21,20 @@ Plugin do Claude Code com **14 editores de vídeo** como skills: os 13 comandos 
 
 No Claude Code, os skills aparecem com o prefixo do plugin (ex.: `/video-editores:corte`). Também são chamados automaticamente pela descrição ("tira os silêncios desse vídeo").
 
-## Instalação
+## Instalação rápida
 
 ```bash
-# dependências base
-sudo apt install ffmpeg fonts-dejavu-core           # ffmpeg com libass
+# dependências base (detalhes e macOS/Windows em docs/instalacao.md)
+sudo apt install ffmpeg fonts-dejavu-core
 curl -LsSf https://astral.sh/uv/install.sh | sh
 uv tool install auto-editor && uv tool install yt-dlp && uv tool install "scenedetect[opencv]"
 
-# plugin (marketplace local)
-git clone <este-repo> ~/src/video-editores
-claude plugin marketplace add ~/src/video-editores
+# plugin direto do GitHub
+claude plugin marketplace add fmnapoli/video-editores
 claude plugin install video-editores@video-editores-local
-
-make -C ~/src/video-editores doctor   # confere o que falta
 ```
 
-Opcionais por skill: Blender (`/3d`), `uv tool install manim` (`/animacao`). Os pacotes Python (faster-whisper, rembg) são baixados sob demanda via `uv run --with`.
+Reinicie o Claude Code e rode `make doctor` num clone do repositório para ver o que falta.
 
 ## Fluxo típico (reels)
 
@@ -45,7 +42,21 @@ Opcionais por skill: Blender (`/3d`), `uv tool install manim` (`/animacao`). Os 
 /tomada → /corte → /ganchos → /lettering → /legenda → /trilha → /efeitos → /prova
 ```
 
-Convenções (pastas `originais/ trabalho/ saida/`, loudness, privacidade, licenças): [`docs/convencoes.md`](docs/convencoes.md). Detalhes do `video-docs`: [`docs/video-docs-LEIAME.md`](docs/video-docs-LEIAME.md).
+Passo a passo completo: [docs/tutorial.md](docs/tutorial.md).
+
+## Documentação
+
+| Documento | Conteúdo |
+|---|---|
+| [Instalação](docs/instalacao.md) | requisitos por sistema, opcionais por skill, GPU, instalação sem plugin |
+| [Tutorial](docs/tutorial.md) | do bruto ao reels pronto, e variações (docs, referência, efeitos) |
+| [Skills](docs/skills.md) | entrada, saída, parâmetros, gates e tempo de cada skill |
+| [Scripts](docs/scripts.md) | CLI de cada script, formatos JSON e saídas |
+| [Convenções](docs/convencoes.md) | pastas, nomes, ordem, formatos, loudness, privacidade, licenças |
+| [Arquitetura](docs/arquitetura.md) | camadas, ADRs, fluxo de dados, testes |
+| [Solução de problemas](docs/troubleshooting.md) | sintomas comuns e correções |
+| [video-docs](docs/video-docs-LEIAME.md) | harness de vídeos de documentação |
+| [Contribuindo](CONTRIBUTING.md) | como criar skills e scripts no padrão |
 
 ## Desenvolvimento
 
