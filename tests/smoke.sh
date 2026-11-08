@@ -168,6 +168,12 @@ echo '{"fixes":{"9.0":null},"corr":[["turma","pessoal"]]}' > ajustes.json
 python3 "$VA2/legenda_aula.py" aula.json corte.v1.json in.transcript.json out.srt --ajustes ajustes.json >/dev/null
 grep -q "Olá pessoal" out.srt && ! grep -q "cortado no meio" out.srt && grep -q "00:00:16,000 --> " out.srt
 pass "videoaula: legenda_aula.py (ajustes, remoção da frase cortada, deslocamento da cartela)"
+python3 - <<'PY'
+import json; c=json.load(open("aula.json")); c.update({"slug":"t","titulo":"Fundamentos do Python","kicker":"AULA 01"}); json.dump(c,open("aula.json","w"))
+PY
+python3 "$VA2/publicar_aula.py" aula.json --saida pub/t --sem-thumb >/dev/null
+grep -q "^00:00 Abertura" pub/t.youtube.md && grep -q "^00:07 Variáveis" pub/t.youtube.md
+pass "videoaula: publicar_aula.py (capítulos do YouTube nos tempos finais)"
 cd ..
 
 bash -n "$S"/*.sh "$ROOT"/skills/videoaula/scripts/*.sh && python3 -c 'import ast, sys; [ast.parse(open(f, encoding="utf-8").read(), f) for f in sys.argv[1:]]' "$S"/*.py "$ROOT"/skills/video-docs/scripts/*.py "$ROOT"/skills/video-animado/scripts/*.py "$ROOT"/skills/video-animado/templates/*.py "$ROOT"/skills/videoaula/scripts/*.py "$ROOT"/skills/videoaula/templates/*.py

@@ -24,7 +24,11 @@ Validado em nov/2026 numa aula de Python de 20 min (3 modos visuais, 9 diagramas
    scenedetect -i originais/IN.mp4 -fs 3 detect-adaptive list-scenes -f trabalho/<slug>/cenas.csv save-images -n 1 -o trabalho/<slug>/frames
    uv run --with pillow --with numpy python "${CLAUDE_PLUGIN_ROOT}/skills/videoaula/scripts/cenas_modo.py" trabalho/<slug>/cenas.csv trabalho/<slug>/frames trabalho/<slug>/cenas.json
    ```
-   Olhe uma grade dos frames (Read) e corrija o JSON se a heurística errar. Meça o círculo da webcam (centro e raio) num frame de quadro e anote os **grupos de layout da IDE** (explorer aberto/fechado, janela menor): um `crop` por grupo. Transcreva com `transcribe.py` (`--prompt` com o vocabulário da aula). Escreva o design (identidade, capítulos, lista de diagramas, cortes de conteúdo) e **pare** para aprovação. Pergunte: nome para o lower third, cortes de erros de gravação, dados pessoais na fala, legenda queimada ou só SRT.
+   Olhe uma grade dos frames (Read) e corrija o JSON se a heurística errar. Depois meça o círculo da webcam e os **grupos de layout da IDE** (explorer aberto/fechado, janela menor):
+   ```bash
+   uv run --with pillow --with numpy python "${CLAUDE_PLUGIN_ROOT}/skills/videoaula/scripts/detectar_layout.py" originais/IN.mp4 trabalho/<slug>/cenas.json --saida trabalho/<slug>/layout
+   ```
+   O círculo sai pronto para o `aula.json`; os grupos de código saem como **rascunho** com uma régua de 100 px por grupo (`layout/regua_*.jpg`): olhe cada régua e ajuste o `crop` (x onde o código começa, sem explorer; y abaixo das abas e acima da barra de status). Cenas curtas herdam o grupo da vizinha. Transcreva com `transcribe.py` (`--prompt` com o vocabulário da aula). Escreva o design (identidade, capítulos, lista de diagramas, cortes de conteúdo) e **pare** para aprovação. Pergunte: nome para o lower third, cortes de erros de gravação, dados pessoais na fala, legenda queimada ou só SRT.
 2. **Corte com remap.** Silêncios (margem **0,3 s** em aula) mais os cortes manuais aprovados, um `--cut-out` por trecho:
    ```bash
    CO=(--cut-out 233.98sec,239.44sec --cut-out 937.90sec,951.65sec)
@@ -60,12 +64,17 @@ Validado em nov/2026 numa aula de Python de 20 min (3 modos visuais, 9 diagramas
    ```bash
    bash "${CLAUDE_PLUGIN_ROOT}/skills/videoaula/scripts/finalizar.sh" trabalho/<slug>/aula.json saida/<slug>.mp4 legendas/<slug>.srt --textos textos.json --ajustes ajustes.json --jobs 2
    ```
-   Mostre `.proof.jpg`, `.preview.mp4`, loudness e durações de vídeo e áudio (devem ser iguais). Entregue com o relatório de edição e um README do projeto com os comandos de regeneração.
+   `--limpar-audio` adiciona passa-alta 80 Hz + redução de ruído antes do loudnorm (sala com zumbido). Mostre `.proof.jpg`, `.preview.mp4`, loudness e durações de vídeo e áudio (devem ser iguais).
+8. **Publicação.** Capítulos do YouTube nos tempos finais, descrição, hashtags e thumbnail com o recorte do locutor:
+   ```bash
+   uv run --with pillow --with numpy python "${CLAUDE_PLUGIN_ROOT}/skills/videoaula/scripts/publicar_aula.py" trabalho/<slug>/aula.json --saida saida/<slug> --thumb-t 5.5
+   ```
+   Entregue `saida/<slug>.mp4`, `legendas/<slug>.srt`, `saida/<slug>.youtube.md`, `saida/<slug>_thumb.jpg`, o relatório de edição e um README do projeto com os comandos de regeneração.
 
 ## Paralelismo — onde cabe e onde não
 | Trabalho | Como paralelizar | Limite |
 |---|---|---|
-| Recorte IA dos trechos de locutor | `matte_workers.sh aula.json N` (processos, balanceados por duração) | ~1,3 GB RAM e núcleos/N threads por trabalhador |
+| Recorte IA dos trechos de locutor | `matte_workers.sh aula.json N` (processos, balanceados por duração); com GPU NVIDIA, `matte.py --gpu` + `onnxruntime-gpu` | ~1,3 GB RAM e núcleos/N threads por trabalhador |
 | Render das cenas Manim | `render_cenas.sh ... -j N` | ~1 GB por render em 1080p |
 | Render dos blocos ffmpeg | `montar_aula.py render --jobs N` | núcleos/4 |
 | Autoria das cenas Manim, call-outs, revisão de folhas | **subagentes**, um por cena, depois que os tempos existem | consistência: todos recebem a mesma base e área segura |

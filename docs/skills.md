@@ -126,6 +126,8 @@ Reedita uma aula gravada com três modos visuais (professor em tela cheia, quadr
 | recorte do professor por IA | `matte.py` via `matte_workers.sh aula.json N` | **N processos** |
 | diagramas e cartelas Manim | `templates/base_cenas.py`, `cartelas.py`; `render_cenas.sh -j N` | **autoria por subagentes; render em N processos** |
 | EDL, blocos, concat com áudio contínuo | `montar_aula.py edl/render --jobs N/concat/map` | **N processos** no render |
-| lettering, loudnorm, SRT, prova | `finalizar.sh` | — |
+| lettering, (limpeza de áudio), loudnorm, SRT, prova | `finalizar.sh` | — |
+| círculo da webcam e rascunho dos grupos de layout da IDE | `detectar_layout.py` | — |
+| capítulos do YouTube, descrição, thumbnail | `publicar_aula.py` | — |
 
 Gates: design (avaliação + cortes de conteúdo + nome), visual (mockups), piloto (capítulo 1), entrega. Tempo típico numa aula de 20 min em CPU de 8 núcleos: ~2 h de recorte IA (em segundo plano), ~40 min de autoria das cenas, ~15 min de montagem.

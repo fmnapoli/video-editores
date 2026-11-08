@@ -6,7 +6,8 @@ Saída: <out>.mp4 (composto, H.264) e <out>_alpha.mp4 (máscara em cinza, para r
 
 Uso: uv run --with rembg --with onnxruntime --with pillow --with numpy python matte.py VIDEO INI FIM FUNDO.png OUT_BASE
      [--threads 4] [--model u2net_human_seg] [--fps 30]
-CPU: ~1–3 s por frame. Vários trechos em paralelo: matte_workers.sh.
+CPU: ~1–3 s por frame. Vários trechos em paralelo: matte_workers.sh. Com GPU NVIDIA: `--gpu` e `--with onnxruntime-gpu`
+(não validado nesta máquina; sem GPU o onnxruntime cai no CPU sozinho).
 """
 import argparse, subprocess, time
 import numpy as np
@@ -17,11 +18,12 @@ from rembg import new_session, remove
 ap = argparse.ArgumentParser()
 ap.add_argument("video"); ap.add_argument("start", type=float); ap.add_argument("end", type=float)
 ap.add_argument("fundo"); ap.add_argument("out"); ap.add_argument("--threads", type=int, default=4)
-ap.add_argument("--fps", type=int, default=30); ap.add_argument("--model", default="u2net_human_seg")
+ap.add_argument("--fps", type=int, default=30); ap.add_argument("--model", default="u2net_human_seg"); ap.add_argument("--gpu", action="store_true", help="onnxruntime-gpu (CUDA); rode com --with onnxruntime-gpu em vez de onnxruntime")
 a = ap.parse_args()
 W, H = 1920, 1080
 so = ort.SessionOptions(); so.intra_op_num_threads = a.threads; so.inter_op_num_threads = 1
-sess = new_session(a.model, sess_opts=so)
+prov = ["CUDAExecutionProvider", "CPUExecutionProvider"] if a.gpu else ["CPUExecutionProvider"]
+sess = new_session(a.model, sess_opts=so, providers=prov)
 bg = np.asarray(Image.open(a.fundo).convert("RGB")).astype(np.float32)
 
 dur = a.end - a.start
