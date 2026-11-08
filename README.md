@@ -72,7 +72,6 @@ Passo a passo completo: [docs/tutorial.md](docs/tutorial.md).
 | [Solução de problemas](docs/troubleshooting.md) | sintomas comuns e correções |
 | [video-docs](docs/video-docs-LEIAME.md) | harness de vídeos de documentação |
 | [Contribuindo](CONTRIBUTING.md) | como criar skills e scripts no padrão |
-| [Análise de concorrente](docs/analise-concorrente-editiapro.md) | EDIT.IA PRO: catálogo de estilos, lacunas cobertas e o que ficou de fora |
 
 ## Desenvolvimento
 

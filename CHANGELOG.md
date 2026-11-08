@@ -1,7 +1,7 @@
 # Changelog
 
 ## 0.2.0 — 2026-11-07
-Melhorias a partir da análise do concorrente EDIT.IA PRO (`docs/analise-concorrente-editiapro.md`).
+Pedido em linguagem natural, vídeo longo e novos estilos.
 - **`/editar`**: entrada em linguagem natural; tabela de estilos → skills; relatório de edição padronizado; ajustes refazem só a etapa afetada.
 - **`/destaques`** + `highlights.py`: melhores momentos por transcrição para um alvo de duração ou N reels.
 - **`/checklist`** + `checklist_ass.py`: itens com moldura no instante em que são falados.
