@@ -162,6 +162,13 @@ cat > aula.json <<'JSON'
 JSON
 python3 "$VA2/montar_aula.py" aula.json edl > edl.txt
 grep -q "sep " edl.txt && grep -q "D1" edl.txt && grep -q "duração final: 20.0s" edl.txt
+# cartela num ponto com lacuna entre cenas (13.0 -> 13.033): tem de entrar mesmo assim, uma vez só
+python3 - <<'PY'
+import json
+c=json.load(open("cenas_corte.json")); c[2]["cut_start"]=13.033; json.dump(c,open("cenas_corte2.json","w"))
+a=json.load(open("aula.json")); a["cenas_corte"]="cenas_corte2.json"; a["capitulos"].append({"n":2,"titulo":"Código","inicio":13.0}); json.dump(a,open("aula2.json","w"))
+PY
+python3 "$VA2/montar_aula.py" aula2.json edl > edl2.txt && [[ "$(grep -c " sep " edl2.txt)" == "2" ]]
 [[ "$(python3 "$VA2/montar_aula.py" aula.json map 7.0)" == "9.000" ]]
 pass "videoaula: montar_aula.py edl (cartela inserida) e map (corte -> final)"
 echo '{"fixes":{"9.0":null},"corr":[["turma","pessoal"]]}' > ajustes.json

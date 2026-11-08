@@ -87,12 +87,14 @@ class Aula:
                 g = next((g for g in self.grupos if g["orig_ini"] - 1 <= og <= g["orig_fim"] + 1), None)
                 blk["grupo"] = g["grupo"] if g else (self.grupos[0]["grupo"] if self.grupos else "A")
             blocks.append(blk)
-        out = []
+        out = []; usados = set()
         for blk in blocks:
-            for n, s in self.sep.items():
-                if abs(blk["a"] - s) < 0.02:
-                    out.append({"kind": "sep", "n": n, "a": s, "b": s, "dur": self.sep_dur})
+            for n, s in self.sep.items():          # cartela antes do PRIMEIRO bloco em s (tolera lacuna de até 0,3 s)
+                if n not in usados and s - 0.02 <= blk["a"] < s + 0.3:
+                    out.append({"kind": "sep", "n": n, "a": s, "b": s, "dur": self.sep_dur}); usados.add(n)
             out.append(blk)
+        faltam = set(self.sep) - usados
+        if faltam: raise SystemExit(f"cartelas sem bloco correspondente (confira capitulos[].inicio): {sorted(faltam)}")
         ultimo = self.cenas[-1]["cut_end"]
         for blk in out:
             if blk["kind"] == K["locutor"] and blk["a"] == 0.0 and "abertura" in self.cfg: blk["kind"] = "abertura"
@@ -157,19 +159,20 @@ class Aula:
         return out
 
     def concat(self, E, saida, ate):
-        lst = f"{self.blocos}/lista.txt"; fim = 0
+        lst = f"{self.blocos}/lista.txt"
         with open(lst, "w") as f:
             for i, b in enumerate(E):
                 if b["a"] >= ate: break
-                f.write(f"file '{i:03d}_{b['kind']}.mp4'\n"); fim = b["b"]
+                f.write(f"file '{i:03d}_{b['kind']}.mp4'\n")
         self.ff(["-f", "concat", "-safe", "0", "-i", lst, "-map", "0:v", "-c", "copy", f"{self.blocos}/_video.mp4"], "concat vídeo")
-        seps = [s for s in sorted(self.sep.values()) if s < fim - 0.02]
-        pontos = [0.0] + seps + [fim]; parts = []; ins = ""; n = 0
-        sfx = self.cfg.get("whoosh", "sfx/whoosh.wav")
-        for i, (p0, p1) in enumerate(zip(pontos[:-1], pontos[1:])):
-            if i > 0:
-                parts.append(f"[1:a]atrim=0:{self.sep_dur},apad=whole_dur={self.sep_dur},asetpts=PTS-STARTPTS[w{i}];"); ins += f"[w{i}]"; n += 1
-            parts.append(f"[0:a]atrim={p0:.4f}:{p1:.4f},asetpts=PTS-STARTPTS[s{i}];"); ins += f"[s{i}]"; n += 1
+        parts = []; ins = ""; n = 0; sfx = self.cfg.get("whoosh", "sfx/whoosh.wav")
+        for i, b in enumerate(E):                      # mesma sequência dos blocos de vídeo: áudio nunca diverge
+            if b["a"] >= ate: break
+            if b["kind"] == "sep":
+                parts.append(f"[1:a]atrim=0:{b['dur']},apad=whole_dur={b['dur']},asetpts=PTS-STARTPTS[w{i}];"); ins += f"[w{i}]"
+            else:
+                parts.append(f"[0:a]atrim={b['a']:.4f}:{b['b']:.4f},asetpts=PTS-STARTPTS[s{i}];"); ins += f"[s{i}]"
+            n += 1
         fc = "".join(parts) + f"{ins}concat=n={n}:v=0:a=1,aresample=48000[a]"
         self.ff(["-i", self.cut, "-i", sfx, "-filter_complex", fc, "-map", "[a]", "-c:a", "pcm_s16le", f"{self.blocos}/_audio.wav"], "áudio contínuo")
         self.ff(["-i", f"{self.blocos}/_video.mp4", "-i", f"{self.blocos}/_audio.wav", "-map", "0:v", "-map", "1:a", "-c:v", "copy",
