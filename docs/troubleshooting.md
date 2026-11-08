@@ -44,7 +44,8 @@
 | fonte diferente da pedida | o nome não bate com a família instalada; veja `fc-list : family` |
 | acento ou emoji como quadrado | fonte sem o glifo; use DejaVu, Noto ou Montserrat |
 | legenda dupla no VLC | `.srt` com o mesmo nome ao lado do `.mp4`; mova para `legendas/` |
-| texto em cima da legenda | lettering acima de 85% da altura; ajuste `pos` |
+| texto em cima da legenda | no estilo reels a legenda ocupa ~55–65% da altura; mantenha o lettering acima de 50% ou abaixo de 70% (`pos`) |
+| lettering pequeno ou deslocado em vídeo de celular | versão antiga do `lettering_ass.py` sem leitura da rotação; atualize o plugin |
 
 ## IA visual (`/texto-atras`, `/tela-verde`)
 
@@ -67,7 +68,7 @@
 
 | Sintoma | Solução |
 |---|---|
-| `BLENDER_EEVEE_NEXT` não existe | Blender < 4.2: use `BLENDER_EEVEE` |
+| `BLENDER_EEVEE_NEXT` não existe | o nome vale só no Blender 4.2–4.5; em < 4.2 e em 5.x use `BLENDER_EEVEE` (o skill já escolhe pela versão) |
 | render preto | câmera sem enquadrar ou luz fraca; renderize um frame (`-f 45`) e ajuste |
 | `.mov` sem transparência | precisa de `film_transparent = True` e ProRes 4444 `yuva444p10le` |
 

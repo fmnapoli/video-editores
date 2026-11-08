@@ -34,7 +34,7 @@ segue o código. Ver `references/revisao-coerencia.md`.
 
 | Função | Ferramenta | Observações |
 |---|---|---|
-| Transcrição | `whisper-ctranslate2` (uv tool), modelo `medium`, CPU int8 | `--vad_filter True --initial_prompt "<vocabulário do domínio>"`; ~1,2× tempo real. `small` erra termos de domínio. Validar em 60 s antes do lote. |
+| Transcrição | `whisper-ctranslate2` (uv tool), modelo `medium`, CPU int8 — ou `${CLAUDE_PLUGIN_ROOT}/scripts/transcribe.py` (mesmo motor, mesmo padrão `medium` + `--prompt`) | `--vad_filter True --initial_prompt "<vocabulário do domínio>"`; ~1,2× tempo real. `small` erra termos de domínio. Validar em 60 s antes do lote. |
 | Voz | `edge-tts` 7.x, `pt-BR-ThalitaMultilingualNeural` (padrão, escolhida de ouvido em nov/2026) | Pela API Python com `boundary="WordBoundary"` (timestamps por palavra, usados na legenda). Rodar com `uv run --with edge-tts --with pillow`. |
 | Montagem | `ffmpeg` ≥ 6 com libass (o do apt serve) | Usa `subtitles`/`ass`, `tpad`, `gradients`, `drawgrid`, `xstack`, `loudnorm`. **Não depende de `drawtext`** (o build estático do johnvansickle não tem): título e balões vão em ASS. |
 | Medir texto | Pillow + `DejaVuSans-Bold.ttf` | Para dimensionar balões no ASS. |

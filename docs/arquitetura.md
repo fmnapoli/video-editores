@@ -75,4 +75,6 @@ Cada etapa lê o arquivo da etapa anterior e escreve um novo; nada é sobrescrit
 - `proof.sh` gera os três artefatos;
 - sintaxe de todos os scripts, frontmatter dos 14 skills e manifestos JSON.
 
+`tests/docs_offline.sh` roda o montador do `video-docs` de ponta a ponta com um stub do edge-tts (`tests/stub/edge_tts.py`), então o maior script do repositório também é coberto no CI, em Linux e macOS.
+
 Os passos com modelos de IA (Whisper, rembg, Blender) ficam fora do CI por tamanho e tempo; valide-os localmente com um vídeo curto.

@@ -62,11 +62,12 @@ Passo a passo completo: [docs/tutorial.md](docs/tutorial.md).
 
 ```bash
 make test           # teste de fumaça com vídeo sintético (ffmpeg + python3)
+bash tests/docs_offline.sh  # montador do video-docs offline (stub do edge-tts)
 make lint           # shellcheck + ruff
 make docs-example   # exemplo do video-docs (precisa de internet para o edge-tts)
 ```
 
-CI em `.github/workflows/ci.yml` roda lint e smoke a cada push.
+CI em `.github/workflows/ci.yml` roda lint, smoke e o teste offline do video-docs em Linux e macOS a cada push.
 
 ## Licença
 

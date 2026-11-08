@@ -27,7 +27,7 @@ Mesma escolha do `video-docs`: texto em ASS/libass, porque o ffmpeg estático n�
    python3 "${CLAUDE_PLUGIN_ROOT}/scripts/lettering_ass.py" IN.mp4 textos.json --font "DejaVu Sans" --burn IN_lettering.mp4
    ```
    A fonte é o nome da família instalada (`fc-list : family`). Montserrat e Inter (OFL) ficam boas em reels.
-4. Rode `/prova` e confira se o texto não cobre o rosto nem a legenda (zona inferior ~15%).
+4. Rode `/prova` e confira se o texto não cobre o rosto nem a legenda (no estilo reels a legenda fica entre ~55% e ~65% da altura; no clássico, no rodapé). Em vídeo gravado no celular, o script já considera a rotação do arquivo.
 
 ## Combinando com /legenda
 Queime o lettering **antes** da legenda, para a legenda ficar por cima. Ou junte os dois num filtro só: `-vf "ass=textos.ass,subtitles=IN.words.srt:force_style=..."`.

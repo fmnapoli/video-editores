@@ -9,21 +9,21 @@ Siga `${CLAUDE_PLUGIN_ROOT}/docs/convencoes.md` (pastas, nomes de saída, loudne
 
 
 ## Passos
-1. Transcreva (gera `.transcript.json`, `.srt`, `.words.srt`):
+1. Transcreva (gera `.transcript.json`, `.srt`, `.words.srt` em `trabalho/<slug>/`; nada é escrito em `originais/`):
    ```bash
-   uv run --with faster-whisper python "${CLAUDE_PLUGIN_ROOT}/scripts/transcribe.py" "IN.mp4" --lang pt \
-     --prompt "termos do seu domínio: Kubernetes, ArgoCD, Grafana"
+   uv run --with faster-whisper python "${CLAUDE_PLUGIN_ROOT}/scripts/transcribe.py" "originais/IN.mp4" --lang pt \
+     --prompt "termos do seu domínio: Kubernetes, Terraform, ArgoCD" --out-dir "trabalho/<slug>"
    ```
    Padrão `medium` (o `small` erra termos técnicos). Sempre passe `--prompt` com o vocabulário do vídeo.
 2. Detecte repetições:
    ```bash
-   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/takes.py" "IN.transcript.json" --threshold 0.6
+   python3 "${CLAUDE_PLUGIN_ROOT}/scripts/takes.py" "trabalho/<slug>/IN.transcript.json" --threshold 0.6
    ```
    Regra do script: em cada grupo de frases parecidas, fica a **última tentativa completa** (convenção de quem grava repetindo até acertar).
 3. **Mostre ao usuário a lista de tomadas descartadas** (o script imprime) e peça OK. Ajuste se ele quiser manter outra tentativa: edite `IN.takes.json` (lista `keep` de `[início, fim]` em segundos).
 4. Renderize:
    ```bash
-   bash "${CLAUDE_PLUGIN_ROOT}/scripts/render_spans.sh" "IN.mp4" "IN.takes.json" "IN_tomada.mp4"
+   bash "${CLAUDE_PLUGIN_ROOT}/scripts/render_spans.sh" "originais/IN.mp4" "trabalho/<slug>/IN.takes.json" "trabalho/<slug>/<slug>_tomada.mp4"
    ```
 5. Sugira `/corte` em seguida (tira silêncios restantes) e `/legenda`.
 

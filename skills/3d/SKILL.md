@@ -16,7 +16,8 @@ Blender é GPL e roda por linha de comando sem abrir a interface.
    import bpy, math
    bpy.ops.wm.read_factory_settings(use_empty=True)
    s = bpy.context.scene
-   s.render.engine = "BLENDER_EEVEE_NEXT"   # Blender 4.2+; em versões antigas use "BLENDER_EEVEE"
+   v = bpy.app.version
+   s.render.engine = "BLENDER_EEVEE_NEXT" if (4, 2, 0) <= v < (5, 0, 0) else "BLENDER_EEVEE"  # nome mudou em 4.2 e voltou em 5.0
    s.render.resolution_x, s.render.resolution_y = 1080, 1920
    s.render.fps, s.frame_start, s.frame_end = 30, 1, 90
    s.render.film_transparent = True
@@ -42,4 +43,4 @@ Blender é GPL e roda por linha de comando sem abrir a interface.
 5. Mostre um frame (`render3d/0045.png`) ao usuário antes do render completo — renderize primeiro só esse frame com `-f 45`.
 
 ## Extra
-Para controle interativo do Blender pelo Claude, existe o blender-mcp (MIT): `claude mcp add blender -- uvx blender-mcp` + addon no Blender.
+Para controle interativo do Blender pelo Claude, existe o blender-mcp (MIT): `claude mcp add blender -- uvx blender-mcp` + addon no Blender. É código de terceiro com acesso total ao Blender: revise o repositório antes de instalar.

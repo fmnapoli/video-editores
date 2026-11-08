@@ -7,7 +7,7 @@ Gera, ao lado do arquivo de entrada:
   <nome>.words.srt        -> legenda curta (N palavras por bloco, estilo reels)
 
 Uso: uv run --with faster-whisper python transcribe.py VIDEO [--model medium] [--lang pt]
-     [--prompt "vocabulário do domínio: Kubernetes, ArgoCD, Grafana"] [--words-per-cue 3]
+     [--prompt "vocabulário do domínio: Kubernetes, ArgoCD, Terraform"] [--out-dir trabalho/meu-video] [--words-per-cue 3]
 
 Mesmo motor do whisper-ctranslate2 usado no video-docs (CTranslate2). O modelo `small`
 erra termos de domínio; `medium` + --prompt é o padrão validado.
@@ -34,7 +34,8 @@ def main():
     ap.add_argument("input")
     ap.add_argument("--model", default="medium", help="tiny|base|small|medium|large-v3")
     ap.add_argument("--prompt", default=None, help="initial_prompt com vocabulário do domínio")
-    ap.add_argument("--lang", default="pt")
+    ap.add_argument("--lang", default="pt", help="código ISO ou auto")
+    ap.add_argument("--out-dir", default=None, help="pasta de saída (padrão: trabalho/<nome>/ se existir trabalho/, senão ao lado da entrada)")
     ap.add_argument("--words-per-cue", type=int, default=3)
     ap.add_argument("--device", default="auto")
     a = ap.parse_args()
@@ -46,7 +47,8 @@ def main():
 
     src = pathlib.Path(a.input)
     model = WhisperModel(a.model, device=a.device, compute_type="int8" if a.device in ("auto", "cpu") else "auto")
-    segments, info = model.transcribe(str(src), language=a.lang, word_timestamps=True, vad_filter=True,
+    segments, info = model.transcribe(str(src), language=None if a.lang == "auto" else a.lang,
+                                      word_timestamps=True, vad_filter=True,
                                       initial_prompt=a.prompt)
 
     segs, words = [], []
@@ -56,7 +58,14 @@ def main():
                      "avg_logprob": s.avg_logprob, "no_speech_prob": s.no_speech_prob})
         words.extend(ws)
 
-    base = src.with_suffix("")
+    if a.out_dir:
+        out_dir = pathlib.Path(a.out_dir)
+    elif pathlib.Path("trabalho").is_dir():
+        out_dir = pathlib.Path("trabalho") / src.stem
+    else:
+        out_dir = src.parent
+    out_dir.mkdir(parents=True, exist_ok=True)
+    base = out_dir / src.stem
     out = {"source": str(src), "language": info.language, "duration": info.duration, "segments": segs}
     pathlib.Path(f"{base}.transcript.json").write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
     write_srt([(s["start"], s["end"], s["text"]) for s in segs], f"{base}.srt")

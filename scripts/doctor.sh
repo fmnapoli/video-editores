@@ -1,29 +1,39 @@
 #!/usr/bin/env bash
-# Verifica dependências do plugin video-editores.
-# Uso: doctor.sh [--install]   (--install tenta instalar os pacotes Python que faltam)
+# Verifica dependências do plugin video-editores (não instala nada no Python do sistema).
+# Uso: doctor.sh
 set -u
 ok()   { printf '  \033[32m✔\033[0m %s\n' "$1"; }
 miss() { printf '  \033[31m✘\033[0m %s  →  %s\n' "$1" "$2"; MISSING=1; }
+opt()  { printf '  \033[33m•\033[0m %s  →  %s\n' "$1" "$2"; }
 MISSING=0
 
-echo "Binários:"
-for b in ffmpeg ffprobe; do command -v "$b" >/dev/null && ok "$b" || miss "$b" "instale ffmpeg (apt/brew/winget)"; done
-command -v uv >/dev/null && ok "uv" || miss "uv" "curl -LsSf https://astral.sh/uv/install.sh | sh"
-command -v auto-editor >/dev/null && ok "auto-editor" || miss "auto-editor" "uv tool install auto-editor"
-command -v yt-dlp      >/dev/null && ok "yt-dlp"      || miss "yt-dlp (só /referencia)" "uv tool install yt-dlp"
-command -v blender     >/dev/null && ok "blender"     || miss "blender (só /3d)" "https://www.blender.org/download/"
-command -v manim       >/dev/null && ok "manim"       || miss "manim (opcional, /animacao)" "uv tool install manim"
+echo "Base (obrigatório):"
+command -v ffmpeg  >/dev/null && ok "ffmpeg"  || miss "ffmpeg"  "apt install ffmpeg | brew install ffmpeg"
+command -v ffprobe >/dev/null && ok "ffprobe" || miss "ffprobe" "vem com o ffmpeg"
+if command -v ffmpeg >/dev/null; then
+  ffmpeg -hide_banner -filters 2>/dev/null | grep -qE ' (ass|subtitles) ' && ok "ffmpeg com libass" \
+    || miss "ffmpeg com libass" "use o ffmpeg do apt/brew (builds estáticos sem libass não servem)"
+fi
+command -v python3 >/dev/null && ok "python3" || miss "python3" "instale Python 3.10+"
+command -v uv      >/dev/null && ok "uv"      || miss "uv" "https://docs.astral.sh/uv/getting-started/installation/"
+if command -v fc-list >/dev/null; then
+  fc-list 2>/dev/null | grep -qi "DejaVuSans-Bold\|DejaVu Sans:style=Bold" && ok "fonte DejaVu Sans Bold" \
+    || miss "fonte DejaVu Sans Bold" "apt install fonts-dejavu-core | brew install --cask font-dejavu"
+else
+  opt "fontconfig (fc-list)" "sem ele não dá para checar a fonte; instale fontconfig"
+fi
 
-echo "Python:"
-PY_PKGS=(faster_whisper:faster-whisper scenedetect:scenedetect[opencv] rembg:rembg[cpu] PIL:pillow numpy:numpy)
-TO_INSTALL=()
-for pair in "${PY_PKGS[@]}"; do
-  mod="${pair%%:*}"; pkg="${pair#*:}"
-  python3 -c "import $mod" 2>/dev/null && ok "$pkg" || { miss "$pkg" "pip install '$pkg'"; TO_INSTALL+=("$pkg"); }
-done
+echo "CLIs por skill:"
+command -v auto-editor >/dev/null && ok "auto-editor (/corte)" || miss "auto-editor (/corte)" "uv tool install auto-editor"
+command -v yt-dlp      >/dev/null && ok "yt-dlp (/referencia)" || opt "yt-dlp (/referencia)" "uv tool install yt-dlp"
+command -v scenedetect >/dev/null && ok "scenedetect (/referencia, /efeitos)" || opt "scenedetect" "uv tool install 'scenedetect[opencv]'"
+command -v manim       >/dev/null && ok "manim (/animacao)" || opt "manim (/animacao)" "uv tool install manim"
+command -v blender     >/dev/null && ok "blender (/3d)" || opt "blender (/3d)" "https://www.blender.org/download/"
 
-if [[ "${1:-}" == "--install" && ${#TO_INSTALL[@]} -gt 0 ]]; then
-  echo "Instalando: ${TO_INSTALL[*]}"
-  python3 -m pip install --user "${TO_INSTALL[@]}" || python3 -m pip install --break-system-packages "${TO_INSTALL[@]}"
+echo "Pacotes Python (baixados sob demanda por 'uv run --with'; nada a instalar):"
+echo "  faster-whisper (/tomada, /legenda), rembg (/texto-atras, /tela-verde), edge-tts + pillow (/video-docs)"
+if command -v uv >/dev/null; then
+  uv run --quiet --with faster-whisper python -c "import faster_whisper" 2>/dev/null \
+    && ok "faster-whisper resolve via uv" || opt "faster-whisper" "será baixado no primeiro uso; precisa de internet"
 fi
 exit $MISSING

@@ -50,7 +50,24 @@ bash "$S/proof.sh" out_lettering.mp4 8 >/dev/null
 test -s out_lettering.proof.jpg && test -s out_lettering.preview.mp4 && grep -q "quadros da folha" out_lettering.proof.txt
 pass "proof.sh gera folha de contato, preview e relatório"
 
-bash -n "$S"/*.sh && python3 -m py_compile "$S"/*.py
+# vídeo sem áudio + keep vazio
+ffmpeg -v error -y -f lavfi -i "testsrc2=size=320x180:rate=30:duration=3" -c:v libx264 -pix_fmt yuv420p mudo.mp4
+echo '{"keep":[[0,1],[2,3]]}' > k.json && bash "$S/render_spans.sh" mudo.mp4 k.json mudo_out.mp4 >/dev/null && test -s mudo_out.mp4
+echo '{"keep":[]}' > k0.json && ! bash "$S/render_spans.sh" mudo.mp4 k0.json x.mp4 >/dev/null 2>&1
+pass "render_spans.sh: sem áudio funciona, keep vazio aborta"
+
+# rotação de celular: lettering deve usar 1080x1920 exibido
+ffmpeg -v error -y -f lavfi -i "testsrc2=size=1920x1080:rate=30:duration=1" -c:v libx264 -pix_fmt yuv420p -display_rotation 90 rot.mp4 2>/dev/null \
+  || ffmpeg -v error -y -f lavfi -i "testsrc2=size=1920x1080:rate=30:duration=1" -c:v libx264 -pix_fmt yuv420p -metadata:s:v rotate=90 rot.mp4
+echo '[{"text":"X","start":0,"end":1}]' > r.json && python3 "$S/lettering_ass.py" rot.mp4 r.json >/dev/null
+grep -q "PlayResX: 1080" r.ass && grep -q "PlayResY: 1920" r.ass
+pass "lettering_ass.py respeita a rotação do vídeo"
+
+# takes.py com transcrição vazia aborta com mensagem
+echo '{"segments":[]}' > vazio.transcript.json && ! python3 "$S/takes.py" vazio.transcript.json >/dev/null 2>&1
+pass "takes.py aborta em transcrição vazia"
+
+bash -n "$S"/*.sh && python3 -c 'import ast, sys; [ast.parse(open(f, encoding="utf-8").read(), f) for f in sys.argv[1:]]' "$S"/*.py "$ROOT"/skills/video-docs/scripts/*.py
 pass "sintaxe de todos os scripts"
 
 # frontmatter de todos os skills

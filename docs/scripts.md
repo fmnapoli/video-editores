@@ -7,8 +7,10 @@ Transcrição com timestamps por palavra (faster-whisper, motor CTranslate2, o m
 
 ```bash
 uv run --with faster-whisper python scripts/transcribe.py VIDEO \
-  [--model medium] [--lang pt] [--prompt "Kubernetes, ArgoCD"] [--words-per-cue 3] [--device auto|cpu|cuda]
+  [--model medium] [--lang pt] [--prompt "Kubernetes, ArgoCD"] [--words-per-cue 3] [--device auto|cpu|cuda] [--out-dir PASTA]
 ```
+
+`--lang auto` detecta o idioma. Sem `--out-dir`, grava em `trabalho/<nome>/` se a pasta `trabalho/` existir; senão, ao lado da entrada.
 
 | Saída | Conteúdo |
 |---|---|
@@ -20,7 +22,7 @@ VAD ligado (ignora silêncio). Em CPU usa `int8`. O modelo `small` erra termos t
 
 ## takes.py
 ```bash
-python3 scripts/takes.py VIDEO.transcript.json [--threshold 0.6] [--pad 0.08]
+python3 scripts/takes.py VIDEO.transcript.json [--threshold 0.6] [--pad 0.08] [--out ARQ.takes.json]
 ```
 Saída: `<nome>.takes.json`:
 ```json
@@ -32,13 +34,13 @@ No stdout, a lista de descartes para revisão. Só usa a biblioteca padrão.
 ```bash
 bash scripts/render_spans.sh ENTRADA.mp4 TRECHOS.json SAIDA.mp4
 ```
-Lê `keep` (lista de `[início, fim]` em segundos), recorta vídeo e áudio, aplica micro-fade de 20 ms no áudio (evita clique) e concatena **na ordem da lista**. Por isso também serve para reordenar trechos, como trazer o gancho para o início.
+Lê `keep` (lista de `[início, fim]` em segundos), recorta vídeo e áudio, aplica micro-fade de 20 ms no áudio (evita clique) e concatena **na ordem da lista**. Vídeo sem faixa de áudio (gravação de tela) também funciona; `keep` vazio aborta com mensagem. Por isso também serve para reordenar trechos, como trazer o gancho para o início.
 
 ## lettering_ass.py
 ```bash
 python3 scripts/lettering_ass.py VIDEO textos.json [--font "DejaVu Sans"] [--burn SAIDA.mp4]
 ```
-Gera `textos.ass` com `PlayRes` igual à resolução do vídeo e, com `--burn`, queima com o filtro `ass`.
+Gera `textos.ass` com `PlayRes` igual à resolução **exibida** do vídeo (considera o metadado de rotação de vídeos de celular) e, com `--burn`, queima com o filtro `ass`. Caminhos com espaço, vírgula ou `:` são escapados.
 
 `textos.json`:
 
@@ -80,9 +82,9 @@ bash scripts/proof.sh VIDEO [N_FRAMES=12]
 
 ## doctor.sh
 ```bash
-bash scripts/doctor.sh [--install]
+bash scripts/doctor.sh
 ```
-Lista binários e pacotes Python, com o comando para instalar cada um. `--install` instala os pacotes Python que faltam. O código de saída é 1 se faltar algo.
+Checa ffmpeg com libass, python3, uv, fonte DejaVu e as CLIs de cada skill, com o comando para instalar cada uma. Não instala nada no Python do sistema (os pacotes Python vêm por `uv run --with`). Código de saída 1 se faltar algo obrigatório.
 
 ## render-docs.sh
 Atalho do `render.sh` do video-docs, apontando para `skills/video-docs/scripts/build.py`. Rode a partir da raiz do projeto de vídeos:

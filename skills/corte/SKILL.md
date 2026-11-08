@@ -12,8 +12,8 @@ Siga `${CLAUDE_PLUGIN_ROOT}/docs/convencoes.md` (pastas, nomes de saída, loudne
 1. Confirme o arquivo de entrada. Se o usuário não disse, pergunte o ritmo: **suave** (margem 0.25s), **normal** (0.15s) ou **agressivo** (0.06s). Padrão: normal.
 2. Rode o auto-editor (open source), que corta por volume de áudio:
    ```bash
-   auto-editor "IN.mp4" --edit audio:threshold=0.04 --margin 0.15s \
-     --video-codec libx264 --output "IN_corte.mp4"
+   auto-editor "IN.mp4" --edit audio:threshold=0.04 --margin 0.15s --no-open \
+     --video-codec libx264 --output "trabalho/<slug>/<slug>_corte.mp4"
    ```
    - Ambiente com ruído de fundo: suba `threshold` para 0.06–0.08.
    - Fala baixa/sussurrada: desça para 0.02–0.03.
@@ -23,5 +23,5 @@ Siga `${CLAUDE_PLUGIN_ROOT}/docs/convencoes.md` (pastas, nomes de saída, loudne
 5. Sugira `/prova` para revisar o resultado.
 
 ## Regras
-- Nunca sobrescreva o original; saída sempre `*_corte.mp4`.
+- Nunca sobrescreva o original; saída sempre `trabalho/<slug>/<slug>_corte.mp4`. `--no-open` é obrigatório (sem ele o auto-editor abre um player).
 - Se o vídeo tiver tomadas repetidas (a pessoa repetiu frases), rode `/tomada` **antes** do `/corte`.

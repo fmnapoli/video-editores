@@ -11,7 +11,7 @@ resumo legível no stdout para o Claude mostrar ao usuário antes de cortar.
 
 Uso: takes.py VIDEO.transcript.json [--threshold 0.6] [--pad 0.08]
 """
-import argparse, json, pathlib, re
+import argparse, json, pathlib, re, sys
 from difflib import SequenceMatcher
 
 
@@ -25,7 +25,10 @@ def sim(a, b):
         return 0.0
     # compara pelo prefixo comum: retomadas costumam começar igual
     n = min(len(a), len(b))
-    return max(SequenceMatcher(None, a[:n], b[:n]).ratio(), SequenceMatcher(None, a, b).ratio())
+    full = SequenceMatcher(None, a, b).ratio()
+    if n < 12:  # prefixo curto demais para ser evidência ("Ok." vs "Ok, então...")
+        return full
+    return max(SequenceMatcher(None, a[:n], b[:n]).ratio(), full)
 
 
 def main():
@@ -33,10 +36,13 @@ def main():
     ap.add_argument("transcript")
     ap.add_argument("--threshold", type=float, default=0.6)
     ap.add_argument("--pad", type=float, default=0.08, help="folga em segundos em volta de cada trecho")
+    ap.add_argument("--out", default=None, help="caminho do .takes.json (padrão: ao lado do transcript)")
     a = ap.parse_args()
 
     data = json.loads(pathlib.Path(a.transcript).read_text(encoding="utf-8"))
     segs = [s for s in data["segments"] if s["text"].strip()]
+    if not segs:
+        sys.exit("transcrição sem fala: nada a selecionar")
 
     groups, cur = [], []
     for s in segs:
@@ -68,7 +74,9 @@ def main():
         else:
             spans.append([st, en])
 
-    out = pathlib.Path(a.transcript.replace(".transcript.json", "") + ".takes.json")
+    src = pathlib.Path(a.transcript)
+    stem = src.name[:-len(".transcript.json")] if src.name.endswith(".transcript.json") else src.stem
+    out = pathlib.Path(a.out) if a.out else src.with_name(stem + ".takes.json")
     out.write_text(json.dumps({"keep": spans, "dropped": dropped}, ensure_ascii=False, indent=1), encoding="utf-8")
 
     print(f"{len(groups)} falas, {len(dropped)} tomadas descartadas, {len(spans)} trechos mantidos")

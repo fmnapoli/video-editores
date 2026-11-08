@@ -3,9 +3,11 @@
 test:            ## teste de fumaça (ffmpeg + python3)
 	bash tests/smoke.sh
 
-lint:            ## shellcheck + ruff, se instalados
-	@command -v shellcheck >/dev/null && shellcheck -S warning scripts/*.sh tests/*.sh || echo "shellcheck ausente, pulando"
-	@command -v ruff >/dev/null && ruff check scripts skills/video-docs/scripts || echo "ruff ausente ou com erros"
+lint:            ## shellcheck + ruff (falha se houver erro)
+	@if command -v shellcheck >/dev/null; then shellcheck -S warning scripts/*.sh tests/*.sh exemplos/video-docs/*.sh; else echo "shellcheck ausente, pulando"; fi
+	@if command -v ruff >/dev/null; then ruff check scripts skills/video-docs/scripts tests; \
+	 elif command -v uvx >/dev/null; then uvx ruff check scripts skills/video-docs/scripts tests; \
+	 else echo "ruff ausente, pulando"; fi
 
 doctor:          ## verifica dependências
 	bash scripts/doctor.sh

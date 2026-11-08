@@ -34,12 +34,41 @@ import asyncio, hashlib, json, math, os, re, subprocess, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import pronuncia  # noqa: E402
 
+
+def ffesc(p):
+    """Escapa um caminho para uso dentro de opções de filtro do ffmpeg."""
+    return (p.replace("\\", "\\\\").replace("'", "\\'").replace(":", "\\:")
+             .replace(",", "\\,").replace("[", "\\[").replace("]", "\\]"))
+
+
 W, H, FPS = 1280, 720, 30
 TITLE_DUR = 3.2
 TTS_LEAD, TTS_TAIL, TAIL_HOLD = 0.25, 0.35, 0.8
 FIT_CAP, FIT_SLACK, SLOW_MIN = 2.2, 1.2, 0.7
 VOICE = "pt-BR-ThalitaMultilingualNeural"  # pronuncia termos em inglês nativamente
-FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+def _find_font():
+    """DejaVu Sans Bold em Linux, macOS ou Windows; por último, fontconfig."""
+    cands = ["/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+             "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf",
+             "/usr/share/fonts/TTF/DejaVuSans-Bold.ttf",
+             os.path.expanduser("~/Library/Fonts/DejaVuSans-Bold.ttf"),
+             "/Library/Fonts/DejaVuSans-Bold.ttf",
+             "/opt/homebrew/share/fonts/DejaVuSans-Bold.ttf",
+             r"C:\Windows\Fonts\DejaVuSans-Bold.ttf"]
+    for c in cands:
+        if os.path.exists(c):
+            return c
+    try:
+        out = subprocess.run(["fc-match", "-f", "%{file}", "DejaVu Sans:bold"],
+                             capture_output=True, text=True, check=True).stdout.strip()
+        if out:
+            return out
+    except (OSError, subprocess.CalledProcessError):
+        pass
+    return cands[0]
+
+
+FONT = _find_font()
 FONT_NAME = "DejaVu Sans"
 # colours (ASS &HAABBGGRR&)
 ACCENT = "&H00356BFF&"        # laranja FF6B35
@@ -95,8 +124,8 @@ def tts(text, voice, work):
     mp3, js = os.path.join(work, f"tts-{h}.mp3"), os.path.join(work, f"tts-{h}.json")
     if not (os.path.exists(mp3) and os.path.exists(js)):
         words = asyncio.run(_synth(text, voice, mp3))
-        json.dump({"words": words, "dur": ffdur(mp3)}, open(js, "w"))
-    d = json.load(open(js))
+        json.dump({"words": words, "dur": ffdur(mp3)}, open(js, "w", encoding="utf-8"))
+    d = json.load(open(js, encoding="utf-8"))
     return mp3, d["words"], d["dur"]
 
 
@@ -351,11 +380,11 @@ def write_roteiro(spec, scenes, total, out_dir):
             L.append(f"| `{os.path.basename(srcs[sc['src']])}` | {mmss(s)}–{mmss(e)} | " + ("normal" if abs(v-1)<0.01 else f"velocidade {v:.2g}×") + " |")
     L.append("")
     L.append("Tudo fora dos trechos acima foi removido (carregamentos, esperas, leituras de documentação, passagens repetidas).")
-    open(os.path.join(out_dir, f"roteiro-{spec['slug']}.md"), "w").write("\n".join(L) + "\n")
+    open(os.path.join(out_dir, f"roteiro-{spec['slug']}.md"), "w", encoding="utf-8").write("\n".join(L) + "\n")
 
 # ---------------- main ----------------
 def main(spec_path):
-    spec = json.load(open(spec_path))
+    spec = json.load(open(spec_path, encoding="utf-8"))
     slug, out_dir, work = spec["slug"], spec["out_dir"], spec["work_dir"]
     voice = spec.get("voice", VOICE)
     gloss = pronuncia.load(spec.get("glossary"), voice=voice)
@@ -416,7 +445,7 @@ def main(spec_path):
                 n += 1
                 srt.append(f"{n}\n{srt_ts(s)} --> {srt_ts(e)}\n{txt}\n")
     srt_path = os.path.join(out_dir, f"{slug}.srt")
-    open(srt_path, "w").write("\n".join(srt))
+    open(srt_path, "w", encoding="utf-8").write("\n".join(srt))
 
     # 3. ASS
     ass = [ASS_HEAD] + title_evs(spec["title"], spec.get("subtitle", ""))
@@ -462,7 +491,7 @@ def main(spec_path):
             if c.get("arrow"):
                 ass.append(arrow_ev(s, e, *c["arrow"]))
     ass_path = os.path.join(work, f"{slug}.ass")
-    open(ass_path, "w").write("".join(ass))
+    open(ass_path, "w", encoding="utf-8").write("".join(ass))
     # timeline.json: tempos de saída por cena e por destaque (usado pelo manual/QA)
     tl = {"total": total, "scenes": []}
     for i, sc in enumerate(scenes, 1):
@@ -477,7 +506,7 @@ def main(spec_path):
                 s, e = s0 + c["out"][0], s0 + c["out"][1]
             cs.append({"start": round(s, 2), "end": round(min(e, s1), 2), "balloon": c.get("balloon"), "box": c.get("box"), "focus": bool(c.get("focus"))})
         tl["scenes"].append({"n": i, "chip": sc.get("chip"), "t0": round(s0, 2), "t1": round(s1, 2), "callouts": cs})
-    json.dump(tl, open(os.path.join(work, "timeline.json"), "w"), ensure_ascii=False, indent=1)
+    json.dump(tl, open(os.path.join(work, "timeline.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 
     # 4. ffmpeg
     srcs = list(spec["sources"].items())
@@ -513,7 +542,7 @@ def main(spec_path):
             fc.append(chain + f"[v{k}]"); labels.append(f"[v{k}]"); k += 1
     fc.append("".join(labels) + f"concat=n={len(labels)}:v=1:a=0[vc]")
     # destaques/tarjas (ASS) primeiro, legenda por cima: tarja nunca esconde a legenda
-    fc.append(f"[vc]ass='{ass_path}',subtitles=filename='{srt_path}':force_style='{LEGEND_STYLE}'[vout]")
+    fc.append(f"[vc]ass=filename='{ffesc(ass_path)}',subtitles=filename='{ffesc(srt_path)}':force_style='{LEGEND_STYLE}'[vout]")
     al = []
     for q, (idx, sc) in enumerate(aud):
         ms = int((sc["t0"] + TTS_LEAD) * 1000)
@@ -527,7 +556,7 @@ def main(spec_path):
             "-c:v", "libx264", "-preset", "medium", "-crf", "20", "-pix_fmt", "yuv420p",
             "-c:a", "aac", "-b:a", "160k", "-ar", "48000", "-ac", "2",
             "-t", f"{total:.3f}", "-movflags", "+faststart", out_mp4]
-    open(os.path.join(work, f"{slug}.ffmpeg.txt"), "w").write(" ".join(repr(c) if " " in c else c for c in cmd))
+    open(os.path.join(work, f"{slug}.ffmpeg.txt"), "w", encoding="utf-8").write(" ".join(repr(c) if " " in c else c for c in cmd))
     run(cmd)
     rep = {"out": out_mp4, "total": round(total, 2), "cues": n,
            "scenes": [{"t0": round(sc["t0"], 2), "dur": round(sc["dur"], 2), "footage": round(sc["fd"], 2),

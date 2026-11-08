@@ -17,6 +17,7 @@ Siga `${CLAUDE_PLUGIN_ROOT}/docs/convencoes.md` (pastas, nomes de saída, loudne
    ```
    - Fundo imagem: troque `-i FUNDO.mp4` por `-loop 1 -i fundo.jpg`.
    - Sobrou verde na borda → aumente `similarity` (0.12→0.16). Comeu a pessoa → diminua.
+   - `scale2ref` está marcado como obsoleto a partir do ffmpeg 7.1 (ainda funciona). Alternativa: `[0:v]scale=W:H[bg]` com a resolução lida por `ffprobe`.
 3. Mostre com `/prova`.
 
 ## Sem tela verde (IA, rembg — MIT)

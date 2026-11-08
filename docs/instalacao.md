@@ -2,9 +2,11 @@
 
 Tudo roda local. O único serviço externo é o edge-tts, usado só pelo `/video-docs` para narração.
 
+**Windows:** os scripts são bash e usam `python3`, `fc-list` e `mktemp`. Use o **WSL2 com Ubuntu** e siga a coluna Ubuntu; no Windows nativo (PowerShell) o plugin não roda.
+
 ## 1. Requisitos base (obrigatórios)
 
-| Item | Para quê | Ubuntu/Debian | macOS (Homebrew) | Windows |
+| Item | Para quê | Ubuntu/Debian | macOS (Homebrew) | Windows (WSL2) |
 |---|---|---|---|---|
 | Claude Code | executar os skills | `npm i -g @anthropic-ai/claude-code` | idem | idem |
 | ffmpeg ≥ 6 com libass | tudo | `sudo apt install ffmpeg` | `brew install ffmpeg` | `winget install Gyan.FFmpeg` |
@@ -32,6 +34,7 @@ uv tool install "scenedetect[opencv]"    # /referencia, /efeitos
 
 | Skill | Instalar |
 |---|---|
+| `/video-docs` (transcrição opcional) | `uv tool install whisper-ctranslate2`, ou use o `scripts/transcribe.py` do plugin |
 | `/animacao` | `uv tool install manim` (no Linux precisa de `libcairo2-dev libpango1.0-dev`; veja docs.manim.community) |
 | `/3d` | Blender 4.2+ (blender.org) com `blender` no PATH |
 | `/texto-atras`, `/tela-verde` (IA) | nada: `uv run --with "rembg[cpu]"` baixa sob demanda. Com GPU NVIDIA: `rembg[gpu]` |
@@ -63,7 +66,6 @@ cp -r ~/src/video-editores/skills/* ~/.claude/skills/
 ```bash
 make -C ~/src/video-editores doctor      # lista o que falta e como instalar
 make -C ~/src/video-editores test        # teste de fumaça (~10 s)
-bash ~/src/video-editores/scripts/doctor.sh --install   # instala os pacotes Python que faltam
 ```
 
 ## 6. GPU (opcional)

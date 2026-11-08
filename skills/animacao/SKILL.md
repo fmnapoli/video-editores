@@ -35,8 +35,8 @@ Siga `${CLAUDE_PLUGIN_ROOT}/docs/convencoes.md` (pastas, nomes de saída, loudne
 
 ## ffmpeg — receitas rápidas
 - **Punch-in (zoom 1.15x num trecho)**: `-vf "scale=iw*1.15:-2,crop=iw/1.15:ih/1.15"` aplicado só ao trecho (separe com `trim` + `concat`) ou `zoompan` para zoom progressivo.
-- **Ken Burns em foto (5s)**: `ffmpeg -loop 1 -i foto.jpg -vf "zoompan=z='min(zoom+0.0015,1.3)':d=150:s=1080x1920:fps=30" -t 5 kb.mp4`
-- **Transição entre clipes**: `[0][1]xfade=transition=slideleft:duration=0.3:offset=DUR0-0.3`.
+- **Ken Burns em foto (5s)**: `ffmpeg -loop 1 -i foto.jpg -vf "zoompan=z='min(zoom+0.0015,1.3)':d=150:s=1080x1920:fps=30" -pix_fmt yuv420p -t 5 kb.mp4`
+- **Transição entre clipes**: `[0][1]xfade=transition=slideleft:duration=0.3:offset=N`, em que `N` é um número: a duração do primeiro clipe menos 0,3 (calcule com `ffprobe`; `xfade` não aceita expressão).
 
 ## Regras
 - Sempre teste com `-ql` (baixa qualidade) antes do `-qh`.

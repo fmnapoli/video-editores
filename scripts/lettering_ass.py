@@ -20,11 +20,23 @@ import argparse, json, subprocess, sys
 
 
 def probe(path):
+    """Largura e altura já considerando o metadado de rotação (vídeo de celular)."""
     out = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries",
-                          "stream=width,height", "-of", "csv=p=0", path],
-                         capture_output=True, text=True, check=True).stdout.strip()
-    w, h = out.split(",")[:2]
-    return int(w), int(h)
+                          "stream=width,height:stream_side_data=rotation", "-of", "json", path],
+                         capture_output=True, text=True, check=True).stdout
+    st = json.loads(out)["streams"][0]
+    w, h = int(st["width"]), int(st["height"])
+    rot = 0
+    for sd in st.get("side_data_list", []):
+        if "rotation" in sd:
+            rot = int(float(sd["rotation"]))
+    return (h, w) if abs(rot) % 180 == 90 else (w, h)
+
+
+def ffesc(p):
+    """Escapa um caminho para uso dentro de opções de filtro do ffmpeg."""
+    return (p.replace("\\", "\\\\").replace("'", "\\'").replace(":", "\\:")
+             .replace(",", "\\,").replace("[", "\\[").replace("]", "\\]"))
 
 
 def t(s):
@@ -100,7 +112,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
     if a.burn:
         subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", a.video,
-                        "-vf", f"ass={out_ass}", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
+                        "-vf", f"ass=filename='{ffesc(out_ass)}'", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
                         "-c:a", "copy", a.burn], check=True)
         print(f"ok -> {a.burn}")
 

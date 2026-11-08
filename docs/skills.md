@@ -31,6 +31,7 @@ Corta silêncio com o auto-editor, com base no volume do áudio.
 | ritmo / `--margin` | normal = 0,15 s | suave 0,25 · agressivo 0,06 | folga mantida em volta de cada fala |
 | `threshold` | 0,04 | 0,02 (fala baixa) – 0,08 (ruído) | volume abaixo do qual é silêncio |
 | export | vídeo | `--export resolve/premiere/final-cut-pro` | gera timeline editável em vez de vídeo |
+| `--no-open` | sempre | — | sem ele o auto-editor abre um player ao terminar |
 
 Rode o `/tomada` antes: o `/corte` não sabe o que é uma tomada repetida.
 

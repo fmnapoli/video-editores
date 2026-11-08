@@ -10,7 +10,7 @@ meu-projeto/
   saida/          vídeos finais
   legendas/       .srt finais (separados do .mp4: o VLC carrega o sidecar e dobra a legenda queimada)
 ```
-Rode os comandos a partir da raiz do projeto. Caminhos de trabalho em ASCII, sem espaço. Arquivo com espaço, parêntese ou acento entra só como `-i`, nunca dentro do `filter_complex`.
+Rode os comandos a partir da raiz do projeto. Os scripts de transcrição gravam em `trabalho/<nome>/` automaticamente quando a pasta `trabalho/` existe (ou use `--out-dir`). Caminhos de trabalho em ASCII, sem espaço. Arquivo com espaço, parêntese ou acento entra só como `-i`, nunca dentro do `filter_complex`.
 
 ## Nomes de saída
 `<slug>_<etapa>.mp4` em `trabalho/<slug>/` a cada etapa (`_tomada`, `_corte`, `_lettering`, `_legenda`, `_trilha`…). O resultado aprovado vai para `saida/<slug>.mp4`. Assim qualquer etapa pode ser refeita a partir da anterior.
@@ -40,6 +40,7 @@ Mostre e espere aprovação antes de: descartar tomadas, queimar legenda (texto 
 ## Privacidade e verdade
 - Nenhum dado pessoal, senha, token, e-mail ou CPF no vídeo final: corte ou tarje.
 - A fala do bruto não é verdade: em conteúdo técnico, confira afirmações contra o código ou a doc oficial.
+- O `/video-docs` envia o texto da narração ao serviço edge-tts da Microsoft: não coloque segredos nem informação confidencial no roteiro; o resto do plugin é 100% local.
 - Música e efeitos só com licença clara (CC0, CC-BY com crédito, ou do usuário). Pesos do MusicGen/AudioGen são não comerciais.
 
 ## Ferramentas e licenças

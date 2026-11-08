@@ -13,21 +13,21 @@ mudar um vídeo, você edita o spec e monta de novo.
 
 | Caminho | O que é |
 |---|---|
-| `render.sh` | Confere os pré-requisitos e monta um spec: `./render.sh specs/<slug>/spec.json` |
-| `skill-video-docs/` | Skill do Claude Code com o pipeline completo |
-| `skill-video-docs/SKILL.md` | Fluxo em etapas com gates (inventário → roteiros → piloto → lote), ferramentas, pegadinhas |
-| `skill-video-docs/scripts/build.py` | O montador: spec → `.mp4` + `.srt` + `roteiro-<slug>.md` |
-| `skill-video-docs/references/producao.md` | **Formato completo do spec**, regras de corte, coordenadas e QA |
-| `skill-video-docs/references/revisao-coerencia.md` | Como conferir a narração contra o código antes de publicar |
-| `skill-video-docs/glossario-ingles.json` | Grafia fonética de termos em inglês, só para voz não multilíngue (ver abaixo) |
-| `skill-video-docs/scripts/testar_pronuncia.py` | Ouve um texto com e sem glossário, ou o glossário inteiro |
-| `exemplo/` | Exemplo executável com bruto sintético |
+| `scripts/render-docs.sh` | Confere os pré-requisitos e monta um spec: `scripts/render-docs.sh specs/<slug>/spec.json` |
+| `skills/video-docs/` | Skill do Claude Code com o pipeline completo |
+| `skills/video-docs/SKILL.md` | Fluxo em etapas com gates (inventário → roteiros → piloto → lote), ferramentas, pegadinhas |
+| `skills/video-docs/scripts/build.py` | O montador: spec → `.mp4` + `.srt` + `roteiro-<slug>.md` |
+| `skills/video-docs/references/producao.md` | **Formato completo do spec**, regras de corte, coordenadas e QA |
+| `skills/video-docs/references/revisao-coerencia.md` | Como conferir a narração contra o código antes de publicar |
+| `skills/video-docs/glossario-ingles.json` | Grafia fonética de termos em inglês, só para voz não multilíngue (ver abaixo) |
+| `skills/video-docs/scripts/testar_pronuncia.py` | Ouve um texto com e sem glossário, ou o glossário inteiro |
+| `exemplos/video-docs/` | Exemplo executável com bruto sintético |
 
 ## Pré-requisitos (Ubuntu/Debian)
 
 ```bash
 sudo apt install ffmpeg fonts-dejavu-core       # o ffmpeg precisa ter libass (o do apt tem)
-curl -LsSf https://astral.sh/uv/install.sh | sh  # o render.sh baixa edge-tts e pillow sozinho
+curl -LsSf https://astral.sh/uv/install.sh | sh  # o render-docs.sh baixa edge-tts e pillow sozinho
 ```
 
 Precisa de internet ao montar: a narração vem do edge-tts (serviço da Microsoft, voz
@@ -40,9 +40,9 @@ Para transcrever brutos (opcional): `uv tool install whisper-ctranslate2` e mode
 ## Teste rápido
 
 ```bash
-cd exemplo
-./gerar-bruto.sh            # cria originais/demo.mp4 (20 s de padrão de teste)
-../render.sh spec.json      # gera saida/demo.mp4 (~17 s), .srt e roteiro-demo.md
+cd exemplos/video-docs
+./gerar-bruto.sh                      # cria originais/demo.mp4 (20 s de padrão de teste)
+../../scripts/render-docs.sh spec.json  # gera saida/demo.mp4 (~17 s), .srt e roteiro-demo.md
 ```
 
 O spec do exemplo usa todos os recursos: cartela, foco, balão, seta automática, tarja,
@@ -58,11 +58,11 @@ meu-projeto/
   trabalho/<slug>/      gerado (cache de TTS, .ass, timeline.json)
 ```
 
-Rode o `render.sh` **a partir da raiz do projeto**, porque os caminhos do spec são
+Rode o `render-docs.sh` **a partir da raiz do projeto**, porque os caminhos do spec são
 relativos a ela:
 
 ```bash
-cd meu-projeto && /caminho/video-docs-harness/render.sh specs/<slug>/spec.json
+cd meu-projeto && "${CLAUDE_PLUGIN_ROOT}/scripts/render-docs.sh" specs/<slug>/spec.json
 ```
 
 Pontos que mais pegam:
@@ -89,25 +89,26 @@ fonética.
 - Para ouvir antes de montar:
 
   ```bash
-  cd skill-video-docs/scripts
-  uv run --with edge-tts python testar_pronuncia.py "Faça o deploy no cluster."
+  uv run --with edge-tts python "${CLAUDE_PLUGIN_ROOT}/skills/video-docs/scripts/testar_pronuncia.py" "Faça o deploy no cluster."
   ```
 
 - O texto realmente falado aparece em `roteiro-<slug>.md`, seção "Narração TTS".
 - Com uma voz pt-BR não multilíngue (`"voice": "pt-BR-FranciscaNeural"`), que lê inglês
-  como português, o montador aplica sozinho o `skill-video-docs/glossario-ingles.json`
+  como português, o montador aplica sozinho o `skills/video-docs/glossario-ingles.json`
   (grafia fonética: "diplói", "clôster").
 
 ## Com Claude Code
 
+O skill já vem com o plugin `video-editores` (`/video-editores:video-docs`). Sem o plugin:
+
 ```bash
-cp -r skill-video-docs ~/.claude/skills/video-docs
+cp -r skills/video-docs ~/.claude/skills/video-docs
 ```
 
 Depois peça, por exemplo, "transforma as gravações em originais/ em vídeos de
 documentação, um por ação". A skill conduz o fluxo e para nos gates (inventário,
 roteiros, piloto) para você aprovar. Ela usa o `scripts/build.py` de dentro dela, o
-mesmo que o `render.sh` chama.
+mesmo que o `render-docs.sh` chama.
 
 ## Regras que valem para qualquer projeto
 
