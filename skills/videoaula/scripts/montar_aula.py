@@ -190,7 +190,7 @@ class Aula:
         fc = "".join(parts) + f"{ins}concat=n={n}:v=0:a=1,aresample=48000[a]"
         self.ff(["-i", self.cut, "-i", sfx, "-filter_complex", fc, "-map", "[a]", "-c:a", "pcm_s16le", f"{self.blocos}/_audio.wav"], "áudio contínuo")
         self.ff(["-i", f"{self.blocos}/_video.mp4", "-i", f"{self.blocos}/_audio.wav", "-map", "0:v", "-map", "1:a", "-c:v", "copy",
-                 "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-ac", "2", "-movflags", "+faststart", saida], "mux")
+                 *audio.AAC, "-ar", "48000", "-ac", "2", "-movflags", "+faststart", saida], "mux")
         def pr(st):
             return subprocess.run(["ffprobe", "-v", "error", "-select_streams", st, "-show_entries", "stream=duration", "-of", "csv=p=0", saida],
                                   capture_output=True, text=True).stdout.strip()

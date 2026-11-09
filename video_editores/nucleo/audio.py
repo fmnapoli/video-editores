@@ -15,6 +15,11 @@ import tempfile
 
 TAXA = 48000
 
+# Codificação AAC para entrega. O codificador nativo do ffmpeg, com PNS (substituição perceptual de ruído) ligado,
+# gerou +4,7 dBTP a partir de um wav limitado a -2,5 dBTP (bateria sintetizada com bandas de ruído): o ruído
+# sintético que ele injeta não respeita o pico do original. Sem PNS e a 256k a diferença cai para ~0,1 dB.
+AAC = ["-c:a", "aac", "-b:a", "256k", "-aac_pns", "0"]
+
 
 def _ffmpeg(args, capturar=False):
     r = subprocess.run(["ffmpeg", "-hide_banner", "-nostats", "-y", *args], capture_output=True, text=True)
@@ -87,17 +92,21 @@ def normalizar(entrada, saida, alvo=-14.0, tp=-1.5, filtro=None, margem=1.0, ten
     return {"entrada": m, "saida": r, "ganho_db": round(ganho, 2), "teto_db": round(teto, 2), "passadas": passadas}
 
 
-def normalizar_video(entrada, saida, alvo=-14.0, tp=-1.5, filtro=None, args_video=("-c:v", "copy"), bitrate="192k") -> dict:
-    """Normaliza o áudio de um vídeo e remuxa (vídeo copiado por padrão). Devolve o mesmo dict de `normalizar`."""
+def normalizar_video(entrada, saida, alvo=-14.0, tp=-1.5, filtro=None, args_video=("-c:v", "copy")) -> dict:
+    """Normaliza o áudio de um vídeo e remuxa (vídeo copiado por padrão, áudio `AAC`). O dict devolvido tem em
+    "saida" a medição do arquivo final (depois do AAC, que é o que o espectador ouve) e em "wav" a do wav limitado."""
     with tempfile.TemporaryDirectory() as tmp:
         wav = os.path.join(tmp, "norm.wav")
         res = normalizar(entrada, wav, alvo, tp, filtro)
-        _ffmpeg(["-i", str(entrada), "-i", wav, "-map", "0:v:0", "-map", "1:a:0", *args_video,
-                 "-c:a", "aac", "-b:a", bitrate, "-movflags", "+faststart", str(saida)])
+        _ffmpeg(["-i", str(entrada), "-i", wav, "-map", "0:v:0", "-map", "1:a:0", *args_video, *AAC,
+                 "-movflags", "+faststart", str(saida)])
+    res["wav"] = res["saida"]
+    res["saida"] = medir(saida)
     return res
 
 
 def resumo(res) -> str:
     e, s = res["entrada"], res["saida"]
+    extra = f", wav {res['wav']['TP']:.1f} dBTP antes do AAC" if "wav" in res else ""
     return (f"áudio: {e['I']:.1f} LUFS / {e['TP']:.1f} dBTP -> {s['I']:.1f} LUFS / {s['TP']:.1f} dBTP "
-            f"(ganho {res['ganho_db']:+.1f} dB, teto {res['teto_db']:.1f} dBTP, {res['passadas']} passada(s))")
+            f"(ganho {res['ganho_db']:+.1f} dB, teto {res['teto_db']:.1f} dBTP, {res['passadas']} passada(s){extra})")

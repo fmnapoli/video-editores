@@ -64,6 +64,7 @@
 | clique entre cortes | `render_spans.sh` já faz fade de 20 ms; em cortes manuais use `afade` |
 | volume diferente entre vídeos | normalize no fim (`scripts/normalizar_audio.py`, -14 redes / -16 docs) |
 | `/prova` reprova com `PICO ACIMA DO LIMITE` (código 3), ou `loudnorm` linear entregou pico real positivo | degraus nas junções de uma montagem por blocos viram picos que o `loudnorm` linear amplifica (caso real: +9,2 dBTP). `normalizar_audio.py` (ganho estático + limiter de pico real) e fades de 12/18 ms em cada bloco (`audio.fades`) |
+| wav limitado a −2,5 dBTP, mas o mp4 final mede pico positivo | PNS do codificador AAC nativo (substituição perceptual de ruído) em material com bandas de ruído (pratos, caixa sintetizada, chiado): +4,7 dBTP medidos. Codifique com `-c:a aac -b:a 256k -aac_pns 0` (`audio.AAC`); `-aac_coder fast` também resolve, com qualidade menor |
 | edge-tts morre com `NoAudioReceived` no meio do lote | transitório do serviço; o backend `edge` repete 3 vezes (`VE_TTS_ESPERA` entre tentativas). Se persistir, é rede ou voz inexistente |
 
 ## `/3d`

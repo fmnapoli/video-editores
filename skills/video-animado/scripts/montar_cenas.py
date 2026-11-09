@@ -275,7 +275,8 @@ def main():
     else:
         vargs = ["-vf", f"subtitles={srt_local.replace(chr(92), '/')}:force_style='{estilo}'", *ffm.codec_video(crf=18, preset="medium")]
     sh("ffmpeg", "-v", "error", "-y", "-i", video, "-i", norm, "-map", "0:v:0", "-map", "1:a:0", *vargs,
-       "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", saida)
+       *audio.AAC, "-movflags", "+faststart", saida)
+    res["wav"], res["saida"] = res["saida"], audio.medir(saida)
     if a.roteiro:
         os.makedirs(os.path.dirname(a.roteiro) or ".", exist_ok=True)
         with open(a.roteiro, "w", encoding="utf-8") as f:

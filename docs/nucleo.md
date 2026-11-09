@@ -98,7 +98,7 @@ video-editores modelos      # deve listar "meu"
 `quadros(d, fps)`. A normalização é ganho estático até o alvo integrado mais `alimiter` com oversampling a 192 kHz no teto de pico
 real, medida depois e repetida com teto menor se o pico passar, ou com o ganho corrigido se o loudness saiu do alvo (até 4 passadas). Motivo (ADR-13): o `loudnorm` linear confia na medição da primeira
 passada e, com degraus nas junções de uma montagem por blocos, entregou +9,2 dBTP; o dinâmico mexe na dinâmica da fala. Na CLI:
-`video-editores normalizar-audio ENTRADA SAIDA [--alvo -14] [--tp -1.5] [--filtro ...]`.
+`video-editores normalizar-audio ENTRADA SAIDA [--alvo -14] [--tp -1.5] [--filtro ...]`. A saída de vídeo usa `audio.AAC` (256k, sem PNS: o PNS do codificador nativo gerou +4,7 dBTP a partir de um wav limitado a −2,5) e a medição reportada é a do arquivo final.
 
 ## Outros agentes (Codex, OpenCode, Kiro)
 
