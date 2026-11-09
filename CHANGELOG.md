@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.9.1 — 2026-11-09
+- `legenda_palavra.py`: página órfã (uma palavra só) recebe a última palavra da anterior quando a fala é contínua, a palavra não fecha frase e cabe na janela ("ele basicamente faz | uma matemática" em vez de "ele basicamente faz uma | matemática"). Teste ajustado.
+
 ## 0.9.0 — 2026-11-09
 Melhoria derivada da avaliação do Remotion (ADR-16): o que ele fazia melhor que o plugin, feito em ASS.
 - **`/legenda` estilo `reels-palavra`** (`scripts/legenda_palavra.py`, operação `legenda-palavra`): pagina as palavras do `transcript.json` (janela de 1,5 s, pausa, nº de palavras e de caracteres, fim de frase) e destaca a palavra falada no instante em que é dita (`\t` por palavra), ou karaokê (`--modo preenche`, `\k`). Caixa ou contorno, maiúsculas, posição por orientação (0,68 em vertical, 0,86 em horizontal), `--correcoes` para os termos que o ASR errou. Escreve também `<nome>.palavra.paginas.txt` para a revisão antes de queimar. Queima pelo filtro `ass=` do ffmpeg: 20 s de vídeo em ~3 s, contra 318 s para 60 s no Remotion.

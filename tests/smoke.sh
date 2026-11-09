@@ -59,19 +59,19 @@ python3 "$S/legenda_palavra.py" in.mp4 pal.transcript.json --janela 1.4 --correc
 python3 - <<'PY'
 ass = open("pal.palavra.ass", encoding="utf-8").read()
 d = [l for l in ass.splitlines() if l.startswith("Dialogue")]
-# 5 palavras fecham a 1ª página; "instalado." fica só e a pausa de 1 s fecha; a janela de 1,4 s corta antes de "verdade"
+# 5 palavras fecham a 1ª página e "instalado." ficaria só: o equilíbrio puxa "Python" para ela; a pausa de 1 s fecha; a janela de 1,4 s corta antes de "verdade"
 assert len(d) == 4, d
-assert "Python" in d[0] and "Paiton" not in ass, d[0]
-assert d[0].startswith("Dialogue: 0,0:00:00.20,0:00:01.50,") and d[1].startswith("Dialogue: 0,0:00:01.50,0:00:02.25,"), (d[0][:40], d[1][:40])
-assert d[0].count("\\t(") == 9 and "&H0015CCFA&" in d[0], d[0]            # 1ª palavra só sai; as outras 4 entram e saem
+assert "Python" in d[1] and "Paiton" not in ass, d[1]
+assert d[0].startswith("Dialogue: 0,0:00:00.20,0:00:01.00,") and d[1].startswith("Dialogue: 0,0:00:01.00,0:00:02.25,"), (d[0][:40], d[1][:40])
+assert d[0].count("\\t(") == 7 and "&H0015CCFA&" in d[0], d[0]            # 1ª palavra só sai; as outras 3 entram e saem
 assert "PlayResX: 1080" in ass and "pos(540,1305)" in d[0], "vertical: legenda a 68 % da altura"
 pags = open("pal.palavra.paginas.txt", encoding="utf-8").read().splitlines()
-assert len(pags) == 4 and pags[0].endswith("Você já tem o Python") and pags[-1].endswith("verdade hoje."), pags
+assert len(pags) == 4 and pags[0].endswith("Você já tem o") and pags[1].endswith("Python instalado.") and pags[-1].endswith("verdade hoje."), pags
 PY
 test -s out_palavra.mp4
 python3 "$S/legenda_palavra.py" in.mp4 pal.transcript.json --modo preenche --caixa --ass k.ass >/dev/null
 grep -q '\\k' k.ass && grep -q "^Style: Palavra,Montserrat,96,&H0015CCFA&,&H00FFFFFF&,&H90000000,&H90000000,1,0,0,0,100,100,0,0,3," k.ass
-pass "legenda_palavra.py: páginas por janela/pausa/nº de palavras, destaque por palavra, correções, karaokê e caixa"
+pass "legenda_palavra.py: páginas por janela/pausa/nº de palavras, órfã equilibrada, destaque por palavra, correções, karaokê e caixa"
 
 bash "$S/proof.sh" out_lettering.mp4 8 >/dev/null
 test -s out_lettering.proof.jpg && test -s out_lettering.preview.mp4 && grep -q "quadros da folha" out_lettering.proof.txt

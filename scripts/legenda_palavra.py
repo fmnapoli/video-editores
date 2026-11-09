@@ -78,6 +78,7 @@ def pagina(ws, janela, max_pal, max_chars, pausa):
         atual.append(w)
     if atual:
         pags.append(atual)
+    equilibra(pags, janela, max_chars, pausa)
     out = []
     for i, p in enumerate(pags):
         ini, fim = p[0]["start"], p[-1]["end"]
@@ -87,6 +88,24 @@ def pagina(ws, janela, max_pal, max_chars, pausa):
             fim += 0.25
         out.append({"start": round(ini, 3), "end": round(fim, 3), "palavras": p})
     return out
+
+
+def equilibra(pags, janela, max_chars, pausa):
+    """Página de uma palavra só recebe a última palavra da anterior, se a fala for contínua e couber.
+
+    Evita "ele basicamente faz uma | matemática | básica": vira "ele basicamente faz | uma matemática | básica".
+    Não move palavra que fecha frase (a quebra ali é natural) nem quando há pausa entre as duas.
+    """
+    for i in range(1, len(pags)):
+        a, b = pags[i - 1], pags[i]
+        if len(b) != 1 or len(a) < 3:
+            continue
+        w = a[-1]
+        chars = sum(len(x["word"]) for x in b) + len(b) + len(w["word"])
+        if (PONTUACAO_FIM.search(w["word"]) or b[0]["start"] - w["end"] > pausa
+                or b[-1]["end"] - w["start"] > janela or chars > max_chars):
+            continue
+        b.insert(0, a.pop())
 
 
 def texto_pagina(p, modo, cor, dest, maiusculas):
