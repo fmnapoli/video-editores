@@ -123,7 +123,7 @@ python3 -m video_editores.cli integrar todos --projeto integ >/dev/null   # 2ª 
 python3 - <<'PY'
 import json, re, pathlib, tomllib
 p = pathlib.Path("integ")
-sk = sorted(x.name for x in (p / ".agents/skills").iterdir()); assert len(sk) == 20 and "videoaula" in sk, sk
+sk = sorted(x.name for x in (p / ".agents/skills").iterdir()); assert len(sk) == 21 and "partitura" in sk, sk
 assert sorted(x.name for x in (p / ".kiro/skills").iterdir()) == sk
 for s in (p / ".kiro/skills").glob("*/SKILL.md"):
     t = s.read_text(); fm = re.match(r"---\n(.*?)\n---", t, re.S).group(1)

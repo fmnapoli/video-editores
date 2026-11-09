@@ -34,6 +34,7 @@ Se faltar algo que muda o resultado (ex.: música sim ou não), pergunte **uma**
 | "edição completa" (Reels) | tomada → corte → ganchos → lettering → legenda → trilha → efeitos → prova |
 | "edição completa" (YouTube longo) | destaques → corte → lettering → legenda → trilha → prova |
 | "refaz a aula" / "cenário novo + diagramas animados" / "mais profissional, com capítulos" (aula gravada com quadro e IDE) | videoaula |
+| "mostra a partitura do que ele toca" / "exemplo tocado" / "notação com R e L" (bateria) | partitura (depois video-animado ou videoaula para montar) |
 
 ## 2. Prepare o projeto
 `originais/` (bruto intocado), `trabalho/<slug>/`, `saida/`, `legendas/`. Slug = nome curto do arquivo, sem espaço.

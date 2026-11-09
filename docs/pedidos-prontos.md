@@ -33,6 +33,7 @@ Copie, cole no Claude Code e troque o que estiver entre `< >`. Cada pedido acion
 | "Só limpa a aula: tira pausas e erros, mantém tudo" | tomada → corte |
 | "Faz um checklist dos passos que eu explico" | checklist |
 | "Refaz essa videoaula com cenário novo, troca o Excalidraw por diagramas animados, põe abertura e separadores, mantém o professor na tela" | videoaula (referencia → corte com remap → identidade → recorte IA → Manim → piloto → lote) |
+| "Monta um curso com os vídeos do baterista: mostra a partitura do que ele toca e um exemplo tocado antes de cada clipe" | partitura (transcrição aprovada → cartões → exemplos tocados) → video-animado ou videoaula → prova |
 
 ## Vlog e vídeo longo
 

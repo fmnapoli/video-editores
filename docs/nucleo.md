@@ -34,6 +34,7 @@ Scripts Python com dependências rodam com `uv run --with …` (isolado); `--dir
 | `lettering`, `checklist`, `texto-atras`, `prova`, `doctor` | `scripts/lettering_ass.py`, `checklist_ass.py`, `text_behind.py`, `proof.sh`, `doctor.sh` | lettering, checklist, texto-atras, prova |
 | `docs-render` | `scripts/render-docs.sh` | video-docs |
 | `cenas-tts`, `cenas-montar`, `cenas-folha` | `skills/video-animado/scripts/*` | video-animado |
+| `partitura`, `partitura-tocar` | `skills/partitura/scripts/partitura.py`, `tocar.py` | partitura |
 | `aula-*` (cenas-modo, layout, remap, identidade, recorte, recorte-paralelo, render-cenas, montar, legenda, finalizar, publicar) | `skills/videoaula/scripts/*` | videoaula |
 
 ## Modelos de IA trocáveis

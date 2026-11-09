@@ -47,6 +47,7 @@ uv tool install scenedetect               # /referencia, /efeitos, /videoaula (o
 | `/video-docs` (transcrição opcional) | `uv tool install whisper-ctranslate2`, ou use o `scripts/transcribe.py` do plugin |
 | `/animacao` | `uv tool install manim` (no Linux precisa de `libcairo2-dev libpango1.0-dev`; veja docs.manim.community) |
 | `/3d` | Blender 4.2+ (blender.org) com `blender` no PATH |
+| `/partitura` | nada: `uv run --with verovio --with resvg-py` (notação) e `--with numpy --with scipy` (exemplo tocado) baixam sob demanda; sem cairo nem outra biblioteca de sistema |
 | `/texto-atras`, `/tela-verde` (IA) | nada: `uv run --with "rembg[cpu]"` baixa sob demanda. Com GPU NVIDIA: `rembg[gpu]` |
 | `/tomada`, `/legenda` | nada: `uv run --with faster-whisper` baixa sob demanda. O modelo `medium` (~1,5 GB) é baixado no primeiro uso |
 | `/trilha`, `/efeitos` (gerados por IA) | `uv run --with audiocraft` (pesado; precisa de PyTorch; pesos não comerciais) |

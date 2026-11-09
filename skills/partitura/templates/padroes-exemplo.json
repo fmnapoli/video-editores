@@ -1,0 +1,19 @@
+{
+  "padroes": [
+    {"id": "GRADE", "titulo": "Um tempo, quatro semicolcheias", "sub": "1ª · 2ª · 3ª · 4ª nota de cada tempo",
+     "ts": [4, 4], "div": 4, "hh": "all", "stick": "alterna"},
+    {"id": "PARA", "titulo": "Paradiddle aplicado", "sub": "R no chimbal, L na caixa · bumbo na 2ª nota",
+     "ts": [4, 4], "div": 4,
+     "hh": "X.xx .x.. X.xx .x..", "sn": ".x.. x.xx .x.. x.xx", "bd": {"pos": [2]},
+     "stick": "RLRR LRLL RLRR LRLL"},
+    {"id": "COND_D", "titulo": "Bumbo 1-2-3", "sub": "condução 1-2-3 · caixa no 2 e no 4 · bumbo na 1ª, 2ª e 3ª nota",
+     "ts": [4, 4], "div": 4,
+     "hh": {"pos": [1, 2, 3]}, "sn": [4, 12], "stick": {"4": "L", "12": "L"}, "bd": {"pos": [1, 2, 3]}},
+    {"id": "CINCO", "titulo": "Groove básico em 5/4", "sub": "2 + 3 · bumbo no 1, caixa no 3",
+     "ts": [5, 4], "div": 1, "hh": "all", "sn": [2], "stick": {"2": "L"}, "acento": [0, 2], "bd": [0]},
+    {"id": "SETE", "titulo": "Groove básico em 7/4", "sub": "3 + 4 · bumbo no 1 e no 4, caixa no 3 e no 6",
+     "ts": [7, 4], "div": 1, "hh": "all", "sn": [2, 5], "stick": {"2": "L", "5": "L"}, "acento": [0, 3], "bd": [0, 3]},
+    {"id": "RIDE_HF", "titulo": "Condução 1-2-3 no ride", "sub": "chimbal de pé no contratempo",
+     "ts": [4, 4], "div": 4, "ride": {"pos": [1, 2, 3]}, "sn": [4, 12], "stick": {"4": "L", "12": "L"}, "hf": {"pos": [3]}}
+  ]
+}

@@ -15,7 +15,7 @@ Scripts desta skill em `${CLAUDE_PLUGIN_ROOT}/skills/video-animado/scripts/`; mo
 
 1. **Projeto e identidade.** Pastas da convenção (`originais/` fica vazia, `trabalho/<slug>/`, `saida/`, `legendas/`) mais `marca/` com o pacote oficial do cliente: fonte TTF instalada (`fc-cache -f ~/.local/share/fonts`), logo oficial em SVG (o Manim lê com `SVGMobject`), cores e grafismo. Fundos em gradiente vão para PNG (Pillow), nunca para o `Scene.background_color`; gradiente só no fundo, e fraco o bastante para o texto branco continuar legível no canto. Grafismo da marca (forma do símbolo) como contorno fino de baixa opacidade, nunca como ícone preenchido.
 2. **Roteiro (GATE 1).** Um `.md` com, por cena: título na tela, narração, texto na tela e descrição da animação, mais a duração estimada (2,6 palavras/s) e as decisões abertas (duração, posição do logo, cortes possíveis). Metáfora única atravessando o vídeo (prédio, sala, síndico). Mostrar e **parar**.
-3. **Narração primeiro.** `cenas/<slug>.json` com `id`, `classe`, `titulo`, `narracao` (ou `duracao` para cena muda), e o glossário de pronúncia:
+3. **Narração primeiro.** `cenas/<slug>.json` com `id`, `classe`, `titulo`, `narracao` (ou `duracao` para cena muda; ou `video` + `audio` para um bloco pronto com áudio próprio, como o exemplo tocado do `/partitura`), e o glossário de pronúncia:
    ```bash
    uv run --with edge-tts python "${CLAUDE_PLUGIN_ROOT}/skills/video-animado/scripts/tts_cenas.py" cenas/<slug>.json --glossario glossario.json
    ```

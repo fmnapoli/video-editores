@@ -108,19 +108,31 @@ Ganho estático até o alvo LUFS e `alimiter` com oversampling (192 kHz) seguran
 ```bash
 uv run --with edge-tts python skills/video-animado/scripts/tts_cenas.py cenas/<slug>.json [--glossario g.json] [--lead 0.6] [--tail 0.8]
 ```
-Uma narração por cena, com fronteiras de palavra, e `tempos.json` com `fala`, `total` (= lead + fala + tail) e `lead` por cena; cena sem `narracao` usa `duracao`. Cache por hash de voz + texto falado. O glossário (`pronuncia.py`) vale só para a fala.
+Uma narração por cena, com fronteiras de palavra, e `tempos.json` com `fala`, `total` (= lead + fala + tail) e `lead` por cena; cena sem `narracao` usa `duracao`, ou a duração do arquivo em `audio` (bloco pronto com áudio próprio, ex.: exemplo tocado do `/partitura`). Cache por hash de voz + texto falado. O glossário (`pronuncia.py`) vale só para a fala.
 
 ## montar_cenas.py (video-animado)
 ```bash
 python3 skills/video-animado/scripts/montar_cenas.py cenas/<slug>.json <pasta dos mp4> [--cenas B1,B2] [--saida ...] [--legenda ...] [--fonte "..."] [--tamanho 15] [--margem 22] [--loudness -16] [--tp -1.5] [--jobs 2] [--roteiro roteiros/roteiro-<slug>.md]
 ```
-Montagem por EDL: cada bloco dura exatamente a narração da cena (`tempos.json`, no grid de quadros); cena 1 quadro curta tem o último quadro clonado (`tpad`), o áudio é atrasado em `lead` e preenchido até a mesma duração com fades de 12/18 ms (blocos em paralelo, `--jobs`). Concat sem recodificar, normalização pelo núcleo (`--loudness`, `--tp`), legenda queimada na codificação final (`.srt` em pasta separada; sem legenda o vídeo é copiado). Cena mais longa que a narração fica inteira, com aviso. `--roteiro` escreve o roteiro final com tempos, texto falado e legenda.
+Montagem por EDL: cada bloco dura exatamente a narração da cena (`tempos.json`, no grid de quadros); cena 1 quadro curta tem o último quadro clonado (`tpad`), o áudio é atrasado em `lead` e preenchido até a mesma duração com fades de 12/18 ms (blocos em paralelo, `--jobs`). Concat sem recodificar, normalização pelo núcleo (`--loudness`, `--tp`), legenda queimada na codificação final (`.srt` em pasta separada; sem legenda o vídeo é copiado). Cena mais longa que a narração fica inteira, com aviso. Cena com `video` (caminho do mp4 fora da pasta do Manim) e `audio` (wav/mp3 próprio, `volume` opcional) entra como bloco pronto: o áudio dela substitui a narração, com os mesmos fades. `--roteiro` escreve o roteiro final com tempos, texto falado e legenda.
 
 ## folha_cenas.py (video-animado)
 ```bash
 python3 skills/video-animado/scripts/folha_cenas.py cenas/<slug>.json <pasta dos mp4> [--fracao 0.9] [--colunas 4]
 ```
 Um quadro de cada cena no instante `fracao` da sua duração, em grade; 0,5 mostra o meio da animação, 0,9 o estado final (para ver se algo invade a faixa da legenda).
+
+## partitura.py (partitura)
+```bash
+uv run --with verovio --with resvg-py --with pillow python skills/partitura/scripts/partitura.py padroes.json [ID ...] [--out partituras] [--tamanho card|big|ambos] [--compassos N] [--fonte ARQ.ttf]
+```
+Padrão compacto → MusicXML → Verovio → cartão PNG. Entrada `{"padroes": [...]}`; cada padrão tem `id`, `titulo`, `sub`, `ts` (fórmula), `div` (1, 2 ou 4 subdivisões por tempo) e os instrumentos `hh`, `ride`, `crash`, `sn`, `tom`, `ft`, `bd`, `hf` como grade em texto (`"X.xx .x.."`: `x` toca, `X` com acento, `.` silêncio), `{"pos": [1, 2, 3]}`, lista de índices ou `"all"`; `stick` (texto `"RLRR LRLL"`, `"alterna"` ou `{índice: "R"|"L"}`) e `acento`. Saída: `<id>.png` (1800×270) e `<id>_big.png` (1800×430) com `.json` (`beats_px` por tempo, `fim_px`, `y0/y1`, `notas[{t, x, y, inst, acento}]`), mais `.musicxml` e `.svg`. Compassos: 2 (4 se `div` = 1).
+
+## tocar.py (partitura)
+```bash
+uv run --with numpy --with scipy --with pillow python skills/partitura/scripts/tocar.py ID [--partituras partituras] [--out exemplos] [--bpm 72] [--voltas 2] [--contagem] [--fundo PNG] [--rotulo "Exemplo tocado"] [--titulo T] [--fonte ARQ.ttf] [--fps 30] [--so-audio]
+```
+Exemplo tocado a partir de `<ID>_big.json/.png`: síntese por fórmula (determinística), nota acendendo quando soa, playhead, contador e contagem opcional. Saída `<ID>.mp4` (1920×1080, áudio AAC sem PNS) e `<ID>.wav` (48 kHz estéreo, pico −6 dBFS) com a mesma duração no grid de quadros, mais `<ID>.json` (`dur`, `bpm`, `pre`, `eventos`). `VE_ENCODER` vale para o vídeo.
 
 ## doctor.sh
 ```bash

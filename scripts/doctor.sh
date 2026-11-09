@@ -51,7 +51,7 @@ else
 fi
 
 echo "Pacotes Python (baixados sob demanda por 'uv run --with'; nada a instalar):"
-echo "  faster-whisper (/tomada, /legenda), rembg (/texto-atras, /tela-verde), edge-tts + pillow (/video-docs)"
+echo "  faster-whisper (/tomada, /legenda), rembg (/texto-atras, /tela-verde), edge-tts + pillow (/video-docs), verovio + resvg-py + numpy + scipy (/partitura)"
 if command -v uv >/dev/null; then
   uv run --quiet --with faster-whisper python -c "import faster_whisper" 2>/dev/null \
     && ok "faster-whisper resolve via uv" || opt "faster-whisper" "será baixado no primeiro uso; precisa de internet"

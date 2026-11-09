@@ -1,6 +1,6 @@
 # video-editores
 
-Plugin de edição de vídeo por IA local: 20 skills (`skills/*/SKILL.md`), scripts determinísticos (`scripts/`,
+Plugin de edição de vídeo por IA local: 21 skills (`skills/*/SKILL.md`), scripts determinísticos (`scripts/`,
 `skills/*/scripts/`) e o núcleo `video_editores/` (modelos trocáveis, catálogo, CLI, tarefas, servidor MCP,
 integração com outros agentes). Arquitetura e ADRs em `docs/arquitetura.md`; convenções em `docs/convencoes.md`;
 como contribuir em `CONTRIBUTING.md`.

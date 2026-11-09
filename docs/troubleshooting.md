@@ -87,6 +87,18 @@
 | cena termina antes da narração ou o mp4 sai 1 quadro curto | o Manim grava int(s·fps) quadros num `wait` e len(arange(0, rt, 1/fps)) num `play`; contando por segundos, 20 passos derivam 0,3 s. O `cena_base.py` arredonda cada passo ao quadro e conta igual ao renderer; o `montar_cenas.py` completa o que faltar clonando o último quadro (`tpad`) até a duração da narração |
 | grafia fonética do glossário vaza para a legenda | as fronteiras de palavra do edge-tts trazem a palavra **falada** e sem pontuação; o `montar_cenas.py` recupera o token original da narração (casamento 1 a 1); em pipeline próprio, faça o mesmo |
 
+## `/partitura`
+
+| Sintoma | Causa | Solução |
+|---|---|---|
+| nota acesa fora de lugar no exemplo tocado (atrás/na frente da que soa) | onset lido errado do Verovio: `qfracOn` vem em unidades de `<divisions>` e é relativo ao compasso, não absoluto | o `partitura.py` já divide por `div` e soma o compasso (`mi`); se mudar `divisions` no MusicXML, ajuste a conta junto |
+| bolinha deslocada da cabeça da nota | coordenada do `<use>` sem o `translate` de `.page-margin`, ou sem o +90 (a âncora do glifo é a borda esquerda) | ambos estão no `render()`; não leia x/y direto do SVG |
+| `ModuleNotFoundError: resvg_py` / PNG em branco | rasterizador ausente ou SVG sem `viewBox` | use `--with resvg-py` (sem dependência de sistema); o script cai no `cairosvg` só se ele estiver instalado (precisa de libcairo) |
+| `grade ... tem N posições; o compasso tem M` | grade em texto com tamanho diferente de `tempos × div` | um caractere por subdivisão; espaços e `\|` são ignorados |
+| `div=3` recusado | tercinas não são suportadas pelo `_dur_tipo` (só 1, 2 e 4 subdivisões) | escreva a frase em `div` 4 aproximando, ou registre o pedido |
+| título do cartão com fonte genérica | nenhuma das fontes padrão instalada (Inter, DejaVu Sans Bold, Arial Bold) | `--fonte caminho.ttf` ou `sudo apt install fonts-dejavu-core` |
+| pico real do vídeo final acima do limite com bateria sintetizada | PNS do AAC nativo (bandas de ruído) | o `tocar.py` e o núcleo já codificam com `-aac_pns 0`; se remuxar à mão, use `audio.AAC` |
+
 ## `/video-docs`
 Veja [video-docs-LEIAME.md](video-docs-LEIAME.md) ("Pontos que mais pegam") e `skills/video-docs/SKILL.md` ("Pegadinhas que custaram tempo"). Erro de rede no edge-tts significa que a montagem precisa de internet.
 

@@ -5,7 +5,9 @@ Uso:
       [--legenda legendas/<slug>.srt] [--tts trabalho/<slug>/tts] [--cenas B1,B2,B3]
       [--fonte "DejaVu Sans Bold"] [--tamanho 15] [--margem 22] [--loudness -16] [--tp -1.5] [--jobs 2] [--roteiro roteiros/roteiro-<slug>.md]
 
-- Os mp4 têm o nome do id da cena (<pasta>/B1.mp4). Cada bloco dura exatamente a narração
+- Os mp4 têm o nome do id da cena (<pasta>/B1.mp4), ou o caminho em "video" da cena; uma cena com "audio"
+  (wav/mp3 próprio, ex.: exemplo tocado do /partitura) usa esse áudio no lugar da narração, com "volume"
+  opcional (fator, padrão 1). Cada bloco dura exatamente a narração
   (tempos.json, no grid de quadros): cena 1 quadro curta tem o último quadro clonado (`tpad`), o áudio
   é atrasado em `lead` e preenchido até a mesma duração, com fades de 12/18 ms nas pontas. Vídeo e
   áudio nunca divergem e a legenda cai nos tempos finais. Cena que estourou a narração fica inteira (aviso).
@@ -180,7 +182,11 @@ def _bloco(cid, mp4, d, info, tts_dir, trab, fps, enc):
     bv = os.path.join(trab, f"{cid}.mp4"); wav = os.path.join(trab, f"{cid}.wav")
     sh("ffmpeg", "-v", "error", "-y", "-i", mp4, "-vf", f"fps={fps},tpad=stop_mode=clone:stop_duration=5", "-t", f"{d:.6f}",
        "-an", *enc, bv)
-    if info.get("mudo"):
+    if info.get("audio"):
+        vol = f"volume={float(info.get('volume', 1.0)):.3f}," if float(info.get("volume", 1.0)) != 1.0 else ""
+        sh("ffmpeg", "-v", "error", "-y", "-i", info["audio"],
+           "-af", f"{vol}aformat=channel_layouts=stereo,apad=whole_dur={d:.6f},atrim=0:{d:.6f},{audio.fades(d)}", "-ar", "48000", wav)
+    elif info.get("mudo"):
         sh("ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo", "-t", f"{d:.6f}", wav)
     else:
         ms = int(info["lead"] * 1000)
@@ -231,8 +237,10 @@ def main():
     plano, srt, por_cena, n, t0 = [], [], {}, 1, 0.0
     for c in cenas:
         cid = c["id"]
-        mp4 = os.path.abspath(os.path.join(a.pasta, f"{cid}.mp4"))
-        info = tempos[cid]
+        mp4 = os.path.abspath(c["video"] if c.get("video") else os.path.join(a.pasta, f"{cid}.mp4"))
+        info = dict(tempos[cid])
+        if c.get("audio"):           # bloco com áudio próprio: vale mesmo que o tempos.json seja anterior à cena
+            info.update(audio=c["audio"], mudo=True, volume=c.get("volume", 1.0))
         d = _dur_bloco(cid, duracao(mp4), info["total"], a.fps)
         if not info.get("mudo"):
             words = json.load(open(os.path.join(tts_dir, f"{cid}.words.json"), encoding="utf-8"))

@@ -7,6 +7,8 @@ Uso:
 Spec: lista de cenas, ou {"slug", "voice", "glossary", "cenas": [...]}. Cada cena:
   {"id": "B1", "classe": "B1Salas", "titulo": "...", "narracao": "..."}   (cena narrada)
   {"id": "V1", "classe": "V1Vinheta", "duracao": 4.5}                     (cena muda)
+  {"id": "EX1", "video": "exemplos/CINCO.mp4", "audio": "exemplos/CINCO.wav"}  (bloco pronto com áudio próprio:
+      a duração é a do arquivo de áudio; ex.: exemplo tocado do /partitura)
   "tts" opcional: texto falado diferente da narração exibida.
 
 Saída em <out>: <id>.mp3, <id>.words.json (fronteiras de palavra em segundos), <id>.dur e
@@ -81,9 +83,14 @@ def main():
     for c in spec["cenas"]:
         cid = c["id"]
         if not c.get("narracao") and not c.get("tts"):
-            total = float(c["duracao"])
-            tempos[cid] = {"fala": 0.0, "total": total, "lead": 0.0, "mudo": True}
-            print(f"{cid}: sem narração, cena {total:5.2f}s")
+            if c.get("audio"):
+                total = round(duracao(c["audio"]), 3)
+                tempos[cid] = {"fala": 0.0, "total": total, "lead": 0.0, "mudo": True, "audio": c["audio"]}
+                print(f"{cid}: áudio próprio ({c['audio']}), cena {total:5.2f}s")
+            else:
+                total = float(c["duracao"])
+                tempos[cid] = {"fala": 0.0, "total": total, "lead": 0.0, "mudo": True}
+                print(f"{cid}: sem narração, cena {total:5.2f}s")
             continue
         texto = pronuncia.apply(c.get("tts") or c["narracao"], gloss)
         h = hashlib.sha1((voz + texto).encode("utf-8")).hexdigest()[:10]

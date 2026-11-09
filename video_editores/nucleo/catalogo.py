@@ -40,6 +40,7 @@ class Operacao:
 
 _V = "skills/videoaula/scripts/"
 _A = "skills/video-animado/scripts/"
+_P = "skills/partitura/scripts/"
 OPERACOES = {o.nome: o for o in [
     Operacao("transcrever", "scripts/transcribe.py", "Transcrição com timestamps por palavra (ASR configurado)",
              "VIDEO [--model medium] [--lang pt] [--prompt VOCABULÁRIO] [--out-dir PASTA] [--device auto|cpu|cuda] [--backend NOME]",
@@ -69,6 +70,12 @@ OPERACOES = {o.nome: o for o in [
     Operacao("cenas-montar", _A + "montar_cenas.py", "Junta as cenas Manim com a narração e a legenda frase a frase",
              "cenas/<slug>.json PASTA_MP4 [--cenas A,B] [--jobs 2] [--loudness -16] [--tp -1.5] [--roteiro ARQ.md]", longa=True, skill="video-animado"),
     Operacao("cenas-folha", _A + "folha_cenas.py", "Um quadro por cena para aprovação", "cenas/<slug>.json", skill="video-animado"),
+    Operacao("partitura", _P + "partitura.py", "Partitura de bateria (padrão JSON -> Verovio) em cartão PNG com a posição de cada nota",
+             "padroes.json [ID ...] [--out partituras] [--tamanho card|big|ambos] [--compassos N] [--fonte ARQ.ttf]",
+             ("verovio", "resvg-py", "pillow"), skill="partitura", saidas=("<id>.png", "<id>.json", "<id>_big.png", "<id>_big.json")),
+    Operacao("partitura-tocar", _P + "tocar.py", "Exemplo tocado: som sintetizado + partitura animada nota a nota (bloco mp4 + wav)",
+             "ID [--partituras partituras] [--out exemplos] [--bpm 72] [--voltas 2] [--contagem] [--fundo PNG] [--so-audio]",
+             ("numpy", "scipy", "pillow"), longa=True, skill="partitura", saidas=("<id>.mp4", "<id>.wav", "<id>.json")),
     Operacao("aula-cenas-modo", _V + "cenas_modo.py", "Classifica cada cena da aula em locutor/quadro/código pelos frames",
              "cenas.csv PASTA_FRAMES cenas.json", ("pillow", "numpy"), skill="videoaula"),
     Operacao("aula-layout", _V + "detectar_layout.py", "Mede o círculo da webcam e rascunha os grupos de layout da IDE",

@@ -25,6 +25,7 @@ Invocação: `/video-editores:<nome>`, ou em linguagem natural (o Claude escolhe
 | prova | vídeo | `.proof.jpg`, `.preview.mp4`, `.proof.txt` | entrega ao usuário | 10–20 s |
 | video-docs | gravações de tela | `.mp4`, `.srt`, roteiros, inventário | **3 gates** (inventário, roteiros, piloto) | ver LEIAME |
 | video-animado | roteiro + identidade da marca | cenas Manim, `.mp4`, `.srt`, roteiro final | **2 gates** (roteiro, piloto) + prova | ~1 min por cena em 1080p |
+| partitura | o que a pessoa toca (clipe, fala, caderno) | `padroes.json`, cartões PNG + JSON de posições, exemplo tocado `.mp4` + `.wav` | **sim**: quem toca aprova a transcrição | 2 s por cartão; ~10 s por exemplo tocado |
 
 ---
 
@@ -111,6 +112,9 @@ Checklist: legenda legível e fora do rosto, textos no lugar, **nenhum dado sens
 
 ## /video-animado
 Vídeo inteiro em animação por código, sem bruto: a narração (edge-tts) é gerada antes e dita a duração de cada `Scene` do Manim; as cenas marcam os instantes por fração da fala e fecham com fade sobre o fundo fixo (nunca preto). Scripts: `tts_cenas.py` (narração + `tempos.json`), `montar_cenas.py` (concat + narração + legenda com a grafia original + loudnorm), `folha_cenas.py` (um quadro por cena). Modelo de cena em `skills/video-animado/templates/cena_base.py`.
+
+## /partitura
+Notação de bateria para vídeo e "exemplo tocado". `partitura.py` lê um padrão compacto (`ts`, `div`, grade em texto por instrumento, manulação, acentos), gera MusicXML, renderiza com Verovio e rasteriza com resvg num cartão PNG (1800×270 para sobrepor em clipe, 1800×430 para o exemplo), gravando no JSON a posição de cada nota e de cada tempo. `tocar.py` sintetiza o som por fórmula (sem samples), anima a partitura (nota acende quando soa, playhead, contador, contagem opcional) e entrega `<ID>.mp4` + `<ID>.wav` com a mesma duração no grid de quadros, que entram no `/video-animado` como cena com `video`/`audio` ou antes de um clipe no `/videoaula`. Gate: a pessoa que toca aprova `padroes.json` e a lista de interpretações antes de qualquer vídeo. Só bateria; sem tercinas. Modelo em `skills/partitura/templates/padroes-exemplo.json`.
 
 ## /video-docs
 Harness para gravações de tela, documentado em [video-docs-LEIAME.md](video-docs-LEIAME.md) e `skills/video-docs/references/`. Fluxo: inventário → roteiros (com revisão de coerência contra o código) → piloto → lote. Montagem por `spec.json` com `scripts/render-docs.sh`.

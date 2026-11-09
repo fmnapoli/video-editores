@@ -32,6 +32,7 @@ def main():
     spec = json.load(open(a.spec, encoding="utf-8"))
     cenas = spec if isinstance(spec, list) else spec["cenas"]
     slug = (spec.get("slug") if isinstance(spec, dict) else None) or os.path.splitext(os.path.basename(a.spec))[0]
+    videos = {c["id"]: c.get("video") for c in cenas}     # cena com "video" (bloco pronto) não está na pasta do Manim
     ids = [c["id"] for c in cenas]
     if a.cenas:
         ids = [i for i in ids if i in a.cenas.split(",")]
@@ -40,7 +41,7 @@ def main():
     os.makedirs(quadros, exist_ok=True)
     ins = []
     for i in ids:
-        f = os.path.join(a.pasta, f"{i}.mp4")
+        f = videos.get(i) or os.path.join(a.pasta, f"{i}.mp4")
         t = max(0.0, duracao(f) * a.fracao - 0.05)
         png = os.path.join(quadros, f"{i}_{a.fracao:.2f}.png")
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", f"{t:.2f}", "-i", f, "-frames:v", "1",

@@ -115,11 +115,16 @@ cat > cenas.json <<'JSON'
 {"slug":"va","glossary":{"operator":"operêitor"},"cenas":[
  {"id":"S1","classe":"S1","titulo":"Um","narracao":"O operator monta tudo na ordem certa. Em menos de três minutos, o ambiente está pronto."},
  {"id":"S2","classe":"S2","titulo":"Dois","narracao":"Se uma peça cai, ele recria sozinho."},
- {"id":"V1","classe":"V1","titulo":"","duracao":1.5}]}
+ {"id":"V1","classe":"V1","titulo":"","duracao":1.5},
+ {"id":"X1","video":"ex/x.mp4","audio":"ex/x.wav","volume":0.5}]}
 JSON
+# X1: bloco pronto com áudio próprio (como um exemplo tocado do /partitura): 1,2 s de seno
+mkdir -p ex && ffmpeg -v error -y -f lavfi -i "sine=f=440:d=1.2" -ar 48000 -ac 2 ex/x.wav \
+  && ffmpeg -v error -y -f lavfi -i "color=c=0x3b0764:size=640x360:rate=30:duration=1.2" -c:v libx264 -pix_fmt yuv420p ex/x.mp4
 PYTHONPATH="$ROOT/tests/stub" python3 "$VA/tts_cenas.py" cenas.json --out tts >/dev/null
 test -s tts/S1.mp3 && test -s tts/S1.words.json && python3 -c "
-import json; t=json.load(open('tts/tempos.json')); assert t['V1']['mudo'] and t['S1']['total']>t['S1']['fala']>0, t"
+import json; t=json.load(open('tts/tempos.json')); assert t['V1']['mudo'] and t['S1']['total']>t['S1']['fala']>0, t
+assert t['X1']['mudo'] and t['X1']['audio'] == 'ex/x.wav' and abs(t['X1']['total'] - 1.2) < 0.01, t['X1']"
 grep -q "operêitor" tts/S1.hash || true
 mkdir -p mp4 && for id in S1 S2 V1; do
   d=$(python3 -c "import json; print(json.load(open('tts/tempos.json'))['$id']['total'])")
@@ -137,9 +142,14 @@ alvo = sum(round(v["total"] * 30) / 30 for v in t.values())
 pr = lambda st: float(subprocess.run(["ffprobe", "-v", "error", "-select_streams", st, "-show_entries", "stream=duration", "-of", "csv=p=0", "out/va.mp4"], capture_output=True, text=True).stdout)
 v, a = pr("v:0"), pr("a:0")
 assert abs(v - alvo) < 0.04 and abs(a - alvo) < 0.1, (v, a, alvo)   # a cena curta foi completada; vídeo e áudio fecham com a narração
+# o bloco X1 (último) leva o áudio próprio, não silêncio
+import re
+ini = alvo - round(t["X1"]["total"] * 30) / 30 + 0.1
+err = subprocess.run(["ffmpeg", "-v", "info", "-ss", f"{ini:.3f}", "-t", "1.0", "-i", "out/va.mp4", "-af", "volumedetect", "-f", "null", "-"], capture_output=True, text=True).stderr
+mv = float(re.search(r"mean_volume: (-?[\d.]+) dB", err).group(1)); assert mv > -30, (mv, ini)
 PY
 grep -q "AVISO S1" montar.log && grep -q "LUFS" montar.log
-pass "video-animado: tts_cenas (stub), montar_cenas (duração = narração mesmo com cena curta, legenda com grafia original, 48 kHz, normalização) e roteiro"
+pass "video-animado: tts_cenas (stub), montar_cenas (duração = narração mesmo com cena curta, bloco com áudio próprio, legenda com grafia original, 48 kHz, normalização) e roteiro"
 python3 "$VA/montar_cenas.py" cenas.json mp4 --tts tts --cenas S2 --saida out/p.mp4 --legenda leg/p.srt >/dev/null && test -s out/p.mp4
 python3 "$VA/folha_cenas.py" cenas.json mp4 --fracao 0.9 --saida folha.png >/dev/null && test -s folha.png
 pass "video-animado: piloto por --cenas e folha_cenas"

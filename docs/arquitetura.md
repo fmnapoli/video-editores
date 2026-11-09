@@ -87,6 +87,16 @@ Quatro camadas (0.5.0):
 - **Decisão:** `nucleo/audio.py`: ganho estático até o alvo LUFS e `alimiter` com oversampling (192 kHz) no teto de pico real, medido depois e repetido com teto menor se passar; fades de 12/18 ms em cada bloco; duração de bloco no grid de quadros com o último quadro clonado (`tpad`) quando a fonte é curta; relógio das cenas Manim contando quadros como o renderer. A `/prova` reprova pico real acima de −1 dBTP. AAC de entrega sem PNS (`audio.AAC`), porque o codificador nativo com PNS gerou +4,7 dBTP a partir de um wav limitado a −2,5.
 - **Consequência:** `finalizar.sh` e `montar_cenas.py` passam a normalizar pelo núcleo (`normalizar-audio` também na CLI e no MCP); o `loudnorm` dinâmico fica só para filtro único em vídeo curto (`/trilha`). Áudio um pouco abaixo do alvo quando o material tem picos frequentes (o limiter age), nunca acima do teto.
 
+### ADR-14 — Notação musical como skill com scripts determinísticos (0.8.0)
+- **Contexto:** o curso de bateria precisou de partitura na tela e de um "exemplo tocado" antes de cada clipe. A primeira versão ficou no projeto (`partitura.py`, `tocar.py`, `padroes.py`) e as pegadinhas do Verovio (unidades do `qfracOn`, translate da margem, âncora do glifo) só na memória de quem fez.
+- **Decisão:** skill `/partitura` com dois scripts no padrão do plugin: padrão compacto em JSON (grade em texto, manulação, acentos) → MusicXML → Verovio → cartão PNG com a posição de cada nota e de cada tempo; síntese por fórmula determinística e animação da partitura num bloco mp4 + wav com a mesma duração no grid de quadros. Rasterização com resvg (sem biblioteca de sistema, roda no CI dos dois sistemas). Integração pela via geral: o `/video-animado` aceita cena com `video` + `audio` (bloco pronto), em vez de um tipo de bloco específico de bateria.
+- **Consequência:** a notação é revisável em texto (gate com quem toca) e regenerável; a convenção de cores fica no plugin. Limites explícitos: só bateria (instrumento com altura pede sampler e pauta com clave), sem tercinas, um compasso repetido por padrão.
+
+### ADR-15 — Geração de imagem e vídeo por IA (proposto, não implementado)
+- **Contexto:** pergunta recorrente: "o plugin cria vídeo generativo?" Hoje não: tudo é edição, animação por código e síntese de voz/som. Detalhe em `docs/adr/2026-11-09-geracao-por-ia.md`.
+- **Proposta:** dois papéis novos em `video_editores/modelos` (`imagem`: texto → imagem; `video`: texto/imagem → clipe curto), backends locais primeiro e API opcional atrás da mesma interface, skill `/gerar` com gate por prompt e por quadro, semente e prompt gravados no projeto. Começar por imagem (fundos, B-roll estático, ilustrações para o `/video-animado`); vídeo depois, porque exige GPU com 16–24 GB e os modelos abertos ainda mudam rápido.
+- **Estado:** aguarda uma máquina com GPU para validar (mesma pendência do ADR-10). Nenhum código.
+
 ## Fluxo de dados
 
 ```
@@ -109,6 +119,12 @@ aula.json ─ identidade.py ─→ identidade/        matte_workers.sh ─→ ma
 montar_aula.py edl → render (blocos/NNN_*.mp4) → concat (vídeo concat + áudio contínuo) ─ finalizar.sh ─→ lettering → normalizar_audio.py → saida/<slug>.mp4 + legendas/<slug>.srt
 ```
 
+Partitura e exemplo tocado (`/partitura`), que entram como bloco pronto no `/video-animado` ou antes de um clipe no `/videoaula`:
+```
+padroes.json ─ partitura.py (MusicXML → Verovio → resvg) ─→ partituras/<ID>[_big].png + .json (x,y de cada nota; x de cada tempo)
+             ─ tocar.py (síntese + animação) ─→ exemplos/<ID>.mp4 + <ID>.wav (mesma duração, grid de quadros) ─→ cena {"video", "audio"} do montar_cenas.py
+```
+
 ## Testes
 
 `tests/smoke.sh` gera um vídeo sintético 1080x1920 com áudio intermitente e valida:
@@ -116,10 +132,12 @@ montar_aula.py edl → render (blocos/NNN_*.mp4) → concat (vídeo concat + áu
 - `render_spans.sh` produz a duração esperada;
 - `lettering_ass.py` gera ASS e queima;
 - `proof.sh` gera os três artefatos e reprova pico real acima de −1 dBTP (código 3); `normalizar_audio.py` conserta;
-- `montar_cenas.py` fecha vídeo e áudio na duração da narração mesmo com uma cena 3 quadros curta;
-- sintaxe de todos os scripts, frontmatter dos 20 skills e manifestos JSON.
+- `montar_cenas.py` fecha vídeo e áudio na duração da narração mesmo com uma cena 3 quadros curta, e usa o áudio próprio de um bloco pronto (`video` + `audio`);
+- sintaxe de todos os scripts, frontmatter dos 21 skills e manifestos JSON.
 
 `tests/docs_offline.sh` roda o montador do `video-docs` de ponta a ponta com um stub do edge-tts (`tests/stub/edge_tts.py`), então o maior script do repositório também é coberto no CI, em Linux e macOS.
+
+`tests/partitura.sh` roda a `/partitura` de ponta a ponta com os pacotes reais via uv (Verovio + resvg para a notação; numpy + scipy para a síntese): tamanhos dos cartões, notas e tempos com posição, acentos e manulação, erros de grade, e o exemplo tocado com vídeo e wav da mesma duração no grid de quadros, AAC a 48 kHz, pico real ≤ −1,5 dBTP e síntese determinística.
 
 `tests/nucleo.sh` cobre o pacote `video_editores`: registro e configuração dos modelos, `codec_video`, `audio.normalizar`, retry do TTS, catálogo (todo script existe), CLI, tarefas em segundo plano e o servidor MCP em processo (`tests/mcp_test.py`, cliente em memória do SDK).
 
