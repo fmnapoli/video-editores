@@ -60,4 +60,18 @@ cp exemplos/CINCO.wav antes.wav
 "${TOCA[@]}" CINCO --partituras partituras --out exemplos --bpm 120 --voltas 1 --contagem --so-audio >/dev/null
 cmp -s antes.wav exemplos/CINCO.wav
 pass "tocar.py: --so-audio regenera o mesmo wav (síntese determinística)"
+
+AND=(uv run --quiet --with librosa --with numpy --with scipy --with soundfile python -I "$P/andamento.py")
+"${AND[@]}" exemplos/CINCO.wav --tempos 5 --bumbo 0 --out medido.json >/dev/null 2>&1
+python3 - <<'PY'
+import json
+r = json.load(open("medido.json"))["CINCO"]
+assert abs(r["bpm"] - 120) < 1.5, r["bpm"]                                     # sintetizado a 120 bpm
+assert r["n"] == 5 and r["confiavel"], (r["fase"], r["contrastes"])
+# os "1" caem nos bumbos: 2,5 s (fim da contagem de 5 tempos), 5,0, 7,5, 10,0; o índice `fase` depende de quantas
+# batidas da contagem o tracker pegou, por isso se confere o instante, não o índice
+bd = [2.5, 5.0, 7.5, 10.0]
+assert len(r["uns"]) == 4 and all(abs(u - t) < 0.1 for u, t in zip(r["uns"], bd)), r["uns"]
+PY
+pass "andamento.py: bpm, fase e instantes do 1 recuperados do exemplo sintetizado"
 echo "partitura ok"

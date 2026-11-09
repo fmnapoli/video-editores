@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.2 — 2026-11-09
+Lição da terceira rodada do curso de bateria: o exemplo tocado tem de estar no andamento **medido** do clipe, e a medição tem de ser conferida.
+- **`/partitura` ganha `andamento.py`** (operação `partitura-andamento`): andamento de um clipe gravado (beat tracking do librosa com quadros de 256 amostras; `bpm` = mediana dos intervalos sobre 4 batidas), fase do compasso pela energia do bumbo (`--tempos N --bumbo 0,3` → `fase`, `contrastes` por fase, `confiavel`, instantes do "1" em `uns`), `--ini/--fim` para o trecho tocado e `--faixa` para a oitava. Caso real: o 5/4 do curso media 112,3 bpm (tracker preso no prior: 23 quadros de 512 amostras, quatro clipes com o mesmo valor) e toca a 168; o exemplo e o contador sobre o clipe estavam errados. Teste no `tests/partitura.sh` (recupera 120 bpm, fase 0 e os "1" a cada 2,5 s do exemplo sintetizado).
+- Skill: o andamento do exemplo passa a ser o medido quando há clipe (66–80 bpm só para versão de estudo sem clipe); cursor e contador só com `confiavel`. Docs: scripts, skills, troubleshooting (andamento, fase, música granulada em câmera lenta), convenções (câmera lenta com som usa `rubberband=tempo=<vel>:transients=crisp`, nunca `atempo` em cadeia).
+
 ## 0.9.1 — 2026-11-09
 - `legenda_palavra.py`: página órfã (uma palavra só) recebe a última palavra da anterior quando a fala é contínua, a palavra não fecha frase e cabe na janela ("ele basicamente faz | uma matemática" em vez de "ele basicamente faz uma | matemática"). Teste ajustado.
 

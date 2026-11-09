@@ -24,7 +24,7 @@ Plugin do Claude Code que transforma a IA na sua editora de vídeo: **21 skills*
 | `/video-docs` | Gravação de tela → vídeo de documentação narrado | edge-tts + `build.py` |
 | `/video-animado` | Vídeo 100% animado por código, narração que dita o tempo de cada cena, sem tela preta | Manim + edge-tts + `montar_cenas.py` |
 | `/videoaula` | Aula gravada (professor + quadro + IDE) → versão redesenhada: cenário novo por IA, diagramas animados no lugar do quadro, capítulos, legenda, −14 LUFS | rembg + Manim + auto-editor + `montar_aula.py` |
-| `/partitura` | Partitura de bateria com R/L e cores por membro, e "exemplo tocado": som sintetizado + notação animada nota a nota, pronto para entrar como bloco | Verovio + resvg + numpy/scipy (`partitura.py`, `tocar.py`) |
+| `/partitura` | Partitura de bateria com R/L e cores por membro, e "exemplo tocado": som sintetizado + notação animada nota a nota no andamento medido do clipe, pronto para entrar como bloco | Verovio + resvg + numpy/scipy + librosa (`partitura.py`, `tocar.py`, `andamento.py`) |
 
 No Claude Code, os skills aparecem com o prefixo do plugin (ex.: `/video-editores:corte`). Também são chamados automaticamente pela descrição ("tira os silêncios desse vídeo").
 

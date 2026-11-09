@@ -66,6 +66,7 @@
 | `/prova` reprova com `PICO ACIMA DO LIMITE` (código 3), ou `loudnorm` linear entregou pico real positivo | degraus nas junções de uma montagem por blocos viram picos que o `loudnorm` linear amplifica (caso real: +9,2 dBTP). `normalizar_audio.py` (ganho estático + limiter de pico real) e fades de 12/18 ms em cada bloco (`audio.fades`) |
 | wav limitado a −2,5 dBTP, mas o mp4 final mede pico positivo | PNS do codificador AAC nativo (substituição perceptual de ruído) em material com bandas de ruído (pratos, caixa sintetizada, chiado): +4,7 dBTP medidos. Codifique com `-c:a aac -b:a 256k -aac_pns 0` (`audio.AAC`); `-aac_coder fast` também resolve, com qualidade menor |
 | edge-tts morre com `NoAudioReceived` no meio do lote | transitório do serviço; o backend `edge` repete 3 vezes (`VE_TTS_ESPERA` entre tentativas). Se persistir, é rede ou voz inexistente |
+| música granulada ou "metálica" num trecho em câmera lenta | `atempo` em cadeia (0,5×0,5 para 4×) é feito para fala e destrói os transientes da música. Use `rubberband=tempo=0.25:transients=crisp` (ffmpeg com librubberband: `ffmpeg -filters \| grep rubberband`); sem o filtro, abaixe o áudio do trecho ou cubra com trilha |
 
 ## `/3d`
 
@@ -98,6 +99,8 @@
 | `div=3` recusado | tercinas não são suportadas pelo `_dur_tipo` (só 1, 2 e 4 subdivisões) | escreva a frase em `div` 4 aproximando, ou registre o pedido |
 | título do cartão com fonte genérica | nenhuma das fontes padrão instalada (Inter, DejaVu Sans Bold, Arial Bold) | `--fonte caminho.ttf` ou `sudo apt install fonts-dejavu-core` |
 | pico real do vídeo final acima do limite com bateria sintetizada | PNS do AAC nativo (bandas de ruído) | o `tocar.py` e o núcleo já codificam com `-aac_pns 0`; se remuxar à mão, use `audio.AAC` |
+| exemplo tocado soa como outro exercício, mesmo com a partitura certa | andamento chutado (66–80 "para estudo") ou medido com o tracker preso no prior (vários clipes dando exatamente 112,3 bpm = 23 quadros de 512 amostras) | `andamento.py` no trecho em que a pessoa toca; confira a oitava com a contagem falada da transcrição e `--faixa` |
+| contador ou cursor sobre o clipe fora do tempo | batidas de uma medição errada ou fase sem contraste | remeça com `--tempos N --bumbo …`; só sincronize quando `confiavel` for verdadeiro, senão cartão estático |
 
 ## `/video-docs`
 Veja [video-docs-LEIAME.md](video-docs-LEIAME.md) ("Pontos que mais pegam") e `skills/video-docs/SKILL.md` ("Pegadinhas que custaram tempo"). Erro de rede no edge-tts significa que a montagem precisa de internet.

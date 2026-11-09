@@ -33,7 +33,7 @@ Legenda depois dos efeitos visuais (fica por cima). Áudio por último (cortes m
 
 Pico real sempre ≤ −1,5 dBTP; a `/prova` reprova acima de −1,0. Normalize com `scripts/normalizar_audio.py` (ganho estático + limiter), não com `loudnorm` linear; em montagem por blocos, fades de 12/18 ms nas pontas de cada bloco.
 
-Codificação: `-c:v libx264 -preset veryfast -crf 20 -pix_fmt yuv420p -c:a aac -b:a 256k -aac_pns 0 -movflags +faststart`. Use `-preset slow` só se o usuário pedir qualidade máxima. O `-aac_pns 0` não é opcional: o PNS do codificador AAC nativo injeta ruído sintético que não respeita o pico do original (medido: wav limitado a −2,5 dBTP virou +4,7 dBTP a 192k com PNS; −2,4 sem PNS a 256k).
+Codificação: `-c:v libx264 -preset veryfast -crf 20 -pix_fmt yuv420p -c:a aac -b:a 256k -aac_pns 0 -movflags +faststart`. Use `-preset slow` só se o usuário pedir qualidade máxima. Câmera lenta com som: estique o áudio com `rubberband=tempo=<vel>:transients=crisp`, nunca com `atempo` em cadeia (feito para fala; a 4× granula a música). O `-aac_pns 0` não é opcional: o PNS do codificador AAC nativo injeta ruído sintético que não respeita o pico do original (medido: wav limitado a −2,5 dBTP virou +4,7 dBTP a 192k com PNS; −2,4 sem PNS a 256k).
 
 ## Texto na tela
 ASS/libass (`ass`, `subtitles`), nunca `drawtext`: o ffmpeg estático não tem. Fonte padrão DejaVu Sans Bold; Montserrat ou Inter (OFL) para redes.

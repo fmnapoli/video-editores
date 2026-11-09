@@ -140,6 +140,12 @@ uv run --with numpy --with scipy --with pillow python skills/partitura/scripts/t
 ```
 Exemplo tocado a partir de `<ID>_big.json/.png`: síntese por fórmula (determinística), nota acendendo quando soa, playhead, contador e contagem opcional. Saída `<ID>.mp4` (1920×1080, áudio AAC sem PNS) e `<ID>.wav` (48 kHz estéreo, pico −6 dBFS) com a mesma duração no grid de quadros, mais `<ID>.json` (`dur`, `bpm`, `pre`, `eventos`). `VE_ENCODER` vale para o vídeo.
 
+## andamento.py (partitura)
+```bash
+uv run --with librosa --with numpy --with scipy --with soundfile python skills/partitura/scripts/andamento.py CLIPE [CLIPE ...] [--ini S] [--fim S] [--faixa 70-160] [--tempos N] [--bumbo 0,3] [--out beats.json]
+```
+Andamento e fase do compasso de um clipe de bateria (vídeo ou áudio; o ffmpeg decodifica a 22,05 kHz mono). Beat tracking do librosa com quadros de 256 amostras; `bpm` é a mediana dos intervalos medidos sobre 4 batidas (robusta a uma batida perdida e ao grid), `bpm_tracker` a estimativa global, `bpm_desvio` o espalhamento. Com `--tempos N` e `--bumbo` (posições do compasso em que o bumbo toca), escolhe o "1" pela energia em 40–110 Hz nas batidas: `fase`, `contrastes` (um por fase), `confiavel` (melhor ≥ 1,3 e ≥ 1,1× a segunda) e `uns` (instantes do "1"). `--faixa` dobra ou divide o bpm que cair fora dela (ambiguidade de oitava). Acrescenta ao JSON de saída, um registro por clipe, chave = nome do arquivo sem extensão.
+
 ## doctor.sh
 ```bash
 bash scripts/doctor.sh
