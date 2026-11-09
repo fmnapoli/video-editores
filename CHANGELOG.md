@@ -1,5 +1,8 @@
 # Changelog
 
+## Não lançado
+- Docs: **ADR-16** avalia o Remotion como motor de motion graphics e de legenda e decide **não adotar** por ora (licença source-available com assento pago a partir de 4 pessoas, inclusive para código escrito por agente; 18× mais lento que o ffmpeg para queimar legenda sobre filmagem). Prova mínima com medições em `docs/adr/2026-11-09-remotion-poc/`; melhorias derivadas anotadas para o `/legenda` (página com palavra destacada em ASS).
+
 ## 0.8.0 — 2026-11-09
 **`/partitura`** (21º skill): notação de bateria e "exemplo tocado", extraídos do pipeline do curso de bateria (ADR-14).
 - `skills/partitura/scripts/partitura.py` (operação `partitura`): padrão compacto em JSON (`ts`, `div`, grade em texto `"X.xx .x.."`, `{"pos": [1,2,3]}`, índices ou `"all"`; manulação `stick` por texto, `"alterna"` ou dict; acentos) → MusicXML → Verovio → cartão PNG 1800×270 e 1800×430 com a posição de cada nota e de cada tempo no JSON (onset em semínimas, x/y, instrumento, acento). R azul, L rosa, bumbo laranja, chimbal de pé verde; 8 instrumentos (hh, ride, crash, sn, tom, ft, bd, hf); 4/4, 5/4, 7/4 ou qualquer fórmula; `div` 1, 2 ou 4. Rasterização com **resvg** (`resvg-py`, sem biblioteca de sistema; cai no cairosvg se instalado). As pegadinhas do Verovio (qfracOn em `<divisions>`, translate de `.page-margin`, +90 para o centro da cabeça) ficam no código.

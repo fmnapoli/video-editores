@@ -1,0 +1,21 @@
+{
+  "name": "remotion-poc",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "render": "remotion render src/index.ts Demo out/demo.mp4 --crf 18",
+    "burn": "remotion render src/index.ts Burn out/burn.mp4 --crf 18"
+  },
+  "dependencies": {
+    "@remotion/captions": "4.0.542",
+    "@remotion/cli": "4.0.542",
+    "@remotion/transitions": "4.0.542",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "remotion": "4.0.542"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "typescript": "^5.0.0"
+  }
+}

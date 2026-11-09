@@ -88,6 +88,7 @@ Passo a passo completo: [docs/tutorial.md](docs/tutorial.md).
 | [Núcleo](docs/nucleo.md) | CLI `video-editores`, modelos trocáveis e GPU, servidor MCP, backend próprio |
 | [Outros agentes](docs/agentes.md) | Codex, OpenCode e Kiro: `video-editores integrar`, onde cada um lê skills, MCP e regras |
 | [ADR núcleo/MCP](docs/adr/2026-11-08-nucleo-modelos-mcp.md) | decisão de abstrair modelos, CLI e MCP; integração com GPU; roteiro |
+| [ADRs propostos e avaliações](docs/arquitetura.md#decisões-adrs-resumidos) | geração por IA (ADR-15, proposto) e Remotion (ADR-16, avaliado e não adotado) |
 | [Solução de problemas](docs/troubleshooting.md) | sintomas comuns e correções |
 | [video-docs](docs/video-docs-LEIAME.md) | harness de vídeos de documentação |
 | [Contribuindo](CONTRIBUTING.md) | como criar skills e scripts no padrão |
