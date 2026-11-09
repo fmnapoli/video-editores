@@ -10,7 +10,7 @@ Siga `${CLAUDE_PLUGIN_ROOT}/docs/convencoes.md` (pastas, nomes de saída, loudne
 
 ## Passos
 1. Pergunte (ou assuma o padrão entre parênteses):
-   - estilo: **reels** (2–3 palavras, grande, centro-baixo) ou **clássico** (frase, rodapé) — padrão reels se vertical, clássico se horizontal;
+   - estilo: **reels** (2–3 palavras, grande, centro-baixo), **reels-palavra** (páginas de ~1,5 s com a palavra falada em destaque, estilo TikTok) ou **clássico** (frase, rodapé) — padrão reels se vertical, clássico se horizontal; reels-palavra quando o usuário pedir "palavra destacada", "karaokê" ou "igual TikTok";
    - só SRT ou queimar no vídeo (queimar).
 2. Transcreva o vídeo **já cortado** (não o bruto, senão os tempos não batem). Pule se já existir `trabalho/<slug>/IN.transcript.json` desse mesmo arquivo:
    ```bash
@@ -22,6 +22,11 @@ Siga `${CLAUDE_PLUGIN_ROOT}/docs/convencoes.md` (pastas, nomes de saída, loudne
      ```bash
      ffmpeg -i IN.mp4 -vf "subtitles=IN.words.srt:force_style='FontName=Montserrat,FontSize=22,Bold=1,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=3,Shadow=0,Alignment=2,MarginV=110'" -c:a copy IN_legenda.mp4
      ```
+   - Reels-palavra (qualquer proporção; o script lê as palavras do `transcript.json`, pagina e queima pelo ffmpeg):
+     ```bash
+     python3 "${CLAUDE_PLUGIN_ROOT}/scripts/legenda_palavra.py" IN.mp4 trabalho/<slug>/IN.transcript.json --font Montserrat --correcoes correcoes.json --burn IN_legenda.mp4
+     ```
+     Gera `IN.palavra.ass` e `IN.palavra.paginas.txt` (uma linha por página com os tempos: é o que você mostra ao usuário no passo 3). `--correcoes` é um JSON `{"Paiton": "Python"}` com os termos que o Whisper errou. Opções: `--modo preenche` (karaokê: as palavras já ditas ficam coloridas), `--caixa` (caixa translúcida em vez de contorno), `--maiusculas`, `--janela 1.5`, `--max-palavras 5`, `--pos` (0,68 em vertical, 0,86 em horizontal), `--tamanho 0.05`, `--destaque #FACC15`.
    - Clássico:
      ```bash
      ffmpeg -i IN.mp4 -vf "subtitles=IN.srt:force_style='FontSize=20,Outline=2,MarginV=40'" -c:a copy IN_legenda.mp4

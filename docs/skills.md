@@ -70,6 +70,7 @@ Ajuste manual: edite `keep` no `.takes.json` e rode de novo só o `render_spans.
 |---|---|---|
 | reels (padrão em vídeo vertical) | `.words.srt` (N palavras por bloco) | grande, contorno, centro-baixo (`MarginV=110`) |
 | clássico (padrão em horizontal) | `.srt` (frase) | rodapé, menor |
+| reels-palavra | `.transcript.json` → `legenda_palavra.py` → `.palavra.ass` | páginas de ~1,5 s, palavra falada em destaque (ou karaokê com `--modo preenche`), posição por orientação |
 
 Cores ASS são `&HAABBGGRR` (ordem invertida): amarelo = `&H0000FFFF`. Caixa atrás do texto: `BorderStyle=3`.
 

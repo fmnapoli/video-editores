@@ -17,7 +17,7 @@ Se faltar algo que muda o resultado (ex.: música sim ou não), pergunte **uma**
 | Se o usuário disser… | Skills, nesta ordem |
 |---|---|
 | corta pausas / tomadas / "limpa" | tomada → corte |
-| legenda / "palavra por palavra" | legenda |
+| legenda / "palavra por palavra" / "palavra destacada, igual TikTok" | legenda (estilo reels ou reels-palavra) |
 | gancho / "abre forte" | ganchos → lettering (titulo, pop) |
 | frase atrás de mim / palavra de impacto | texto-atras |
 | checklist / passos na tela | checklist |

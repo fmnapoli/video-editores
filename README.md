@@ -10,7 +10,7 @@ Plugin do Claude Code que transforma a IA na sua editora de vídeo: **21 skills*
 | `/tela-dividida` | Reação, antes/depois, 16:9 → 9:16 e 1:1 | ffmpeg vstack/crop |
 | `/corte` | Corta silêncio e tempo morto | auto-editor |
 | `/tomada` | Detecta tomadas repetidas e fica com a melhor | faster-whisper + `takes.py` |
-| `/legenda` | Legenda automática (SRT ou queimada, estilo reels) | faster-whisper + libass |
+| `/legenda` | Legenda automática (SRT ou queimada; reels, clássico ou palavra destacada) | faster-whisper + libass |
 | `/referencia` | Extrai o "DNA" de edição de um vídeo de referência | yt-dlp + PySceneDetect |
 | `/lettering` | Títulos, destaques, lower thirds, cartão de comentário e capa de revista | ASS/libass (`lettering_ass.py`) |
 | `/animacao` | Motion graphics por código | Manim / ffmpeg |

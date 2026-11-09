@@ -8,6 +8,7 @@ Copie, cole no Claude Code e troque o que estiver entre `< >`. Cada pedido acion
 |---|---|---|
 | "Corta as pausas e fica com a última tomada" | remove repetições e silêncios | tomada → corte |
 | "Legenda palavra por palavra" | legenda estilo reels, 2–3 palavras por bloco | legenda |
+| "Legenda com a palavra destacada, igual TikTok" | `legenda_palavra.py`: páginas de ~1,5 s, palavra falada em amarelo (`--modo preenche` para karaokê) | legenda (reels-palavra) |
 | "Abre com um gancho forte na tela" | 5 opções de gancho; o escolhido vira título animado | ganchos → lettering |
 | "Põe a frase forte atrás de mim" | texto entre o fundo e a pessoa | texto-atras |
 | "Faz um checklist do que eu falar" | itens entram no instante em que são ditos | checklist |

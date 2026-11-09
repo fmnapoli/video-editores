@@ -64,6 +64,12 @@ Padrões por estilo:
 | `destaque` | (0,5; 0,30) | 0,065 | amarelo `#FFD54F` | contorno preto |
 | `lower` | (0,05; 0,84) | 0,040 | branco | caixa translúcida, alinhado à esquerda |
 
+## legenda_palavra.py
+```bash
+python3 scripts/legenda_palavra.py VIDEO IN.transcript.json [--burn SAIDA.mp4] [--ass SAIDA.ass] [--janela 1.5] [--max-palavras 5] [--max-chars N] [--pausa 0.6] [--modo atual|preenche] [--pos F] [--tamanho 0.05] [--font Montserrat] [--cor #FFFFFF] [--destaque #FACC15] [--caixa] [--maiusculas] [--correcoes c.json]
+```
+Legenda estilo reels/TikTok: agrupa as palavras do `transcript.json` (ou de um `.srt` com um cue por palavra) em páginas fechadas por janela de tempo, pausa, nº de palavras, nº de caracteres (padrão: duas linhas na largura do vídeo) e fim de frase; cada palavra muda para a cor de destaque no instante em que é dita (`\t` por palavra; `--modo preenche` usa `\k`, karaokê). Uma página vai até a próxima começar quando a fala continua. Saídas: `<nome>.palavra.ass` e `<nome>.palavra.paginas.txt` (tempos e texto de cada página, para revisar antes de queimar). `--correcoes` troca palavras erradas do ASR ignorando a pontuação em volta. Respeita a rotação do vídeo (mesmo `probe` do lettering). A queima é o filtro `ass=` do ffmpeg: 20 s de vídeo em ~3 s.
+
 ## text_behind.py
 ```bash
 uv run --with "rembg[cpu]" --with pillow python scripts/text_behind.py IN.mp4 OUT.mp4 \

@@ -100,7 +100,7 @@ Quatro camadas (0.5.0):
 ### ADR-16 — Remotion avaliado, não adotado (2026-11-09)
 - **Contexto:** Remotion (vídeo por React, Chrome headless + ffmpeg, skills oficiais para agentes) foi avaliado como motor de motion graphics e de legenda. Prova mínima e medições em `docs/adr/2026-11-09-remotion-poc/`; detalhe em `docs/adr/2026-11-09-remotion.md`.
 - **Decisão:** não entra como dependência nem como skill. Licença source-available (gratuita só até 3 pessoas; US$ 25/mês por pessoa que escreve código Remotion, inclusive via agente, em empresa com 4+) contraria o ADR-05 e a promessa do README; queimar legenda sobre filmagem levou 318 s contra 17,6 s do `subtitles=` do ffmpeg. Cena gerada rende em velocidade comparável ao Manim e é determinística, mas não justifica Node + 518 MB + Chrome.
-- **Consequência:** melhorias derivadas sem o Remotion: legenda paginada com palavra destacada em ASS no `/legenda`, specs JSON declarativas mantidas em toda skill. Revisitar se a licença mudar e um projeto exigir layout de texto que ASS/Manim não dão; nesse caso, skill opcional só para gráficos com alpha.
+- **Consequência:** melhorias derivadas sem o Remotion: legenda paginada com palavra destacada em ASS no `/legenda` (`legenda_palavra.py`, **feito em 0.9.0**), specs JSON declarativas mantidas em toda skill. Revisitar se a licença mudar e um projeto exigir layout de texto que ASS/Manim não dão; nesse caso, skill opcional só para gráficos com alpha.
 
 ## Fluxo de dados
 

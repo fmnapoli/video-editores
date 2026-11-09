@@ -1,6 +1,6 @@
 {
   "name": "video-editores",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "21 skills de edição de vídeo para o Claude Code, com CLI, modelos de IA trocáveis (GPU), servidor MCP e integração com Codex, OpenCode e Kiro: pedido em português, corte, legenda, motion, melhores momentos, vídeos de documentação, videoaulas redesenhadas e partitura de bateria animada. 100% open source e local (ffmpeg, faster-whisper, auto-editor, Manim, rembg, Blender).",
   "author": {
     "name": "Fabrizio Malta Di Napoli"

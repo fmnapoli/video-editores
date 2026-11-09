@@ -1,6 +1,9 @@
 # Changelog
 
-## Não lançado
+## 0.9.0 — 2026-11-09
+Melhoria derivada da avaliação do Remotion (ADR-16): o que ele fazia melhor que o plugin, feito em ASS.
+- **`/legenda` estilo `reels-palavra`** (`scripts/legenda_palavra.py`, operação `legenda-palavra`): pagina as palavras do `transcript.json` (janela de 1,5 s, pausa, nº de palavras e de caracteres, fim de frase) e destaca a palavra falada no instante em que é dita (`\t` por palavra), ou karaokê (`--modo preenche`, `\k`). Caixa ou contorno, maiúsculas, posição por orientação (0,68 em vertical, 0,86 em horizontal), `--correcoes` para os termos que o ASR errou. Escreve também `<nome>.palavra.paginas.txt` para a revisão antes de queimar. Queima pelo filtro `ass=` do ffmpeg: 20 s de vídeo em ~3 s, contra 318 s para 60 s no Remotion.
+- Teste no `smoke.sh` (páginas, tempos, destaque, correção, karaokê, caixa, rotação vertical); docs da skill, `docs/skills.md`, `docs/scripts.md`, pedidos prontos.
 - Docs: **ADR-16** avalia o Remotion como motor de motion graphics e de legenda e decide **não adotar** por ora (licença source-available com assento pago a partir de 4 pessoas, inclusive para código escrito por agente; 18× mais lento que o ffmpeg para queimar legenda sobre filmagem). Prova mínima com medições em `docs/adr/2026-11-09-remotion-poc/`; melhorias derivadas anotadas para o `/legenda` (página com palavra destacada em ASS).
 
 ## 0.8.0 — 2026-11-09

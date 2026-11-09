@@ -46,6 +46,33 @@ python3 "$S/lettering_ass.py" out_tomada.mp4 textos.json --burn out_lettering.mp
 grep -q "Dialogue" textos.ass && test -s out_lettering.mp4
 pass "lettering_ass.py gera ASS e queima (sem drawtext)"
 
+cat > pal.transcript.json <<'JSON'
+{"segments":[{"start":0.2,"end":2.0,"text":"Você já tem o Python instalado.","words":[
+ {"start":0.2,"end":0.5,"word":" Você"},{"start":0.5,"end":0.7,"word":" já"},{"start":0.7,"end":0.9,"word":" tem"},
+ {"start":0.9,"end":1.0,"word":" o"},{"start":1.0,"end":1.5,"word":" Paiton"},{"start":1.5,"end":2.0,"word":" instalado."}]},
+ {"start":3.0,"end":5.3,"text":"Agora vamos começar de verdade hoje.","words":[
+ {"start":3.0,"end":3.4,"word":" Agora"},{"start":3.4,"end":3.7,"word":" vamos"},{"start":3.7,"end":4.3,"word":" começar"},
+ {"start":4.3,"end":4.4,"word":" de"},{"start":4.4,"end":4.9,"word":" verdade"},{"start":4.9,"end":5.3,"word":" hoje."}]}]}
+JSON
+echo '{"Paiton": "Python"}' > corr.json
+python3 "$S/legenda_palavra.py" in.mp4 pal.transcript.json --janela 1.4 --correcoes corr.json --burn out_palavra.mp4 >/dev/null
+python3 - <<'PY'
+ass = open("pal.palavra.ass", encoding="utf-8").read()
+d = [l for l in ass.splitlines() if l.startswith("Dialogue")]
+# 5 palavras fecham a 1ª página; "instalado." fica só e a pausa de 1 s fecha; a janela de 1,4 s corta antes de "verdade"
+assert len(d) == 4, d
+assert "Python" in d[0] and "Paiton" not in ass, d[0]
+assert d[0].startswith("Dialogue: 0,0:00:00.20,0:00:01.50,") and d[1].startswith("Dialogue: 0,0:00:01.50,0:00:02.25,"), (d[0][:40], d[1][:40])
+assert d[0].count("\\t(") == 9 and "&H0015CCFA&" in d[0], d[0]            # 1ª palavra só sai; as outras 4 entram e saem
+assert "PlayResX: 1080" in ass and "pos(540,1305)" in d[0], "vertical: legenda a 68 % da altura"
+pags = open("pal.palavra.paginas.txt", encoding="utf-8").read().splitlines()
+assert len(pags) == 4 and pags[0].endswith("Você já tem o Python") and pags[-1].endswith("verdade hoje."), pags
+PY
+test -s out_palavra.mp4
+python3 "$S/legenda_palavra.py" in.mp4 pal.transcript.json --modo preenche --caixa --ass k.ass >/dev/null
+grep -q '\\k' k.ass && grep -q "^Style: Palavra,Montserrat,96,&H0015CCFA&,&H00FFFFFF&,&H90000000,&H90000000,1,0,0,0,100,100,0,0,3," k.ass
+pass "legenda_palavra.py: páginas por janela/pausa/nº de palavras, destaque por palavra, correções, karaokê e caixa"
+
 bash "$S/proof.sh" out_lettering.mp4 8 >/dev/null
 test -s out_lettering.proof.jpg && test -s out_lettering.preview.mp4 && grep -q "quadros da folha" out_lettering.proof.txt
 pass "proof.sh gera folha de contato, preview e relatório"
