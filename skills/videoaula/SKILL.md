@@ -64,7 +64,7 @@ Validado em nov/2026 numa aula de Python de 20 min (3 modos visuais, 9 diagramas
    ```bash
    bash "${CLAUDE_PLUGIN_ROOT}/skills/videoaula/scripts/finalizar.sh" trabalho/<slug>/aula.json saida/<slug>.mp4 legendas/<slug>.srt --textos textos.json --ajustes ajustes.json --jobs 2
    ```
-   `--limpar-audio` adiciona passa-alta 80 Hz + redução de ruído antes do loudnorm (sala com zumbido). Mostre `.proof.jpg`, `.preview.mp4`, loudness e durações de vídeo e áudio (devem ser iguais).
+   `--limpar-audio` adiciona passa-alta 80 Hz + redução de ruído antes da normalização (sala com zumbido). A normalização é ganho estático + limiter de pico real (`scripts/normalizar_audio.py`), e a prova reprova pico acima de −1 dBTP. Mostre `.proof.jpg`, `.preview.mp4`, loudness e durações de vídeo e áudio (devem ser iguais).
 8. **Publicação.** Capítulos do YouTube nos tempos finais, descrição, hashtags e thumbnail com o recorte do locutor:
    ```bash
    uv run --with pillow --with numpy python "${CLAUDE_PLUGIN_ROOT}/skills/videoaula/scripts/publicar_aula.py" trabalho/<slug>/aula.json --saida saida/<slug> --thumb-t 5.5

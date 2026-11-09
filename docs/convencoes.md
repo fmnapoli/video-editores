@@ -29,7 +29,9 @@ Legenda depois dos efeitos visuais (fica por cima). Áudio por último (cortes m
 | Reels, Shorts, TikTok | 1080x1920, 30 fps | -14 LUFS, TP -1.5 | zona segura: 15% de cima e de baixo |
 | YouTube | 1920x1080 | -14 LUFS | `.srt` separado para upload |
 | Documentação (`video-docs`) | 1280x720 (ou 1920x1080) | -16 LUFS | coordenadas sempre em 1280x720 |
-| Animação por código (`video-animado`) | 1920x1080, 30 fps | -16 LUFS | conteúdo acima da faixa da legenda (y > -2,3 no Manim); sem tela preta entre cenas |
+| Animação por código (`video-animado`) | 1920x1080, 30 fps | -16 LUFS, TP -1.5 | conteúdo acima da faixa da legenda (y > -2,3 no Manim); sem tela preta entre cenas |
+
+Pico real sempre ≤ −1,5 dBTP; a `/prova` reprova acima de −1,0. Normalize com `scripts/normalizar_audio.py` (ganho estático + limiter), não com `loudnorm` linear; em montagem por blocos, fades de 12/18 ms nas pontas de cada bloco.
 
 Codificação: `-c:v libx264 -preset veryfast -crf 20 -pix_fmt yuv420p -c:a aac -b:a 192k -movflags +faststart`. Use `-preset slow` só se o usuário pedir qualidade máxima.
 

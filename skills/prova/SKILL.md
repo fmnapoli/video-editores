@@ -27,7 +27,8 @@ Script: `${CLAUDE_PLUGIN_ROOT}/scripts/proof.sh` (sem `drawtext`, compatível co
 4. Confira o técnico no `.proof.txt`:
    - vertical 1080x1920 para reels/shorts, 1280x720 ou 1920x1080 para docs;
    - h264 + aac;
-   - loudness integrado perto de -14 LUFS (redes) ou -16 (docs).
+   - loudness integrado perto de -14 LUFS (redes) ou -16 (docs);
+   - pico real ≤ -1,5 dBTP. Acima de -1,0 o `proof.sh` sai com código 3 e grava `PICO ACIMA DO LIMITE` no `.proof.txt`: normalize com `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/normalizar_audio.py" IN.mp4 OUT.mp4 --alvo -14` e rode a prova de novo.
 5. Entregue ao usuário: o `.proof.jpg`, o `.preview.mp4` e uma lista curta de problemas encontrados, com o comando que corrige cada um.
 
 ## Regras

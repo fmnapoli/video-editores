@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.0 — 2026-11-08
+Lições de um curso de bateria de 19 min montado por blocos (cenas Manim, exemplos sintetizados e clipes gravados). ADR-13.
+- **`nucleo/audio.py`** e operação **`normalizar-audio`** (`scripts/normalizar_audio.py`): ganho estático até o alvo LUFS + `alimiter` com oversampling a 192 kHz segurando o pico real, medido antes e depois e repetindo com teto menor se passar. Substitui o `loudnorm` linear no `finalizar.sh` do `/videoaula` e o `loudnorm` de uma passada no `montar_cenas.py`: o linear tinha chegado a **+9,2 dBTP** por causa dos degraus nas junções entre blocos. `fades()` (12/18 ms) e `quadros()` (duração no grid de quadros) para montagens por blocos.
+- **`/prova` reprova pico real acima de −1 dBTP** (`proof.sh` sai com código 3 e grava `PICO ACIMA DO LIMITE` no `.proof.txt`; `PROVA_TP_MAX` muda o limite, `PROVA_SEM_GATE=1` só avisa).
+- **`montar_cenas.py` (`/video-animado`) monta por EDL**: cada bloco dura exatamente a narração (`tempos.json`, no grid de quadros); cena 1 quadro curta tem o último quadro clonado (`tpad`), áudio com a mesma duração e fades; blocos em paralelo (`--jobs`), concat sem recodificar, normalização pelo núcleo (`--loudness`, `--tp`), vídeo copiado quando não há legenda a queimar. Cena mais longa que a narração fica inteira, com aviso.
+- **`cena_base.py` com relógio no grid de quadros**: `p()`/`w()` arredondam cada passo ao quadro e contam como o renderer (piso no `wait`, teto no `play`); uma cena de 20 passos tinha derivado 0,3 s e cortado o fim da narração. A cena fecha em `total` com ±1 quadro.
+- **`montar_aula.py concat`** aplica os mesmos fades por bloco no áudio contínuo.
+- **edge-tts repete** até 3 vezes em `NoAudioReceived` e erros de rede (`VE_TTS_ESPERA` entre tentativas), em vez de derrubar o lote de narração.
+- Testes: normalização com estalos a fundo de escala (pico ≤ −1,5 dBTP, −14 LUFS), gate da prova (código 3 e conserto), montagem com cena curta (vídeo e áudio fecham com a narração), retry do TTS com o stub. Docs: núcleo, scripts, convenções (pico real), troubleshooting, arquitetura (ADR-13), skills `video-animado`, `videoaula`, `prova`, `trilha`.
+
 ## 0.6.0 — 2026-11-08
 Compatível com **Codex**, **OpenCode** e **Kiro** (ADR-12 implementado): `video-editores integrar codex|opencode|kiro|todos [--projeto DIR|--usuario] [--remover]`.
 - Skills geradas da fonte única: as 20 SKILL.md copiadas para `.agents/skills/` (Codex e OpenCode) e `.kiro/skills/` (Kiro), com `${CLAUDE_PLUGIN_ROOT}` trocado pelo caminho real dos scripts, cabeçalho explicando CLI/MCP, subagentes e gates fora do Claude Code, e arquivos de referência ao lado (glossário, references/). Nomes já satisfazem Kiro (name = pasta, kebab-case).

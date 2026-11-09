@@ -95,6 +95,15 @@ bash scripts/proof.sh VIDEO [N_FRAMES=12]
 | `.preview.mp4` | 480p, CRF 30, leve para celular |
 | `.proof.txt` | codec, resolução, fps, áudio, instantes de cada quadro do grid, loudness integrado e true peak |
 
+Gate: pico real acima de `PROVA_TP_MAX` (padrão −1,0 dBTP) grava `PICO ACIMA DO LIMITE` no `.proof.txt` e sai com código 3 (`PROVA_SEM_GATE=1` só avisa). Conserto: `normalizar_audio.py`.
+
+## normalizar_audio.py
+```bash
+python3 scripts/normalizar_audio.py ENTRADA SAIDA.mp4|SAIDA.wav [--alvo -14] [--tp -1.5] [--filtro "highpass=f=80,afftdn=nf=-25:nr=12"]
+python3 scripts/normalizar_audio.py ENTRADA --medir        # JSON com I, TP, LRA, thresh
+```
+Ganho estático até o alvo LUFS e `alimiter` com oversampling (192 kHz) segurando o pico real; mede antes e depois e repete com teto menor se o pico passar, ou com o ganho corrigido se o loudness saiu do alvo (`video_editores/nucleo/audio.py`). Saída `.mp4`: vídeo copiado, áudio AAC 192k. Sai com código 3 se o pico continuar acima de `--tp` + 0,3. Usado pelo `finalizar.sh` e pelo `montar_cenas.py` no lugar do `loudnorm` linear.
+
 ## tts_cenas.py (video-animado)
 ```bash
 uv run --with edge-tts python skills/video-animado/scripts/tts_cenas.py cenas/<slug>.json [--glossario g.json] [--lead 0.6] [--tail 0.8]
@@ -103,9 +112,9 @@ Uma narração por cena, com fronteiras de palavra, e `tempos.json` com `fala`, 
 
 ## montar_cenas.py (video-animado)
 ```bash
-python3 skills/video-animado/scripts/montar_cenas.py cenas/<slug>.json <pasta dos mp4> [--cenas B1,B2] [--saida ...] [--legenda ...] [--fonte "..."] [--tamanho 15] [--margem 22] [--loudness -16] [--roteiro roteiros/roteiro-<slug>.md]
+python3 skills/video-animado/scripts/montar_cenas.py cenas/<slug>.json <pasta dos mp4> [--cenas B1,B2] [--saida ...] [--legenda ...] [--fonte "..."] [--tamanho 15] [--margem 22] [--loudness -16] [--tp -1.5] [--jobs 2] [--roteiro roteiros/roteiro-<slug>.md]
 ```
-Concatena `<id>.mp4` na ordem do spec, atrasa e preenche o áudio de cada cena até a duração real do mp4, gera o `.srt` (blocos de 2 linhas, frase a frase, grafia original da narração) e queima com `force_style`. Saída a 48 kHz, `+faststart`; `.srt` em pasta separada; `--roteiro` escreve o roteiro final com tempos, texto falado e legenda.
+Montagem por EDL: cada bloco dura exatamente a narração da cena (`tempos.json`, no grid de quadros); cena 1 quadro curta tem o último quadro clonado (`tpad`), o áudio é atrasado em `lead` e preenchido até a mesma duração com fades de 12/18 ms (blocos em paralelo, `--jobs`). Concat sem recodificar, normalização pelo núcleo (`--loudness`, `--tp`), legenda queimada na codificação final (`.srt` em pasta separada; sem legenda o vídeo é copiado). Cena mais longa que a narração fica inteira, com aviso. `--roteiro` escreve o roteiro final com tempos, texto falado e legenda.
 
 ## folha_cenas.py (video-animado)
 ```bash
@@ -139,7 +148,7 @@ Ficam na pasta da skill porque dependem do `aula.json` do projeto (exemplo em `s
 | `render_cenas.sh` | `render_cenas.sh diagramas.py ql\|qh [-j N] Cena1 Cena2 Separador:1` | `media/videos/<modulo>/<540p30\|1080p30>/<Cena>.mov` (alpha) |
 | `montar_aula.py` | `montar_aula.py aula.json edl \| render [--ate T] [--only i,j] [--jobs N] \| concat SAIDA.mp4 [--ate T] \| map T` | `blocos/NNN_<tipo>.mp4` (+ `.ok`), vídeo concatenado com áudio contínuo |
 | `legenda_aula.py` | `legenda_aula.py aula.json CORTE.v1.json IN.transcript.json SAIDA.srt [--ajustes ajustes.json]` | SRT com frases inteiras, tempos finais (corte + cartelas) |
-| `finalizar.sh` | `finalizar.sh aula.json SAIDA.mp4 SAIDA.srt [--textos textos.json] [--ajustes ajustes.json] [--jobs N] [--limpar-audio]` | render de blocos → concat → lettering → (passa-alta + afftdn) → loudnorm −14 → SRT → prova |
+| `finalizar.sh` | `finalizar.sh aula.json SAIDA.mp4 SAIDA.srt [--textos textos.json] [--ajustes ajustes.json] [--jobs N] [--limpar-audio]` | render de blocos → concat → lettering → (passa-alta + afftdn) → normalização −14 LUFS com teto de pico real → SRT → prova (reprova pico > −1 dBTP) |
 | `detectar_layout.py` | `uv run --with pillow --with numpy python detectar_layout.py VIDEO cenas.json [--saida layout] [--quadro quadro] [--codigo codigo]` | círculo da webcam `{cx, cy, r}` e rascunho de `codigo_grupos` com réguas `regua_<grupo>.jpg` |
 | `publicar_aula.py` | `uv run --with pillow --with numpy python publicar_aula.py aula.json [--saida saida/<slug>] [--thumb-t 5.0] [--sem-thumb] [--descricao ...]` | `<saida>.youtube.md` (capítulos nos tempos finais, descrição, hashtags) e `<saida>_thumb.jpg` 1280×720 |
 

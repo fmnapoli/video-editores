@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Montagem final da videoaula: blocos (em paralelo) -> concat -> lettering (opcional) -> loudnorm 2 passos (-14 LUFS)
+# Montagem final da videoaula: blocos (em paralelo) -> concat -> lettering (opcional) -> normalização (-14 LUFS, pico real <= -1,5 dBTP)
 # -> SRT -> prova. Uso: finalizar.sh aula.json SAIDA.mp4 SAIDA.srt [--textos textos.json] [--ajustes ajustes.json] [--jobs N] [--limpar-audio]
-# --limpar-audio: passa-alta 80 Hz + redução de ruído (afftdn) antes do loudnorm; use quando a sala tiver zumbido/ar-condicionado.
+# --limpar-audio: passa-alta 80 Hz + redução de ruído (afftdn) antes da normalização; use quando a sala tiver zumbido/ar-condicionado.
 set -euo pipefail
 CFG="$1"; SAIDA="$2"; SRT="$3"; shift 3
 TEXTOS=""; AJUSTES=""; JOBS=2; LIMPAR=""
-while [[ $# -gt 0 ]]; do case "$1" in --textos) TEXTOS="$2"; shift 2;; --ajustes) AJUSTES="$2"; shift 2;; --jobs) JOBS="$2"; shift 2;; --limpar-audio) LIMPAR="highpass=f=80,afftdn=nf=-25:nr=12,"; shift;; *) echo "arg desconhecido $1"; exit 2;; esac; done
+while [[ $# -gt 0 ]]; do case "$1" in --textos) TEXTOS="$2"; shift 2;; --ajustes) AJUSTES="$2"; shift 2;; --jobs) JOBS="$2"; shift 2;; --limpar-audio) LIMPAR="highpass=f=80,afftdn=nf=-25:nr=12"; shift;; *) echo "arg desconhecido $1"; exit 2;; esac; done
 HERE="$(cd "$(dirname "$0")" && pwd)"; PLUG="$(cd "$HERE/../../.." && pwd)"
 SAIDA="$(realpath -m "$SAIDA")"; SRT="$(realpath -m "$SRT")"; [[ -n "$TEXTOS" ]] && TEXTOS="$(realpath "$TEXTOS")"; [[ -n "$AJUSTES" ]] && AJUSTES="$(realpath "$AJUSTES")"
 V1=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('corte_v1','aula01_corte.v1.json'))" "$CFG")
@@ -19,11 +19,8 @@ if [[ -n "$TEXTOS" ]]; then
   FONTE=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('fonte','Inter'))" "$CFG")
   python3 "$PLUG/scripts/lettering_ass.py" _montado.mp4 "$TEXTOS" --font "$FONTE" --burn _lettering.mp4; IN=_lettering.mp4
 fi
-STATS=$(ffmpeg -hide_banner -nostats -i "$IN" -af "${LIMPAR}loudnorm=I=-14:TP=-1.5:LRA=11:print_format=json" -f null - 2>&1 | sed -n '/{/,/}/p')
-read -r II TP LRA TH OFF < <(echo "$STATS" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['input_i'], d['input_tp'], d['input_lra'], d['input_thresh'], d['target_offset'])")
-ffmpeg -hide_banner -loglevel error -y -i "$IN" \
-  -af "${LIMPAR}loudnorm=I=-14:TP=-1.5:LRA=11:measured_I=$II:measured_TP=$TP:measured_LRA=$LRA:measured_thresh=$TH:offset=$OFF:linear=true" \
-  -c:v copy -c:a aac -b:a 192k -ar 48000 -movflags +faststart "$SAIDA"
+# ganho estático + limiter de pico real, medido antes e depois (nunca loudnorm linear: estourou +9 dBTP numa montagem por blocos)
+python3 "$PLUG/scripts/normalizar_audio.py" "$IN" "$SAIDA" --alvo -14 --tp -1.5 ${LIMPAR:+--filtro "$LIMPAR"}
 python3 "$HERE/legenda_aula.py" "$CFG" "$V1" "$TRANS" "$SRT" ${AJUSTES:+--ajustes "$AJUSTES"}
 bash "$PLUG/scripts/proof.sh" "$SAIDA" 16
 echo "ok -> $SAIDA · $SRT"

@@ -92,6 +92,14 @@ export VE_MODELOS_EXTRA="seg:meu=meupacote.seg:MeuSegmentador" VE_SEG=meu
 video-editores modelos      # deve listar "meu"
 ```
 
+## Áudio determinístico (`nucleo/audio.py`)
+
+`medir(path)` (LUFS, dBTP, LRA), `normalizar(entrada, saida.wav, alvo, tp)`, `normalizar_video(...)` (vídeo copiado), `fades(d)` e
+`quadros(d, fps)`. A normalização é ganho estático até o alvo integrado mais `alimiter` com oversampling a 192 kHz no teto de pico
+real, medida depois e repetida com teto menor se o pico passar, ou com o ganho corrigido se o loudness saiu do alvo (até 4 passadas). Motivo (ADR-13): o `loudnorm` linear confia na medição da primeira
+passada e, com degraus nas junções de uma montagem por blocos, entregou +9,2 dBTP; o dinâmico mexe na dinâmica da fala. Na CLI:
+`video-editores normalizar-audio ENTRADA SAIDA [--alvo -14] [--tp -1.5] [--filtro ...]`.
+
 ## Outros agentes (Codex, OpenCode, Kiro)
 
 `video-editores integrar codex|opencode|kiro|todos [--projeto DIR | --usuario]` instala as skills, registra o servidor MCP
@@ -134,7 +142,8 @@ projeto precisam ver o mesmo storage, porque o protocolo transporta caminhos, n�
 
 ## Testes
 
-`tests/nucleo.sh` cobre registro e configuração dos modelos (env, toml, backend extra), `codec_video`, catálogo (todo
+`tests/nucleo.sh` cobre registro e configuração dos modelos (env, toml, backend extra), `codec_video`, `audio.normalizar`
+(estalos a fundo de escala: pico ≤ −1,5 dBTP a −14 LUFS), retry do edge-tts com o stub, catálogo (todo
 script existe; comando com `uv run`, bash e python), a CLI (`prova`), tarefas em segundo plano (`--fundo`, esperar,
 listar) e o servidor MCP em processo (`tests/mcp_test.py`: ferramentas, operação curta, tarefa longa, recusa de
 caminho fora da raiz e de operação desconhecida). Roda no CI junto com o smoke.

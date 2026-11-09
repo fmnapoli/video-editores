@@ -29,6 +29,7 @@ def _raiz_pacote(arquivo):
 
 
 sys.path.insert(0, os.environ.get("VE_PKG_DIR") or _raiz_pacote(__file__))
+from video_editores.nucleo import audio  # noqa: E402
 from video_editores.nucleo.ffmpeg import codec_video  # noqa: E402
 
 FPS = 30
@@ -178,10 +179,13 @@ class Aula:
         parts = []; ins = ""; n = 0; sfx = self.cfg.get("whoosh", "sfx/whoosh.wav")
         for i, b in enumerate(E):                      # mesma sequência dos blocos de vídeo: áudio nunca diverge
             if b["a"] >= ate: break
+            # fades de 12/18 ms nas pontas de cada bloco: sem eles a junção vira um degrau que o loudnorm
+            # linear amplificava até +9 dBTP (caso real de 19 min)
             if b["kind"] == "sep":
-                parts.append(f"[1:a]atrim=0:{b['dur']},apad=whole_dur={b['dur']},asetpts=PTS-STARTPTS[w{i}];"); ins += f"[w{i}]"
+                parts.append(f"[1:a]atrim=0:{b['dur']},apad=whole_dur={b['dur']},asetpts=PTS-STARTPTS,{audio.fades(b['dur'])}[w{i}];"); ins += f"[w{i}]"
             else:
-                parts.append(f"[0:a]atrim={b['a']:.4f}:{b['b']:.4f},asetpts=PTS-STARTPTS[s{i}];"); ins += f"[s{i}]"
+                d = b["b"] - b["a"]
+                parts.append(f"[0:a]atrim={b['a']:.4f}:{b['b']:.4f},asetpts=PTS-STARTPTS,{audio.fades(d)}[s{i}];"); ins += f"[s{i}]"
             n += 1
         fc = "".join(parts) + f"{ins}concat=n={n}:v=0:a=1,aresample=48000[a]"
         self.ff(["-i", self.cut, "-i", sfx, "-filter_complex", fc, "-map", "[a]", "-c:a", "pcm_s16le", f"{self.blocos}/_audio.wav"], "áudio contínuo")

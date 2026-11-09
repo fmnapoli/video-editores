@@ -22,4 +22,11 @@ ffmpeg -hide_banner -loglevel error -y -i "$IN" -vf "scale=-2:480" -c:v libx264 
   ffmpeg -hide_banner -nostats -i "$IN" -af loudnorm=print_format=summary -f null - 2>&1 \
     | grep -E "Input Integrated|Input True Peak" || true
 } > "${BASE}.proof.txt"
+# Gate de pico real: acima de PROVA_TP_MAX (padrão -1,0 dBTP) o vídeo distorce em alto-falante de celular e as
+# plataformas reprocessam o áudio. Sai com código 3 (PROVA_SEM_GATE=1 só avisa). Conserto: scripts/normalizar_audio.py.
+TP=$(grep "Input True Peak" "${BASE}.proof.txt" | awk '{print $(NF-1)}' || true)
+if [[ -n "$TP" ]] && python3 -c 'import sys; sys.exit(0 if float(sys.argv[1]) > float(sys.argv[2]) else 1)' "$TP" "${PROVA_TP_MAX:--1.0}"; then
+  echo "PICO ACIMA DO LIMITE: $TP dBTP > ${PROVA_TP_MAX:--1.0} dBTP (normalize com scripts/normalizar_audio.py)" | tee -a "${BASE}.proof.txt" >&2
+  [[ "${PROVA_SEM_GATE:-}" == "1" ]] || exit 3
+fi
 echo "ok -> ${BASE}.proof.jpg  ${BASE}.preview.mp4  ${BASE}.proof.txt"

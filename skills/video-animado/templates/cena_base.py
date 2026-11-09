@@ -10,6 +10,7 @@ Render: manim -ql -r 960,540 --fps 30 video.py Exemplo -o EX.mp4      (conferên
 """
 import json
 
+import numpy as np
 from manim import (DOWN, LEFT, UL, UP, Create, FadeIn, FadeOut, Group, ImageMobject, Line, RoundedRectangle, Scene,
                    SVGMobject, Text, config)
 
@@ -68,16 +69,23 @@ class Base(Scene):
             self.fixos.append(self.logo)
         self.titulo = txt(self.TITULO, 40).to_edge(UP, buff=0.55)
 
-    # --- relógio da cena
+    # --- relógio da cena, no grid de quadros. O Manim grava int(s·fps) quadros num `wait` (piso) e
+    #     len(np.arange(0, rt, 1/fps)) num `play` (teto): contando por segundos, uma cena de 20 passos
+    #     derivou 0,3 s e cortou o fim da narração. Aqui cada passo é arredondado ao quadro e `self.t`
+    #     avança pela mesma conta do renderer, e a cena fecha em `total` com ±1 quadro.
     def p(self, *anims, rt=1.0, **kw):
         """play que contabiliza o tempo."""
+        fps = config.frame_rate
+        rt = max(1, round(rt * fps)) / fps
         self.play(*anims, run_time=rt, **kw)
-        self.t += rt
+        self.t += len(np.arange(0, rt, 1 / fps)) / fps
 
     def w(self, s):
-        if s > 0:
-            self.wait(s)
-            self.t += s
+        fps = config.frame_rate
+        n = round(s * fps)
+        if n > 0:
+            self.wait(n / fps + 1e-6)
+            self.t += n / fps
 
     def ate(self, t):
         self.w(t - self.t)

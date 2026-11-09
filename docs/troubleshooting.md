@@ -62,7 +62,9 @@
 |---|---|
 | música alta sobre a fala | `volume` 0,2 ou `ratio` maior no sidechain |
 | clique entre cortes | `render_spans.sh` já faz fade de 20 ms; em cortes manuais use `afade` |
-| volume diferente entre vídeos | sempre `loudnorm` no fim (-14 redes / -16 docs) |
+| volume diferente entre vídeos | normalize no fim (`scripts/normalizar_audio.py`, -14 redes / -16 docs) |
+| `/prova` reprova com `PICO ACIMA DO LIMITE` (código 3), ou `loudnorm` linear entregou pico real positivo | degraus nas junções de uma montagem por blocos viram picos que o `loudnorm` linear amplifica (caso real: +9,2 dBTP). `normalizar_audio.py` (ganho estático + limiter de pico real) e fades de 12/18 ms em cada bloco (`audio.fades`) |
+| edge-tts morre com `NoAudioReceived` no meio do lote | transitório do serviço; o backend `edge` repete 3 vezes (`VE_TTS_ESPERA` entre tentativas). Se persistir, é rede ou voz inexistente |
 
 ## `/3d`
 
@@ -81,6 +83,7 @@
 | `round_corners` num polígono vira bolha | raio grande demais; use ~9 % da altura (`p.round_corners(h * 0.09)`) depois de dimensionar |
 | legenda cobre o rodapé da animação | com 2 linhas em 1080p a faixa vai até y = -2,3 (unidades do Manim); confira com `folha_cenas.py --fracao 0.9` |
 | áudio final a 96 ou 192 kHz | o `loudnorm` sobe a taxa; o `montar_cenas.py` já força `-ar 48000` (faça o mesmo em filtros próprios) |
+| cena termina antes da narração ou o mp4 sai 1 quadro curto | o Manim grava int(s·fps) quadros num `wait` e len(arange(0, rt, 1/fps)) num `play`; contando por segundos, 20 passos derivam 0,3 s. O `cena_base.py` arredonda cada passo ao quadro e conta igual ao renderer; o `montar_cenas.py` completa o que faltar clonando o último quadro (`tpad`) até a duração da narração |
 | grafia fonética do glossário vaza para a legenda | as fronteiras de palavra do edge-tts trazem a palavra **falada** e sem pontuação; o `montar_cenas.py` recupera o token original da narração (casamento 1 a 1); em pipeline próprio, faça o mesmo |
 
 ## `/video-docs`

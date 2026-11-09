@@ -50,6 +50,17 @@ bash "$S/proof.sh" out_lettering.mp4 8 >/dev/null
 test -s out_lettering.proof.jpg && test -s out_lettering.preview.mp4 && grep -q "quadros da folha" out_lettering.proof.txt
 pass "proof.sh gera folha de contato, preview e relatório"
 
+# gate de pico real da prova e normalização pelo núcleo
+ffmpeg -v error -y -i out_tomada.mp4 -af "volume=24dB" -c:v copy -c:a aac quente.mp4
+if bash "$S/proof.sh" quente.mp4 4 >/dev/null 2>&1; then echo "proof devia sair com 3"; exit 1; fi
+grep -q "PICO ACIMA DO LIMITE" quente.proof.txt
+PROVA_SEM_GATE=1 bash "$S/proof.sh" quente.mp4 4 >/dev/null 2>&1
+python3 "$S/normalizar_audio.py" quente.mp4 frio.mp4 --alvo -14 >/dev/null
+bash "$S/proof.sh" frio.mp4 4 >/dev/null
+grep -q "Input True Peak" frio.proof.txt && ! grep -q "PICO ACIMA" frio.proof.txt
+python3 "$S/normalizar_audio.py" frio.mp4 --medir | python3 -c "import json,sys; d=json.load(sys.stdin); assert -15.5 < d['I'] < -12.5 and d['TP'] <= -1.0, d"
+pass "proof.sh reprova pico > -1 dBTP (código 3); normalizar_audio.py conserta (-14 LUFS, vídeo copiado)"
+
 # vídeo sem áudio + keep vazio
 ffmpeg -v error -y -f lavfi -i "testsrc2=size=320x180:rate=30:duration=3" -c:v libx264 -pix_fmt yuv420p mudo.mp4
 echo '{"keep":[[0,1],[2,3]]}' > k.json && bash "$S/render_spans.sh" mudo.mp4 k.json mudo_out.mp4 >/dev/null && test -s mudo_out.mp4
@@ -112,13 +123,23 @@ import json; t=json.load(open('tts/tempos.json')); assert t['V1']['mudo'] and t[
 grep -q "operêitor" tts/S1.hash || true
 mkdir -p mp4 && for id in S1 S2 V1; do
   d=$(python3 -c "import json; print(json.load(open('tts/tempos.json'))['$id']['total'])")
+  [[ "$id" == "S1" ]] && d=$(python3 -c "print($d - 0.1)")      # S1 sai 3 quadros curta, como o Manim faz
   ffmpeg -v error -y -f lavfi -i "color=c=0x0f172a:size=640x360:rate=30:duration=$d" -c:v libx264 -pix_fmt yuv420p mp4/$id.mp4
 done
-python3 "$VA/montar_cenas.py" cenas.json mp4 --tts tts --saida out/va.mp4 --legenda leg/va.srt --roteiro rot/va.md >/dev/null
+python3 "$VA/montar_cenas.py" cenas.json mp4 --tts tts --saida out/va.mp4 --legenda leg/va.srt --roteiro rot/va.md > montar.log
 test -s out/va.mp4 && test -s leg/va.srt && test -s rot/va.md
 grep -q "O operator monta tudo na ordem certa." leg/va.srt && ! grep -q "operêitor" leg/va.srt
 A=$(ffprobe -v error -select_streams a:0 -show_entries stream=sample_rate -of csv=p=0 out/va.mp4); [[ "$A" == "48000" ]]
-pass "video-animado: tts_cenas (stub), montar_cenas (legenda com grafia original, 48 kHz) e roteiro"
+python3 - <<'PY'
+import json, subprocess
+t = json.load(open("tts/tempos.json"))
+alvo = sum(round(v["total"] * 30) / 30 for v in t.values())
+pr = lambda st: float(subprocess.run(["ffprobe", "-v", "error", "-select_streams", st, "-show_entries", "stream=duration", "-of", "csv=p=0", "out/va.mp4"], capture_output=True, text=True).stdout)
+v, a = pr("v:0"), pr("a:0")
+assert abs(v - alvo) < 0.04 and abs(a - alvo) < 0.1, (v, a, alvo)   # a cena curta foi completada; vídeo e áudio fecham com a narração
+PY
+grep -q "AVISO S1" montar.log && grep -q "LUFS" montar.log
+pass "video-animado: tts_cenas (stub), montar_cenas (duração = narração mesmo com cena curta, legenda com grafia original, 48 kHz, normalização) e roteiro"
 python3 "$VA/montar_cenas.py" cenas.json mp4 --tts tts --cenas S2 --saida out/p.mp4 --legenda leg/p.srt >/dev/null && test -s out/p.mp4
 python3 "$VA/folha_cenas.py" cenas.json mp4 --fracao 0.9 --saida folha.png >/dev/null && test -s folha.png
 pass "video-animado: piloto por --cenas e folha_cenas"

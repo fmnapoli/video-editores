@@ -26,6 +26,7 @@ ffmpeg -i IN.mp4 -stream_loop -1 -i musica.mp3 -filter_complex \
 - Troque `DUR` pela duração do vídeo (`ffprobe`).
 - Alvo de loudness: **-14 LUFS** para Reels, Shorts e TikTok. Para vídeo de documentação, use -16, igual ao `video-docs`.
 - Música alta demais na fala: baixe `volume` (0.35 → 0.2) ou suba `ratio`.
+- Se a `/prova` reprovar o pico real (código 3), troque o `loudnorm` do filtro por uma passada final de `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/normalizar_audio.py" IN_trilha.mp4 OUT.mp4 --alvo -14` (ganho estático + limiter).
 
 ## Regras
 - Pergunte o clima (calmo, energético, tenso) antes de escolher.

@@ -20,7 +20,7 @@ Scripts desta skill em `${CLAUDE_PLUGIN_ROOT}/skills/video-animado/scripts/`; mo
    uv run --with edge-tts python "${CLAUDE_PLUGIN_ROOT}/skills/video-animado/scripts/tts_cenas.py" cenas/<slug>.json --glossario glossario.json
    ```
    Gera `trabalho/<slug>/tts/<id>.mp3`, `.words.json` e `tempos.json` (fala, total, lead). Antes do lote, ouça os termos do domínio: `testar_pronuncia.py` do video-docs com a frase que concentra os termos. Mesmo a voz multilíngue erra alguns ("Operator", "Orchestrator"): o glossário troca só a fala, a legenda mantém a grafia.
-4. **Cenas em Manim.** Copie `templates/cena_base.py` para `trabalho/<slug>/video.py` e escreva uma classe por cena herdando de `Base`: `abre()` (título com fade e, se houver, fade do fundo anterior), `q(0.4)` (espera até 40 % da fala), `p(anim, rt=…)` (play que contabiliza o tempo), `fim()` (desvanece tudo menos fundo, grafismo e logo). Conteúdo acima da faixa da legenda (y > −2,3 em unidades do Manim, com legenda de 2 linhas em 1080p). Teste em baixa:
+4. **Cenas em Manim.** Copie `templates/cena_base.py` para `trabalho/<slug>/video.py` e escreva uma classe por cena herdando de `Base`: `abre()` (título com fade e, se houver, fade do fundo anterior), `q(0.4)` (espera até 40 % da fala), `p(anim, rt=…)` (play que contabiliza o tempo), `fim()` (desvanece tudo menos fundo, grafismo e logo). O relógio da base conta no grid de quadros, como o renderer: a cena fecha em `total` com ±1 quadro; use sempre `p()`/`w()`, nunca `self.play`/`self.wait` direto. Conteúdo acima da faixa da legenda (y > −2,3 em unidades do Manim, com legenda de 2 linhas em 1080p). Teste em baixa:
    ```bash
    manim -ql -r 960,540 --fps 30 video.py <Classe> -o <ID>.mp4
    python3 "${CLAUDE_PLUGIN_ROOT}/skills/video-animado/scripts/folha_cenas.py" cenas/<slug>.json media/videos/video/540p30 --fracao 0.9
@@ -33,7 +33,7 @@ Scripts desta skill em `${CLAUDE_PLUGIN_ROOT}/skills/video-animado/scripts/`; mo
    bash "${CLAUDE_PLUGIN_ROOT}/scripts/proof.sh" saida/piloto.mp4 12
    ```
    Mostre `.proof.jpg`, `.preview.mp4` e um teste de voz com os termos; **pare**.
-6. **Lote.** Todas as cenas em 1080p (em segundo plano: ~30 s a 1 min por cena), `montar_cenas.py` sem `--cenas`, `/prova`, folhas a 0,55 e 0,92, mais quadros nas trocas de fundo e no último quadro (tem de terminar na vinheta, nunca em preto). Entregue `saida/<slug>.mp4`, `legendas/<slug>.srt`, `roteiros/` (design aprovado e roteiro final gerado por `--roteiro`), `README.md` do projeto com o comando de regenerar, e o resumo de 8–12 linhas para o time.
+6. **Lote.** Todas as cenas em 1080p (em segundo plano: ~30 s a 1 min por cena), `montar_cenas.py` sem `--cenas` (e `--jobs 3`; cada bloco sai com a duração exata da narração, cena curta é completada com o último quadro, e um `AVISO` aponta cena que estourou), `/prova`, folhas a 0,55 e 0,92, mais quadros nas trocas de fundo e no último quadro (tem de terminar na vinheta, nunca em preto). Entregue `saida/<slug>.mp4`, `legendas/<slug>.srt`, `roteiros/` (design aprovado e roteiro final gerado por `--roteiro`), `README.md` do projeto com o comando de regenerar, e o resumo de 8–12 linhas para o time.
 
 ## Parâmetros
 
@@ -42,7 +42,8 @@ Scripts desta skill em `${CLAUDE_PLUGIN_ROOT}/skills/video-animado/scripts/`; mo
 | `tts_cenas.py --lead/--tail` | 0,6 s / 0,8 s | mais respiro entre cenas = subir o tail (o `fim()` usa os últimos 0,45 s para o fade) |
 | `montar_cenas.py --fonte` | DejaVu Sans Bold | a fonte da marca, se instalada (libass acha pelo fontconfig) |
 | `--tamanho` / `--margem` | 15 / 22 (escala 288 = ~56 px e 82 px em 1080p) | legenda maior exige subir o conteúdo das cenas |
-| `--loudness` | −16 LUFS | −14 para redes |
+| `--loudness` / `--tp` | −16 LUFS / −1,5 dBTP | −14 para redes; o pico real nunca sobe |
+| `--jobs` | 2 | blocos em paralelo na montagem (um ffmpeg por cena) |
 | `Base.BG_ANTES` | nenhum | cena que abre um ato com fundo diferente do anterior |
 | `fim(fade=0.45)` | 0,45 s | vinheta final sobrescreve `fim()` para terminar no logo |
 
@@ -55,4 +56,4 @@ Scripts desta skill em `${CLAUDE_PLUGIN_ROOT}/skills/video-animado/scripts/`; mo
 - Logo oficial sem redesenhar, posição fixa (canto superior esquerdo); centralizado só na vinheta final. Produtos de terceiros só como texto. Sem fotos, salvo pedido.
 - Números na narração ("menos de 3 minutos", "15 indicadores") vêm de medição real do sistema ou do vídeo técnico anterior, com a fonte anotada no roteiro.
 - `-ql` antes de `-qh`, sempre; o render em 1080p vai para segundo plano.
-- Nada é "pronto" sem o `/prova`: folha de contato, preview, `.proof.txt` com −16 LUFS e 48 kHz.
+- Nada é "pronto" sem o `/prova`: folha de contato, preview, `.proof.txt` com −16 LUFS, pico real ≤ −1,5 dBTP e 48 kHz.

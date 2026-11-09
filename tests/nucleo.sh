@@ -48,6 +48,35 @@ except SystemExit:
 PY
 pass "ffmpeg.codec_video: libx264 padrão, NVENC por VE_ENCODER, valor inválido aborta"
 
+# áudio: normalização com teto de pico real (fala simulada: senoide baixa + um estalo a fundo de escala a cada 2 s,
+# o degrau de junção que o loudnorm linear amplificava)
+ffmpeg -v error -y -f lavfi -i "aevalsrc=0.05*sin(2*PI*300*t)+if(lt(mod(t\,2)\,0.005)\,0.99\,0):s=48000:d=8" -c:a pcm_s16le cliques.wav
+python3 - <<'PY'
+from video_editores.nucleo import audio
+assert audio.quadros(1.016, 30) == 1.0 and audio.quadros(2.49, 30) == 2.5
+assert audio.fades(2.0).endswith("afade=t=out:st=1.9820:d=0.018")
+m = audio.medir("cliques.wav")
+assert m["TP"] > -1.0, m          # os cliques estouram antes
+r = audio.normalizar("cliques.wav", "norm.wav", alvo=-14, tp=-1.5)
+s = r["saida"]
+assert s["TP"] <= -1.3, r
+assert abs(s["I"] + 14) < 1.5, r      # o limiter só age nos estalos; a fala fica no alvo
+assert r["passadas"] >= 1 and r["ganho_db"] > 0, r
+print(audio.resumo(r))
+PY
+pass "audio.normalizar: -14 LUFS com pico real <= -1,5 dBTP apesar dos cliques; quadros e fades"
+
+# TTS: o edge-tts falha de vez em quando sem motivo; o backend repete (stub simula as falhas)
+VE_TTS_ESPERA=0 VE_STUB_EDGE_FALHAS=2 PYTHONPATH="$ROOT:$ROOT/tests/stub" python3 - <<'PY' 2>err.txt
+from video_editores.modelos.tts_edge import EdgeTTS
+ws = EdgeTTS().sintetizar("um dois três", mp3="r.mp3")
+assert len(ws) == 3, ws
+PY
+grep -q "tentativa 2 falhou" err.txt && test -s r.mp3
+if VE_TTS_ESPERA=0 VE_STUB_EDGE_FALHAS=5 PYTHONPATH="$ROOT:$ROOT/tests/stub" python3 -c "
+from video_editores.modelos.tts_edge import EdgeTTS; EdgeTTS().sintetizar('a', mp3='r2.mp3')" 2>/dev/null; then echo "devia falhar"; exit 1; fi
+pass "tts_edge: repete 3 vezes em NoAudioReceived e desiste com erro claro"
+
 # catálogo e CLI
 python3 -m video_editores.cli listar | grep -q "aula-finalizar"
 python3 -m video_editores.cli modelos | grep -q '"device_efetivo"'

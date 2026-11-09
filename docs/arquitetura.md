@@ -82,6 +82,11 @@ Quatro camadas (0.5.0):
 - **Motivo:** o formato SKILL.md convergiu entre os agentes (padrão Agent Skills); uma segunda cópia editada à mão divergiria em semanas.
 - **Consequência:** o que é específico do Claude Code (subagentes, slash do plugin) vira orientação no cabeçalho; os gates humanos passam a depender de o agente parar e perguntar, como o texto pede. Detalhes em [agentes.md](agentes.md). ADR completo: [adr/2026-11-08-nucleo-modelos-mcp.md](adr/2026-11-08-nucleo-modelos-mcp.md).
 
+### ADR-13 — Normalização por ganho estático + limiter de pico real; blocos no grid de quadros (0.7.0)
+- **Contexto:** curso de 19 min montado por 46 blocos (cenas Manim, exemplos sintetizados, clipes gravados). O `loudnorm` em duas passadas, modo linear, entregou **+9,2 dBTP**: os degraus nas junções entre blocos viram picos que a medição da primeira passada não antecipa. As cenas do Manim saíam 1 quadro curtas e uma de 20 passos derivou 0,3 s, cortando o fim da narração.
+- **Decisão:** `nucleo/audio.py`: ganho estático até o alvo LUFS e `alimiter` com oversampling (192 kHz) no teto de pico real, medido depois e repetido com teto menor se passar; fades de 12/18 ms em cada bloco; duração de bloco no grid de quadros com o último quadro clonado (`tpad`) quando a fonte é curta; relógio das cenas Manim contando quadros como o renderer. A `/prova` reprova pico real acima de −1 dBTP.
+- **Consequência:** `finalizar.sh` e `montar_cenas.py` passam a normalizar pelo núcleo (`normalizar-audio` também na CLI e no MCP); o `loudnorm` dinâmico fica só para filtro único em vídeo curto (`/trilha`). Áudio um pouco abaixo do alvo quando o material tem picos frequentes (o limiter age), nunca acima do teto.
+
 ## Fluxo de dados
 
 ```
@@ -101,7 +106,7 @@ originais/aula.mp4 ─ scenedetect + cenas_modo.py ─→ cenas.json (locutor/qu
                    ─ transcribe.py ─→ .transcript.json
                    ─ auto-editor (--cut-out, --export v1) ─→ _corte.mp4 + _corte.v1.json ─ remap_tempos.py ─→ cenas_corte.json, transcript_corte.*
 aula.json ─ identidade.py ─→ identidade/        matte_workers.sh ─→ mattes/talk_*.mp4 (+_alpha)       Manim (base_cenas, cartelas, diagramas) ─→ *.mov
-montar_aula.py edl → render (blocos/NNN_*.mp4) → concat (vídeo concat + áudio contínuo) ─ finalizar.sh ─→ lettering → loudnorm → saida/<slug>.mp4 + legendas/<slug>.srt
+montar_aula.py edl → render (blocos/NNN_*.mp4) → concat (vídeo concat + áudio contínuo) ─ finalizar.sh ─→ lettering → normalizar_audio.py → saida/<slug>.mp4 + legendas/<slug>.srt
 ```
 
 ## Testes
@@ -110,11 +115,12 @@ montar_aula.py edl → render (blocos/NNN_*.mp4) → concat (vídeo concat + áu
 - `takes.py` descarta exatamente a tomada repetida;
 - `render_spans.sh` produz a duração esperada;
 - `lettering_ass.py` gera ASS e queima;
-- `proof.sh` gera os três artefatos;
-- sintaxe de todos os scripts, frontmatter dos 14 skills e manifestos JSON.
+- `proof.sh` gera os três artefatos e reprova pico real acima de −1 dBTP (código 3); `normalizar_audio.py` conserta;
+- `montar_cenas.py` fecha vídeo e áudio na duração da narração mesmo com uma cena 3 quadros curta;
+- sintaxe de todos os scripts, frontmatter dos 20 skills e manifestos JSON.
 
 `tests/docs_offline.sh` roda o montador do `video-docs` de ponta a ponta com um stub do edge-tts (`tests/stub/edge_tts.py`), então o maior script do repositório também é coberto no CI, em Linux e macOS.
 
-`tests/nucleo.sh` cobre o pacote `video_editores`: registro e configuração dos modelos, `codec_video`, catálogo (todo script existe), CLI, tarefas em segundo plano e o servidor MCP em processo (`tests/mcp_test.py`, cliente em memória do SDK).
+`tests/nucleo.sh` cobre o pacote `video_editores`: registro e configuração dos modelos, `codec_video`, `audio.normalizar`, retry do TTS, catálogo (todo script existe), CLI, tarefas em segundo plano e o servidor MCP em processo (`tests/mcp_test.py`, cliente em memória do SDK).
 
 Os passos com modelos de IA (Whisper, rembg, Blender) ficam fora do CI por tamanho e tempo; valide-os localmente com um vídeo curto (`video-editores transcrever clip.mp4 --model small` e `video-editores aula-recorte clip.mp4 0 1 fundo.png out`).

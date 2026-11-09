@@ -2,8 +2,16 @@
 
 Ativado com PYTHONPATH=tests/stub. Nunca usado em produção.
 """
+import os
 import subprocess
 import tempfile
+
+_falhas = [int(os.environ.get("VE_STUB_EDGE_FALHAS", "0"))]   # as N primeiras chamadas falham como o serviço real
+
+
+class exceptions:
+    class NoAudioReceived(Exception):
+        pass
 
 
 class Communicate:
@@ -11,6 +19,9 @@ class Communicate:
         self.text, self.voice = text, voice
 
     async def stream(self):
+        if _falhas[0] > 0:
+            _falhas[0] -= 1
+            raise exceptions.NoAudioReceived("No audio was received. Please verify that your parameters are correct.")
         words = self.text.split()
         per = 1 / 2.7
         dur = max(0.5, len(words) * per)
