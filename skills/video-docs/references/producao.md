@@ -35,7 +35,7 @@ Rode o lote parando no primeiro erro (`set -e` ou `&&`) e **termine sempre com o
 
 Ele compara o texto de cada `.srt` com as legendas do spec e o horário do `.mp4` com o do spec, e sai com 1
 listando o que remontar. Caso real (nov/2026): o edge-tts falhou no meio do lote, o lote seguiu, e o vídeo
-com a narração antiga ("15 chaves") ficou no lugar com cara de atualizado.
+com a narração antiga ficou no lugar com cara de atualizado.
 
 Termos em inglês: escreva normal, na legenda e no `tts`. A voz padrão (Thalita
 Multilingual) pronuncia inglês nativamente. Se ela errar um termo do projeto, corrija só
@@ -107,7 +107,7 @@ plugin. **Nunca copie o `build.py` para trocar a identidade**: a cópia diverge 
 
 ```json
 {"nome": "Cliente",
- "cores": {"fundo": "#002233", "acento": "#00DBFF", "texto": "#FFFFFF"},
+ "cores": {"fundo": "#0B2545", "acento": "#2DD4BF", "texto": "#FFFFFF"},
  "fonte": {"familia": "Cliente Sans", "arquivos": {"bold": "fontes/ClienteSans-Bold.ttf"}},
  "logo": {"png": "logo.png"},
  "fundos": {"cartela": "bg.png", "encerramento": "bg.png"},

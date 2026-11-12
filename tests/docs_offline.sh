@@ -57,7 +57,7 @@ grep -q '356BFF' trabalho/demo/demo.ass && d0=$(ffprobe -v error -show_entries f
 mkdir -p marca && cp logo.png marca/logo.png
 python3 - <<'PY'
 import json
-json.dump({"nome": "Teste", "cores": {"fundo": "#002233", "acento": "#00DBFF", "texto": "#FFFFFF"},
+json.dump({"nome": "Teste", "cores": {"fundo": "#0B2545", "acento": "#2DD4BF", "texto": "#FFFFFF"},
            "fonte": {"familia": "DejaVu Sans"}, "logo": {"png": "logo.png"},
            "legenda": {"estilo": "palavra", "espaco_largo": True}}, open("marca/marca.json", "w"))
 s = json.load(open("spec.json")); s.update(slug="demo3", work_dir="trabalho/demo3"); json.dump(s, open("spec3.json", "w"), ensure_ascii=False)
@@ -66,8 +66,8 @@ s.update(slug="demo5", work_dir="trabalho/demo5", marca=False); s.pop("legenda")
 PY
 R3=$(PYTHONPATH="$ROOT/tests/stub" uv run --quiet --with pillow python "$B" spec3.json)
 python3 -c 'import json,sys; r=json.loads(sys.argv[1]); assert r["marca"] == "Teste" and abs(r["total"] - float(sys.argv[2]) - 3.0) < 0.05, r' "$R3" "$d0"
-grep -q 'FFDB00' trabalho/demo3/demo3.ass && ! grep -q '356BFF' trabalho/demo3/demo3.ass
-grep -q 'FFDB00' trabalho/demo3/legenda.ass && grep -q '\\h {' trabalho/demo3/legenda.ass
+grep -q 'BFD42D' trabalho/demo3/demo3.ass && ! grep -q '356BFF' trabalho/demo3/demo3.ass
+grep -q 'BFD42D' trabalho/demo3/legenda.ass && grep -q '\\h {' trabalho/demo3/legenda.ass
 grep -q "legenda.ass" trabalho/demo3/demo3.ffmpeg.txt && grep -q "vend" trabalho/demo3/demo3.ffmpeg.txt
 grep -c "logo.png" trabalho/demo3/demo3.ffmpeg.txt | grep -q '^1$'   # uma linha de comando; cartela e encerramento usam o logo
 python3 -c 'import json; w=[x for g in json.load(open("trabalho/demo3/palavras.transcript.json"))["segments"] for x in g["words"]]; assert w[0]["word"] == "Neste" and all(a["end"] <= b["start"] + 1e-6 for a, b in zip(w, w[1:])), w[:3]'

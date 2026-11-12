@@ -54,17 +54,17 @@ python3 - <<'PY'
 import json, os
 from video_editores.nucleo import marca as M
 assert M.carregar(base="vazio").definida is False and M.carregar().cores["acento"] == "#FF6B35"
-json.dump({"nome": "Teste", "cores": {"fundo": "#002233", "acento": "#00DBFF", "texto": "#FFFFFF"},
+json.dump({"nome": "Teste", "cores": {"fundo": "#0B2545", "acento": "#2DD4BF", "texto": "#FFFFFF"},
            "logo": {"png": "logo.png"}, "legenda": {"estilo": "palavra"}}, open("marca/marca.json", "w"))
 m = M.carregar()
 assert m.definida and m.nome == "Teste" and m.logo("png").endswith("marca/logo.png") and not m.problemas()
-assert m.cores["fundo2"] == "#002233" and m.cores["secundario"] == "#00DBFF" and m.cores["texto2"] == "#FFFFFF", "opcional deriva da marca"
+assert m.cores["fundo2"] == "#0B2545" and m.cores["secundario"] == "#2DD4BF" and m.cores["texto2"] == "#FFFFFF", "opcional deriva da marca"
 assert m.fonte == "DejaVu Sans" and m.fontes_dir() is None and m.legenda["estilo"] == "palavra" and m.legenda["caixa"] is True
-assert M.ass("#00DBFF") == "&H00FFDB00&" and M.ass("#002233", 0x14) == "&H14332200&" and M.ffcor("#002233") == "0x002233"
-assert M.rgb("#00DBFF") == (0, 219, 255) and m.cor("acento") == "#00DBFF" and m.cor("#FACC15") == "#FACC15"
-assert round(M.contraste("#FFFFFF", "#000000")) == 21 and 16 < M.contraste("#FFFFFF", "#002233") < 17
-aj = M.ajustar_contraste("#335577", "#002233", 7)
-assert aj != "#335577" and M.contraste(aj, "#002233") >= 7 and M.ajustar_contraste("#FFFFFF", "#002233", 7) == "#FFFFFF"
+assert M.ass("#2DD4BF") == "&H00BFD42D&" and M.ass("#0B2545", 0x14) == "&H1445250B&" and M.ffcor("#0B2545") == "0x0B2545"
+assert M.rgb("#2DD4BF") == (45, 212, 191) and m.cor("acento") == "#2DD4BF" and m.cor("#FACC15") == "#FACC15"
+assert round(M.contraste("#FFFFFF", "#000000")) == 21 and 15 < M.contraste("#FFFFFF", "#0B2545") < 16
+aj = M.ajustar_contraste("#335577", "#0B2545", 7)
+assert aj != "#335577" and M.contraste(aj, "#0B2545") >= 7 and M.ajustar_contraste("#FFFFFF", "#0B2545", 7) == "#FFFFFF"
 assert M.carregar(False).definida is False, "marca: false força o padrão"
 os.environ["VE_MARCA"] = "nao-existe.json"; assert M.carregar().nome == "Teste"; del os.environ["VE_MARCA"]
 json.dump({"cores": {"fundo": "azul", "texto": "#FFFFFF"}, "logo": {"png": "sumiu.png"}, "legenda": {"estilo": "x"}}, open("ruim.json", "w"))
@@ -80,11 +80,11 @@ uv run --quiet --with pillow --with fonttools python "$ROOT/scripts/validar_marc
 python3 - <<'PY'
 import json
 v = json.load(open("val.json")); m = json.load(open("marca/marca.json"))
-assert not v["erros"] and v["contraste"]["texto_fundo"] > 16 and m["contraste"]["acento_fundo"] > 9, v
+assert not v["erros"] and v["contraste"]["texto_fundo"] > 15 and m["contraste"]["acento_fundo"] > 7, v
 assert any("tela clara" in a for a in v["avisos"]) and any("pequeno para o encerramento" in a for a in v["avisos"]), v["avisos"]
 PY
 test -s marca/prancha.png
-python3 -c 'import json; json.dump({"cores": {"fundo": "#002233", "acento": "#113355", "texto": "#8899AA"}}, open("fraca.json", "w"))'
+python3 -c 'import json; json.dump({"cores": {"fundo": "#0B2545", "acento": "#113355", "texto": "#8899AA"}}, open("fraca.json", "w"))'
 if uv run --quiet --with pillow --with fonttools python "$ROOT/scripts/validar_marca.py" fraca.json --sem-prancha >fraca.out; then echo "validador deveria reprovar contraste"; exit 1; fi
 python3 -c 'import json; v=json.load(open("fraca.out")); assert len(v["ajustes_propostos"]) == 2 and len(v["erros"]) == 2, v'
 rm -rf marca

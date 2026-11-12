@@ -96,7 +96,7 @@ trocar a identidade.
 
 ```json
 {"nome": "Cliente",
- "cores": {"fundo": "#002233", "acento": "#00DBFF", "texto": "#FFFFFF"},
+ "cores": {"fundo": "#0B2545", "acento": "#2DD4BF", "texto": "#FFFFFF"},
  "fonte": {"familia": "Cliente Sans", "arquivos": {"bold": "fontes/ClienteSans-Bold.ttf"}},
  "logo": {"png": "logo.png"},
  "fundos": {"cartela": "bg.png"},

@@ -13,7 +13,7 @@ Cada skill guarda a identidade de um jeito:
 | `/video-animado` | constantes no `cena_base.py` copiado para o projeto, mais uma pasta `marca/` montada à mão |
 | `/partitura`, `/lettering`, `/legenda`, `/checklist` | parâmetros próprios (`--font`, `--destaque`, `--fundo`) |
 
-O custo apareceu no curso de produto (nov/2026): para usar fonte, cores, logo e encerramento do cliente no
+O custo apareceu num curso de produto (nov/2026): para usar fonte, cores, logo e encerramento do cliente no
 `/video-docs`, o projeto copiou o `build.py` e editou as constantes. A cópia divergiu em dias: ganhou faixa do
 navegador e tarja fixa que o plugin não tinha (trazidas de volta na 0.10.0) e ficou sem o glossário de pronúncia
 que o plugin ganhou. O mesmo projeto ainda repetiu a paleta no `cena_base.py` do `/video-animado` e nos
@@ -31,9 +31,9 @@ apresentação). Sem um contrato comum, a extração não teria onde gravar o re
  "nome": "Cliente",
  "origem": [{"tipo": "pdf", "ref": "marca/manual-de-marca.pdf", "data": "2026-11-11"}],
  "cores": {                       // papéis, não nomes de cor; HEX
-  "fundo": "#002233",             // base de cartelas, balões, faixas
+  "fundo": "#0B2545",             // base de cartelas, balões, faixas
   "fundo2": "#0B1220",            // segunda cor do gradiente (opcional; sem ela, fundo chapado)
-  "acento": "#00DBFF",            // caixas de destaque, barras, palavra destacada da legenda
+  "acento": "#2DD4BF",            // caixas de destaque, barras, palavra destacada da legenda
   "secundario": "#A78BFA",        // segunda série em diagramas (opcional)
   "texto": "#FFFFFF",
   "texto2": "#94A3B8"
@@ -41,9 +41,9 @@ apresentação). Sem um contrato comum, a extração não teria onde gravar o re
  "fonte": {"familia": "Cliente Sans", "arquivos": {"regular": "fontes/ClienteSans-Regular.ttf", "bold": "fontes/ClienteSans-Bold.ttf"},
            "substituta": null},   // preenchida quando a oficial não pôde ser obtida (ver "Fonte")
  "logo": {"svg": "logo.svg", "png": "logo.png", "fundo_claro": "logo-escuro.svg"},
- "fundos": {"cartela": "bg_azul.png", "encerramento": "bg_azul.png"},   // opcionais; sem eles, gradiente das cores
+ "fundos": {"cartela": "bg.png", "encerramento": "bg.png"},   // opcionais; sem eles, gradiente das cores
  "legenda": {"destaque": "acento", "caixa": true},
- "contraste": {"texto_fundo": 15.9, "acento_fundo": 9.8, "ajustes": []}  // gravado pelo validador
+ "contraste": {"texto_fundo": 15.4, "acento_fundo": 8.3, "ajustes": []}  // gravado pelo validador
 }
 ```
 
@@ -120,7 +120,7 @@ Fluxo:
 ## Fases
 
 1. **0.11.0 — contrato.** `nucleo/marca.py`, `validar_marca.py` e prancha; `/video-docs` e `/video-animado`
-   lendo a marca (inclui tela de encerramento no `/video-docs`); identidade do cliente convertida à mão como caso de teste.
+   lendo a marca (inclui tela de encerramento no `/video-docs`); identidade de um cliente real convertida à mão como caso de teste.
 2. **0.11.x — demais skills.** `/videoaula`, `/legenda`, `/lettering`, `/checklist`, `/partitura`.
 3. **0.12.0 — extração.** Skill `/marca` com tema de PPTX/Slides, PDF e pacote de marca. Site e Figma só
    quando um projeto pedir.

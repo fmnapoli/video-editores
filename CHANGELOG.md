@@ -13,7 +13,7 @@ Identidade visual como contrato único (ADR-17, fase 1). Sem `marca/marca.json`,
 - Testes: `nucleo.sh` (marca e validador), `smoke.sh` (espaço largo, extensão no glossário), `docs_offline.sh` (determinismo sem marca, marca com legenda por palavra e encerramento, `legenda` e `encerramento` no spec, `"marca": false`).
 
 ## 0.10.0 — 2026-11-11
-Lições da regravação de um vídeo de ação já publicado (video-docs, curso de produto) e da comparação com o montador de projeto que tinha divergido do plugin.
+Lições da regravação de um vídeo de ação já publicado (video-docs, num curso de produto) e da comparação com o montador de projeto que tinha divergido do plugin.
 - **`build.py` do video-docs encerra quando o TTS falha** (3 tentativas, `VE_TTS_ESPERA`) e grava o `.mp4` em `trabalho/`, trocando `.mp4` e `.srt` de `out_dir` só no fim. Antes, um lote com o edge-tts fora deixou o vídeo com a narração antiga no lugar, parecendo atualizado.
 - **`confere_saida.py`** (operação `docs-conferir`): compara o texto de cada `.srt` com as legendas do spec e o horário do `.mp4` com o do spec; sai com 1 listando o que remontar. Recomendado ao fim de todo lote.
 - **`chrome` no spec**: faixa opaca sobre a barra do navegador (`band`, com `logo`, título e subtítulo) e tarja fixa (`client`, `client_label`) em todas as cenas, desligável por cena com `no_client` e ajustável por fonte em `chrome_src`. Vinha do montador do projeto; padrão desligado.
