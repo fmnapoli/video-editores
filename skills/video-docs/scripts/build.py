@@ -24,12 +24,19 @@ Spec:
          "focus": true,                         # dims everything outside the box
          "balloon": "texto", "balloon_at": [x, y],   # auto-placed near the box when omitted
          "arrow": [x1, y1, x2, y2]}             # explicit arrow; a balloon far from its box gets one automatically
-     ]}
-  ]
+     ],
+     "no_client": true}                         # opcional: desliga a tarja fixa (chrome.client) nesta cena
+  ],
+  "srt_dir": "legendas", "roteiro_dir": "roteiros",   # opcionais: .srt e roteiro fora da pasta do .mp4
+  "chrome": {"band": 100, "logo": "marca/logo.png",   # opcional: faixa sobre a barra do navegador (0 = sem faixa)
+             "client": [x, y, w, h], "client_label": "cliente de teste"},  # tarja fixa em toda cena
+  "chrome_src": {"b": {"band": 0}}                    # opcional: ajuste por fonte (gravação sem navegador)
 }
+Saídas extras: <work>/palavras.transcript.json (palavras com a grafia da legenda e o tempo da fala, para o
+/legenda reels-palavra) e "avisos" no relatório (destaque fora do quadro ou sobre a legenda, "at" num corte).
 Scene duration = max(footage, narration + lead + tail); shortfall becomes a freeze of the last frame.
 """
-import asyncio, hashlib, json, math, os, re, subprocess, sys
+import asyncio, hashlib, json, math, os, re, shutil, subprocess, sys, time, unicodedata
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import pronuncia  # noqa: E402
@@ -93,6 +100,16 @@ except Exception:  # pragma: no cover
         return len(s) * size * 0.6
 
 
+def logo_w(path, band):
+    """Largura (em 1280x720) do logo escalado a 42% da faixa."""
+    try:
+        from PIL import Image
+        w, h = Image.open(path).size
+        return band * 0.42 * w / h
+    except Exception:
+        return band * 0.42 * 3
+
+
 def run(cmd):
     r = subprocess.run(cmd, capture_output=True, text=True)
     if r.returncode:
@@ -119,11 +136,35 @@ async def _synth(text, voice, mp3):
     return words
 
 
+def synth_retry(text, voice, mp3, tentativas=3):
+    """O edge-tts falha de vez em quando (NoAudioReceived, WebSocket fechado): repete com espera crescente
+    (VE_TTS_ESPERA s, padrão 2) e, se não der, ENCERRA com erro. Seguir em frente deixaria o .mp4 antigo
+    no lugar, parecendo atualizado."""
+    espera = float(os.environ.get("VE_TTS_ESPERA", "2"))
+    erro = None
+    for i in range(tentativas):
+        try:
+            words = asyncio.run(_synth(text, voice, mp3))
+            if os.path.getsize(mp3) > 0:
+                return words
+            erro = "resposta sem áudio"
+        except (SystemExit, KeyboardInterrupt):
+            raise
+        except Exception as e:  # transitórios do serviço
+            erro = f"{type(e).__name__}: {e}"
+        if os.path.exists(mp3):
+            os.remove(mp3)
+        if i + 1 < tentativas:
+            print(f"edge-tts: tentativa {i + 1} falhou ({erro}); repetindo em {espera * (i + 1):.0f}s", file=sys.stderr)
+            time.sleep(espera * (i + 1))
+    raise SystemExit(f"edge-tts falhou {tentativas} vezes ({erro}); nada foi gravado em out_dir")
+
+
 def tts(text, voice, work):
     h = hashlib.sha1((voice + "|" + text).encode()).hexdigest()[:12]
     mp3, js = os.path.join(work, f"tts-{h}.mp3"), os.path.join(work, f"tts-{h}.json")
     if not (os.path.exists(mp3) and os.path.exists(js)):
-        words = asyncio.run(_synth(text, voice, mp3))
+        words = synth_retry(text, voice, mp3)
         json.dump({"words": words, "dur": ffdur(mp3)}, open(js, "w", encoding="utf-8"))
     d = json.load(open(js, encoding="utf-8"))
     return mp3, d["words"], d["dur"]
@@ -380,7 +421,70 @@ def write_roteiro(spec, scenes, total, out_dir):
             L.append(f"| `{os.path.basename(srcs[sc['src']])}` | {mmss(s)}–{mmss(e)} | " + ("normal" if abs(v-1)<0.01 else f"velocidade {v:.2g}×") + " |")
     L.append("")
     L.append("Tudo fora dos trechos acima foi removido (carregamentos, esperas, leituras de documentação, passagens repetidas).")
-    open(os.path.join(out_dir, f"roteiro-{spec['slug']}.md"), "w", encoding="utf-8").write("\n".join(L) + "\n")
+    rd = spec.get("roteiro_dir", out_dir)
+    os.makedirs(rd, exist_ok=True)
+    open(os.path.join(rd, f"roteiro-{spec['slug']}.md"), "w", encoding="utf-8").write("\n".join(L) + "\n")
+
+def com_pontuacao(words, narracao, gloss):
+    """O edge-tts devolve as palavras FALADAS (glossário aplicado, sem pontuação); devolve [(ini, fim, token)]
+    com os tokens da legenda. Um termo do glossário pode virar várias palavras faladas."""
+    def chave(x):
+        x = unicodedata.normalize("NFKD", x.lower())
+        return "".join(ch for ch in x if ch.isalnum())
+
+    orig = narracao.split()
+    flat = [(chave(sp), oi) for oi, tok in enumerate(orig) for sp in pronuncia.apply(tok, gloss).split()]
+    flat = [f for f in flat if f[0]]
+    span, pos, cur = {}, 0, 0
+    for t0, d, w in words:
+        k = chave(w)
+        j = pos
+        while k and j < len(flat) and j < pos + 4 and not (flat[j][0].startswith(k[:3]) or k.startswith(flat[j][0][:3])):
+            j += 1
+        if k and j < len(flat) and j < pos + 4:
+            cur, pos = flat[j][1], j + 1
+        span[cur] = (span[cur][0], max(span[cur][1], t0 + d)) if cur in span else (t0, t0 + d)
+    out, fim = [], 0.0
+    for oi, tok in enumerate(orig):
+        a, b = span.get(oi, (fim, fim + 0.01))
+        out.append((a, b, tok))
+        fim = b
+    return out
+
+
+def valida(spec, scenes):
+    """Avisos de destaque/tarja que costumam sair errados: fora do quadro, sobre a faixa da legenda,
+    "at" caindo num trecho cortado (o destaque aparece no instante errado)."""
+    av = []
+    for i, sc in enumerate(scenes, 1):
+        clips = sc["clips"]
+
+        def cortado(t, clips=clips):
+            return not any(s - 0.05 <= t <= e + 0.05 for s, e, *_ in clips)
+        for kind, lst in (("destaque", sc.get("callouts", [])), ("tarja", sc.get("masks", []))):
+            for n, c in enumerate(lst, 1):
+                tag = f"cena {i} ({sc.get('chip', '')}), {kind} {n}"
+                box = c.get("box")
+                if box:
+                    x, y, w, h = box
+                    if x < 0 or y < 0 or x + w > W or y + h > H:
+                        av.append(f"{tag}: caixa {box} sai do quadro 1280x720 (coordenadas de uma fonte 1080p? divida por 1,5)")
+                    elif kind == "destaque" and y + h > SAFE_BOTTOM:
+                        av.append(f"{tag}: caixa {box} entra na faixa da legenda (y > {SAFE_BOTTOM})")
+                if kind == "destaque" and c.get("balloon_at"):
+                    bx, by = c["balloon_at"]
+                    if by + 40 > SAFE_BOTTOM or by < 0:
+                        av.append(f"{tag}: balão em y={by} cobre a legenda ou sai do quadro (use y ≤ {SAFE_BOTTOM - 40})")
+                if "at" in c:
+                    a, b = c["at"]
+                    if b <= a:
+                        av.append(f"{tag}: at {c['at']} com fim antes do início")
+                    elif not any(s < b and e > a for s, e, *_ in clips):
+                        av.append(f"{tag}: at {c['at']} cai inteiro em trecho cortado do bruto (não aparece)")
+                    elif cortado(a):
+                        av.append(f"{tag}: at[0]={a} cai num corte; o destaque entra no começo do clipe seguinte")
+    return av
+
 
 # ---------------- main ----------------
 def main(spec_path):
@@ -427,6 +531,10 @@ def main(spec_path):
         t += sc["dur"]
     total = t + TAIL_HOLD
 
+    avisos = valida(spec, scenes)
+    for a in avisos:
+        print(f"aviso: {a}", file=sys.stderr)
+
     def out_time(sc, src_t):
         prev_end = sc["t0"]
         for s, e, v, o in sc["clip_out"]:
@@ -444,8 +552,18 @@ def main(spec_path):
             for s, e, txt in legend_cues(sc["legend"], sc["tts_spoken"], sc["words"], sc["t0"] + TTS_LEAD):
                 n += 1
                 srt.append(f"{n}\n{srt_ts(s)} --> {srt_ts(e)}\n{txt}\n")
-    srt_path = os.path.join(out_dir, f"{slug}.srt")
+    # o .srt é escrito no work e só vai para srt_dir depois que o .mp4 sai: falha no meio não deixa par trocado
+    srt_path = os.path.join(work, f"{slug}.srt")
     open(srt_path, "w", encoding="utf-8").write("\n".join(srt))
+    segs = []
+    for sc in scenes:
+        disp = " ".join(b.replace("\n", " ") for b in sc.get("legend", []))
+        if disp and sc["td"] and not sc.get("tts"):   # com "tts" próprio a fala não corresponde à legenda
+            off = sc["t0"] + TTS_LEAD
+            segs.append({"words": [{"start": round(off + a, 3), "end": round(off + b, 3), "word": w}
+                                   for a, b, w in com_pontuacao(sc["words"], disp, gloss)]})
+    json.dump({"segments": segs}, open(os.path.join(work, "palavras.transcript.json"), "w", encoding="utf-8"),
+              ensure_ascii=False)
 
     # 3. ASS
     ass = [ASS_HEAD] + title_evs(spec["title"], spec.get("subtitle", ""))
@@ -490,6 +608,27 @@ def main(spec_path):
                 ass += balloon_evs(s, e, c["balloon"], *(box or [None] * 4), at=c.get("balloon_at"))
             if c.get("arrow"):
                 ass.append(arrow_ev(s, e, *c["arrow"]))
+    # faixa sobre a barra do navegador (abas, URL, favoritos) e tarja fixa (ex.: seletor de cliente do portal)
+    chrome_def = {"band": 0, "client": None, "client_label": "oculto", "logo": None}
+    chrome_def.update(spec.get("chrome", {}))
+    bands = []
+    for i, sc in enumerate(scenes, 1):
+        ch = dict(chrome_def, **spec.get("chrome_src", {}).get(sc["src"], {}))
+        s0, s1 = sc["t0"], (total if i == N else sc["t0"] + sc["dur"])
+        bh = ch.get("band") or 0
+        if bh:
+            bands.append((s0, s1, bh, ch.get("logo")))
+            tx = 28 + (logo_w(ch.get("logo"), bh) + 18 if ch.get("logo") else 0)
+            ass.append(ev(1, s0, s1, "Shape", f"{{\\pos(0,0)\\1c{INK}\\1a&H00&\\bord0\\shad0\\p1}}" + rect(0, 0, W, bh) + "{\\p0}"))
+            ass.append(ev(1, s0, s1, "Shape", f"{{\\pos(0,0)\\1c{ACCENT}\\bord0\\shad0\\p1}}" + rect(0, bh - 3, W, 3) + "{\\p0}"))
+            ass.append(ev(2, s0, s1, "Chip", f"{{\\an4\\pos({tx:.0f},{bh/2:.0f})\\fs22}}{spec['title']}"))
+            if spec.get("subtitle"):
+                ass.append(ev(2, s0, s1, "Chip", f"{{\\an6\\pos({W - 28:.0f},{bh/2:.0f})\\fs17\\1c{ACCENT}}}{spec['subtitle']}"))
+        if ch.get("client") and not sc.get("no_client"):
+            x, y, w, h = ch["client"]
+            ass.append(ev(1, s0, s1, "Shape", f"{{\\pos(0,0)\\1c&HF7F5F3&\\3c&HDED7D0&\\bord1\\shad0\\p1}}" + rrect(x, y, w, h, h / 2) + "{\\p0}"))
+            if ch.get("client_label"):
+                ass.append(ev(1, s0, s1, "Chip", f"{{\\an5\\pos({x + w / 2:.0f},{y + h / 2:.0f})\\fs14\\1c&H6E655C&}}{ch['client_label']}"))
     ass_path = os.path.join(work, f"{slug}.ass")
     open(ass_path, "w", encoding="utf-8").write("".join(ass))
     # timeline.json: tempos de saída por cena e por destaque (usado pelo manual/QA)
@@ -518,6 +657,10 @@ def main(spec_path):
     for sc in scenes:
         if sc["mp3"]:
             aud.append((len(srcs) + len(aud), sc)); cmd += ["-i", sc["mp3"]]
+    logos = []   # um overlay por logo distinto, ligado só enquanto a faixa daquela fonte está na tela
+    for lg in dict.fromkeys(b[3] for b in bands if b[3]):
+        logos.append((len(srcs) + len(aud) + len(logos), lg, [b for b in bands if b[3] == lg]))
+        cmd += ["-loop", "1", "-framerate", str(FPS), "-t", f"{total + 1:.3f}", "-i", lg]
     fc = [f"gradients=s={OW}x{OH}:c0=0x0b1220:c1=0x1e3a8a:x0=0:y0=0:x1={OW}:y1={OH}:d={TITLE_DUR}:r={FPS},"
           f"fade=t=out:st={TITLE_DUR-0.35}:d=0.35,format=yuv420p[v0]"]
     labels = ["[v0]"]
@@ -542,7 +685,15 @@ def main(spec_path):
             fc.append(chain + f"[v{k}]"); labels.append(f"[v{k}]"); k += 1
     fc.append("".join(labels) + f"concat=n={len(labels)}:v=1:a=0[vc]")
     # destaques/tarjas (ASS) primeiro, legenda por cima: tarja nunca esconde a legenda
-    fc.append(f"[vc]ass=filename='{ffesc(ass_path)}',subtitles=filename='{ffesc(srt_path)}':force_style='{LEGEND_STYLE}'[vout]")
+    vlab = "vc"
+    fc.append(f"[vc]ass=filename='{ffesc(ass_path)}'[va]"); vlab = "va"
+    for q, (idx, _, bs) in enumerate(logos):
+        bh = max(b[2] for b in bs)
+        en = "+".join(f"between(t,{a:.3f},{b:.3f})" for a, b, _, _ in bs)
+        fc.append(f"[{idx}:v]scale=-2:{round(bh * 0.42 * OH / H)}[lg{q}]")
+        fc.append(f"[{vlab}][lg{q}]overlay={round(28 * OW / W)}:{round(bh / 2 * OH / H)}-h/2:enable='{en}'[vl{q}]")
+        vlab = f"vl{q}"
+    fc.append(f"[{vlab}]subtitles=filename='{ffesc(srt_path)}':force_style='{LEGEND_STYLE}'[vout]")
     al = []
     for q, (idx, sc) in enumerate(aud):
         ms = int((sc["t0"] + TTS_LEAD) * 1000)
@@ -552,16 +703,22 @@ def main(spec_path):
     else:
         fc.append("anullsrc=r=48000:cl=stereo[aout]")
     out_mp4 = os.path.join(out_dir, f"{slug}.mp4")
+    tmp_mp4 = os.path.join(work, f"{slug}.parcial.mp4")
     cmd += ["-filter_complex", ";".join(fc), "-map", "[vout]", "-map", "[aout]",
             "-c:v", "libx264", "-preset", "medium", "-crf", "20", "-pix_fmt", "yuv420p",
             "-c:a", "aac", "-b:a", "160k", "-ar", "48000", "-ac", "2",
-            "-t", f"{total:.3f}", "-movflags", "+faststart", out_mp4]
+            "-t", f"{total:.3f}", "-movflags", "+faststart", tmp_mp4]
     open(os.path.join(work, f"{slug}.ffmpeg.txt"), "w", encoding="utf-8").write(" ".join(repr(c) if " " in c else c for c in cmd))
     run(cmd)
+    shutil.move(tmp_mp4, out_mp4)          # só agora o vídeo antigo é substituído
+    srt_dir = spec.get("srt_dir", out_dir)
+    os.makedirs(srt_dir, exist_ok=True)
+    shutil.copyfile(srt_path, os.path.join(srt_dir, f"{slug}.srt"))
     rep = {"out": out_mp4, "total": round(total, 2), "cues": n,
            "scenes": [{"t0": round(sc["t0"], 2), "dur": round(sc["dur"], 2), "footage": round(sc["fd"], 2),
                        "tts": round(sc["td"], 2), "freeze": round(sc["freeze"], 2),
-                       "speeds": [round(v, 2) for _, _, v in sc["clips"]]} for sc in scenes]}
+                       "speeds": [round(v, 2) for _, _, v in sc["clips"]]} for sc in scenes],
+           "avisos": avisos}
     write_roteiro(spec, scenes, total, out_dir)
     print(json.dumps(rep, indent=1, ensure_ascii=False))
 

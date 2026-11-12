@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.10.0 — 2026-11-11
+Lições da regravação de um vídeo de ação já publicado (video-docs, curso de produto) e da comparação com o montador de projeto que tinha divergido do plugin.
+- **`build.py` do video-docs encerra quando o TTS falha** (3 tentativas, `VE_TTS_ESPERA`) e grava o `.mp4` em `trabalho/`, trocando `.mp4` e `.srt` de `out_dir` só no fim. Antes, um lote com o edge-tts fora deixou o vídeo com a narração antiga no lugar, parecendo atualizado.
+- **`confere_saida.py`** (operação `docs-conferir`): compara o texto de cada `.srt` com as legendas do spec e o horário do `.mp4` com o do spec; sai com 1 listando o que remontar. Recomendado ao fim de todo lote.
+- **`chrome` no spec**: faixa opaca sobre a barra do navegador (`band`, com `logo`, título e subtítulo) e tarja fixa (`client`, `client_label`) em todas as cenas, desligável por cena com `no_client` e ajustável por fonte em `chrome_src`. Vinha do montador do projeto; padrão desligado.
+- **`srt_dir` e `roteiro_dir`**: `.srt` e roteiro em pastas próprias, já separados do `.mp4`.
+- **`palavras.transcript.json`** em `work_dir`: palavras com a grafia da legenda e o tempo da fala (glossário desfeito), entrada direta do `/legenda` estilo `reels-palavra`.
+- **`avisos`** no relatório e no stderr: caixa fora de 1280x720 (fonte 1080p medida sem escalar), destaque ou balão sobre a faixa da legenda, `at` que começa num corte ou cai inteiro num corte.
+- Docs: seções "Lote" e "Regravação de um vídeo já publicado" no `producao.md` (backup, remedir tudo, corrigir o material de apoio junto, `rclone copyto` para manter o ID no Drive); coordenadas com fonte 1080p e busca de elemento por pixel; pegadinhas novas no SKILL.md.
+- Teste `docs_offline.sh` cobre faixa com logo, `no_client`, pastas de saída, avisos, TTS que falha 2 vezes e se recupera, TTS fora (build falha, vídeo anterior intacto, conferidor acusa).
+
 ## 0.9.2 — 2026-11-09
 Lição da terceira rodada do curso de bateria: o exemplo tocado tem de estar no andamento **medido** do clipe, e a medição tem de ser conferida.
 - **`/partitura` ganha `andamento.py`** (operação `partitura-andamento`): andamento de um clipe gravado (beat tracking do librosa com quadros de 256 amostras; `bpm` = mediana dos intervalos sobre 4 batidas), fase do compasso pela energia do bumbo (`--tempos N --bumbo 0,3` → `fase`, `contrastes` por fase, `confiavel`, instantes do "1" em `uns`), `--ini/--fim` para o trecho tocado e `--faixa` para a oitava. Caso real: o 5/4 do curso media 112,3 bpm (tracker preso no prior: 23 quadros de 512 amostras, quatro clipes com o mesmo valor) e toca a 168; o exemplo e o contador sobre o clipe estavam errados. Teste no `tests/partitura.sh` (recupera 120 bpm, fase 0 e os "1" a cada 2,5 s do exemplo sintetizado).

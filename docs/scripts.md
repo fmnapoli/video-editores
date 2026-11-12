@@ -159,6 +159,12 @@ bash scripts/render-docs.sh specs/<slug>/spec.json
 ```
 Formato do spec: `skills/video-docs/references/producao.md`.
 
+## confere_saida.py (video-docs)
+Confere, para cada spec, se o `.mp4` e o `.srt` existem, se o texto do `.srt` é o das legendas do spec e se o `.mp4` é mais novo que o spec. Sai com 1 listando o que remontar. Rode ao fim de todo lote:
+```bash
+python3 skills/video-docs/scripts/confere_saida.py specs/*/spec.json
+```
+
 ## skills/videoaula/scripts/
 Ficam na pasta da skill porque dependem do `aula.json` do projeto (exemplo em `skills/videoaula/templates/aula-exemplo.json`).
 

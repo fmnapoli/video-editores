@@ -7,7 +7,8 @@ raiz do projeto, de onde o montador é chamado.
 
 - `originais/`: brutos. **Não alterar, apagar ou mover.**
 - `specs/<slug>/spec.json`: a edição de cada vídeo.
-- `saida/`: `<slug>.mp4`, `<slug>.srt`, `roteiro-<slug>.md` (o montador regrava o roteiro a partir do spec).
+- `saida/`: `<slug>.mp4` (com `"srt_dir": "legendas"` e `"roteiro_dir": "roteiros"` o `.srt` e o roteiro
+  saem em pastas próprias, já no formato de entrega: o VLC dobra a legenda se achar o `.srt` ao lado do `.mp4`).
 - `trabalho/<slug>/`: cache de TTS, `.ass`, frames de QA.
 
 ## Comando
@@ -15,7 +16,26 @@ raiz do projeto, de onde o montador é chamado.
     uv run --with edge-tts --with pillow python <skill>/scripts/build.py specs/<slug>/spec.json
 
 Imprime JSON com `total`, `cues` e, por cena, `t0`, `dur`, `footage`, `tts`, `freeze`,
-`speeds`, e grava `trabalho/<slug>/timeline.json`. Render de 30–60 s por vídeo.
+`speeds`, `avisos`, e grava `trabalho/<slug>/timeline.json` e `trabalho/<slug>/palavras.transcript.json`
+(palavras com a grafia da legenda e o tempo da fala, entrada direta do `/legenda` estilo `reels-palavra`;
+cenas com `tts` próprio ficam de fora). Render de 30–60 s por vídeo.
+
+**Leia os `avisos`** (também vão para o stderr): caixa fora de 1280x720, destaque ou balão sobre a faixa
+da legenda, `at` que começa num trecho cortado (o destaque entra atrasado) ou cai todo num corte (não aparece).
+
+**Falha de TTS encerra o build.** O edge-tts repete 3 vezes (`VE_TTS_ESPERA` entre tentativas) e depois
+sai com erro. O `.mp4` é gravado em `trabalho/` e só substitui o de `out_dir` no fim, junto com o `.srt`:
+um build que falha deixa o par antigo intacto e coerente.
+
+## Lote
+
+Rode o lote parando no primeiro erro (`set -e` ou `&&`) e **termine sempre com o conferidor**:
+
+    python3 <skill>/scripts/confere_saida.py specs/*/spec.json
+
+Ele compara o texto de cada `.srt` com as legendas do spec e o horário do `.mp4` com o do spec, e sai com 1
+listando o que remontar. Caso real (nov/2026): o edge-tts falhou no meio do lote, o lote seguiu, e o vídeo
+com a narração antiga ("15 chaves") ficou no lugar com cara de atualizado.
 
 Termos em inglês: escreva normal, na legenda e no `tts`. A voz padrão (Thalita
 Multilingual) pronuncia inglês nativamente. Se ela errar um termo do projeto, corrija só
@@ -44,9 +64,14 @@ numerada da seção TTS; `legend` = blocos daquela cena, preservando o `\n` inte
    "tts": "...",                           // opcional: sem ele a voz lê a legenda; o "glossary" é aplicado aqui
    "legend": ["...", "..."],
    "callouts": [{"at": [t0, t1], "box": [x,y,w,h], "focus": true, "balloon": "≤45 chars", "balloon_at": [x,y]}],
-   "masks": [{"box": [x,y,w,h], "at": [t0, t1], "label": "opcional"}]
+   "masks": [{"box": [x,y,w,h], "at": [t0, t1], "label": "opcional"}],
+   "no_client": true                       // opcional: desliga a tarja fixa (chrome.client) nesta cena
   }
- ]
+ ],
+ "srt_dir": "legendas", "roteiro_dir": "roteiros",   // opcionais
+ "chrome": {"band": 100, "logo": "marca/logo.png",   // opcional: faixa opaca sobre a barra do navegador
+            "client": [x,y,w,h], "client_label": "cliente de teste"},  // tarja fixa em todas as cenas
+ "chrome_src": {"b": {"band": 0, "client": null}}    // opcional: ajuste por fonte
 }
 ```
 
@@ -63,6 +88,13 @@ numerada da seção TTS; `legend` = blocos daquela cena, preservando o `\n` inte
   última cena vale até o fim do vídeo. Use em todo dado pessoal visível: e-mail, telefone,
   documento, nomes de terceiros, token/URL de autenticação, caixa de entrada, abas e
   favoritos do navegador legíveis. Na dúvida, corte o trecho em vez de tarjar.
+- `chrome`: para gravações de navegador. `band` (altura em px de 1280x720, ~100 cobre abas, URL e
+  favoritos) desenha uma faixa com o logo opcional, o título e o subtítulo do spec, e some com a barra do
+  navegador de uma vez em todas as cenas. `client` é uma tarja fixa para o que aparece em toda tela no
+  mesmo lugar (seletor de cliente/organização do portal, nome do usuário). Quando uma cena mostra outra
+  tela (sem o seletor, ou com algo útil ali), ponha `"no_client": true` nela; **confira a última cena**:
+  foi lá que, numa regravação, o cliente ficou à mostra porque a tela mudou de layout. `chrome_src`
+  ajusta por fonte (ex.: um terminal gravado sem navegador: `{"band": 0, "client": null}`).
 
 ## Regras de corte
 
@@ -86,6 +118,12 @@ numerada da seção TTS; `legend` = blocos daquela cena, preservando o `\n` inte
   resultados extraindo 4–8 frames a cada 1 s e empilhando com `vstack`/`hstack`
   (`xstack` para grades) antes de fixar `at`.
 - Listas e painéis rolam sozinhos: confira o frame antes de fixar a caixa.
+- **Fonte em 1080p**: as coordenadas continuam em 1280x720. Extraia sempre o frame com `scale=1280:720`
+  (o comando acima já faz) ou divida por 1,5 o que medir no quadro cheio. Caixa medida em 1080p sai do
+  quadro (o montador avisa) ou cai no elemento errado.
+- **Elemento que muda de lugar entre cenas** (barra de busca, botão que desce com a rolagem): em vez de
+  estimar no olho, ache a linha pela cor dos pixels em alguns frames, por exemplo com Pillow:
+  `[y for y in range(100, 630) if img.getpixel((x, y)) == cor_da_barra]` num `x` que corta o elemento.
 - Área útil típica de gravação de navegador: y 104–630 (acima a barra do navegador,
   abaixo a legenda).
 
@@ -103,6 +141,21 @@ numerada da seção TTS; `legend` = blocos daquela cena, preservando o `\n` inte
 5. Reporte: duração final, cenas (dur/freeze/speeds), destaques, o que corrigiu e
    qualquer dúvida de conteúdo. Não altere a narração por conta própria: se a tela
    contradiz o texto, reporte.
+
+## Regravação de um vídeo já publicado
+
+Quando chega uma gravação nova da mesma ação (tela mudou, ou a anterior tinha erro):
+
+1. Faça backup do spec e do `.mp4`/`.srt` publicados (`spec.json.bak-<motivo>`). Parta do spec antigo:
+   troque `sources` e refaça `clips`, mantendo título, cenas e legendas que continuam valendo.
+2. **Nenhuma coordenada nem `at` do spec antigo vale**: o layout e os tempos mudaram. Remeça cada caixa e
+   cada tarja na gravação nova (inventário de mudanças de tela, frame com grade, folha de contato).
+3. Releia a narração contra a tela nova: a gravação nova costuma trazer mudanças de comportamento
+   (limites, nomes de aba, opções). Quando a tela contradiz o material de apoio (slides, FAQ, cola), a
+   correção vai para o material também, não só para a narração.
+4. Publique por cima mantendo o link: no Drive, `rclone copyto novo.mp4 remoto:pasta/<nome>.mp4` substitui
+   o conteúdo e mantém o ID do arquivo (upload novo gera link novo); guarde a versão anterior numa
+   subpasta `bkp`. Depois rode `confere_saida.py`.
 
 ## Para agentes em paralelo
 

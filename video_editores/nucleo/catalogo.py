@@ -68,6 +68,8 @@ OPERACOES = {o.nome: o for o in [
     Operacao("doctor", "scripts/doctor.sh", "Verifica dependências (ffmpeg+libass, uv, CLIs, fontes, GPU)", ""),
     Operacao("docs-render", "scripts/render-docs.sh", "Montador do video-docs (gravações de tela -> vídeos de documentação)",
              "spec.json", ("tts", "pillow"), longa=True, skill="video-docs"),
+    Operacao("docs-conferir", "skills/video-docs/scripts/confere_saida.py", "Confere se .mp4 e .srt de cada spec do video-docs estão atualizados",
+             "specs/*/spec.json", skill="video-docs"),
     Operacao("cenas-tts", _A + "tts_cenas.py", "Narração por cena (TTS configurado) e tempos.json que dita as durações",
              "cenas/<slug>.json [--out PASTA] [--voz VOZ] [--glossario JSON] [--lead 0.6] [--tail 0.8]", ("tts",), longa=True, skill="video-animado"),
     Operacao("cenas-montar", _A + "montar_cenas.py", "Junta as cenas Manim com a narração e a legenda frase a frase",

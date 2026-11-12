@@ -138,10 +138,21 @@ e corrigir pelo código. Mostrar em lote e **parar**.
 - **Dados pessoais na tela** (Gmail, formulários com CPF/telefone, URL com token, seletor de cliente): tarjar com `masks` ou cortar. Conferir em vários quadros por cena: o conteúdo rola.
 - **A tela vence a fala e às vezes o próprio código**: aviso na tela que contradiz a narração (ex.: "backup manual de banco não disponível") manda reescrever a narração.
 - Narração revisada costuma ser mais curta que o alvo: não esticar com tempo morto.
+- **Lote que falhou no meio deixa o vídeo velho com cara de novo**: o build agora encerra com erro se o
+  TTS não responde e só troca `.mp4`/`.srt` no fim, mas o lote precisa parar no erro e terminar com
+  `scripts/confere_saida.py specs/*/spec.json` (aponta o que está desatualizado).
+- **Gravação em 1080p, coordenadas em 1280x720**: medir no quadro cheio põe a caixa no lugar errado.
+  Extraia o frame já escalado. Os `avisos` do build pegam caixa fora do quadro, balão sobre a legenda e
+  `at` caindo num corte.
+- **Barra do navegador e seletor de cliente**: use `chrome.band` e `chrome.client` no spec em vez de uma
+  tarja por cena; desligue a tarja com `no_client` nas cenas em que a tela muda (confira a última).
+- **Regravação de vídeo publicado**: nenhuma coordenada do spec antigo vale; ver "Regravação" em
+  `references/producao.md`.
 
 ## Entregáveis
 
 `<slug>.mp4`, `<slug>.srt`, `roteiro-<slug>.md`, `inventario.md`, `revisao-coerencia.md`,
+`palavras.transcript.json` (se for gerar legenda dinâmica),
 specs JSON de produção, e um resumo de 8–12 linhas para o canal do time com a lista de
 vídeos e durações.
 
