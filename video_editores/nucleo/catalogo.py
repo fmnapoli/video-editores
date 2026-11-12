@@ -2,7 +2,7 @@
 
 É a única fonte para a CLI (`video-editores <op>`), para o servidor MCP (uma ferramenta por operação) e
 para a documentação (docs/scripts.md). Dependências de modelo são declaradas pelo papel ("asr", "seg",
-"tts") e resolvidas no backend configurado; pacotes fixos entram pelo nome.
+"tts", "imagem") e resolvidas no backend configurado; pacotes fixos entram pelo nome.
 """
 import shutil
 import sys
@@ -69,6 +69,9 @@ OPERACOES = {o.nome: o for o in [
              "[marca/marca.json] [--prancha SAIDA.png] [--gravar] [--sem-prancha]", ("pillow", "fonttools"), skill="marca", saidas=("prancha.png",)),
     Operacao("extrair-marca", "scripts/extrair_marca.py", "Coleta cores, fontes e logos de tema PPTX/DOCX, manual em PDF, pacote de marca ou tokens e grava um rascunho",
              "FONTE [--out marca] [--nome NOME] [--gravar-sugestao]", ("pillow", "fonttools", "pypdf"), skill="marca", saidas=("rascunho.json",)),
+    Operacao("gerar-imagem", "scripts/gerar_imagem.py", "Gera N variações de imagem por prompt (servidor ComfyUI), com folha de escolha e registro para regenerar",
+             '"PROMPT" [--id ID] [--out gerados] [--variacoes 4] [--semente N] [--largura 1344] [--altura 768] [--passos N] [--negativo T] [--workflow NOME|ARQ] | --conferir',
+             ("imagem", "pillow"), longa=True, saidas=("<id>-<semente>.png", "<id>.folha.png", "<id>.json")),
     Operacao("doctor", "scripts/doctor.sh", "Verifica dependências (ffmpeg+libass, uv, CLIs, fontes, GPU)", ""),
     Operacao("docs-render", "scripts/render-docs.sh", "Montador do video-docs (gravações de tela -> vídeos de documentação)",
              "spec.json", ("tts", "pillow"), longa=True, skill="video-docs"),

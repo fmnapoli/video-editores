@@ -210,6 +210,53 @@ assert catalogo.comando("aula-recorte", [], device="cuda")[6] == "onnxruntime-gp
 PY
 pass "catálogo: todos os scripts existem; comando com uv/--with, bash e python"
 
+# geração de imagem (ADR-15) contra um ComfyUI falso: sem GPU, sem modelo
+STUB_PIDS=()
+sobe_stub() {  # sobe_stub NOME [args]: servidor falso numa porta livre; URL em $URL. Não chamar dentro de $(...):
+  local d="$T/comfy-$1"; mkdir -p "$d"; shift  # o PID precisa chegar ao trap deste shell
+  (cd "$d" && exec python3 "$ROOT/tests/stub/comfyui_servidor.py" porta "$@") >/dev/null 2>&1 &
+  STUB_PIDS+=($!)
+  for _ in $(seq 50); do [[ -s "$d/porta" ]] && break; sleep 0.1; done
+  URL="http://127.0.0.1:$(cat "$d/porta")"
+}
+trap 'kill "${STUB_PIDS[@]}" 2>/dev/null || true; rm -rf "$T"' EXIT
+export VE_COMFYUI_POLL=0.05
+sobe_stub ok
+VE_COMFYUI_URL=$URL python3 -m video_editores.cli gerar-imagem --conferir > conferir.json
+python3 -c 'import json; d=json.load(open("conferir.json")); assert d["servidor"]["versao"]=="0.0.0-stub" and d["backend"]["licenca"]=="Apache-2.0" and len(d["backend"]["workflow_sha256"])==64, d'
+VE_COMFYUI_URL=$URL python3 -m video_editores.cli gerar-imagem "Fundo azul abstrato, luz suave" --id fundo --out gerados \
+  --variacoes 3 --semente 7 --largura 320 --altura 192 >/dev/null
+VE_COMFYUI_URL=$URL python3 -m video_editores.cli gerar-imagem "Fundo azul abstrato, luz suave" --id fundo --out gerados \
+  --variacoes 1 --semente 8 --largura 320 --altura 192 --sem-folha >/dev/null
+python3 - "$T/comfy-ok/recebidos.json" <<'PY'
+import json, struct, sys
+r = json.load(open("gerados/fundo.json"))
+assert [x["sementes"] for x in r["rodadas"]] == [[7, 8, 9], [8]], r
+assert r["rodadas"][0]["arquivos"] == ["fundo-7.png", "fundo-8.png", "fundo-9.png"]
+assert r["rodadas"][0]["backend"]["checkpoint"] == "flux1-schnell-fp8.safetensors" and r["rodadas"][0]["passos"] == 4
+def tam(p):
+    b = open(p, "rb").read(32); return struct.unpack(">II", b[16:24])
+assert tam("gerados/fundo-9.png") == (320, 192)
+assert tam("gerados/fundo.folha.png")[0] > 900   # 2 colunas de miniatura
+wf = json.load(open(sys.argv[1]))
+ks = [next(n for n in w.values() if n["class_type"] == "KSampler")["inputs"] for w in wf]
+assert [k["seed"] for k in ks] == [7, 8, 9, 8] and all(k["steps"] == 4 for k in ks), ks
+assert wf[0]["2"]["inputs"]["text"].startswith("Fundo azul") and wf[0]["7"]["inputs"]["filename_prefix"] == "video-editores/fundo-7"
+PY
+pass "gerar-imagem: variações por semente, folha, registro somando rodadas e workflow preenchido (ComfyUI falso)"
+
+sobe_stub semck --sem-checkpoint
+if VE_COMFYUI_URL=$URL python3 -m video_editores.cli gerar-imagem x --out g2 2>err.txt; then echo "devia falhar"; exit 1; fi
+grep -q "flux1-schnell-fp8.safetensors' não está no servidor" err.txt && grep -q "huggingface.co/Comfy-Org" err.txt
+sobe_stub falha --falhar
+if VE_COMFYUI_URL=$URL python3 -m video_editores.cli gerar-imagem x --out g3 --variacoes 1 2>err.txt; then echo "devia falhar"; exit 1; fi
+grep -q "falhou na semente .*CUDA out of memory" err.txt
+if VE_COMFYUI_URL=http://127.0.0.1:9 python3 -m video_editores.cli gerar-imagem x 2>err.txt; then echo "devia falhar"; exit 1; fi
+grep -q "ComfyUI fora do ar em http://127.0.0.1:9" err.txt
+if VE_COMFYUI_URL=$URL python3 -m video_editores.cli gerar-imagem x --largura 1000 2>err.txt; then echo "devia falhar"; exit 1; fi
+grep -q "múltiplo de 16" err.txt
+pass "gerar-imagem: erros claros (checkpoint ausente com onde baixar, falha do job, servidor fora, tamanho)"
+
 ffmpeg -v error -y -f lavfi -i "testsrc2=size=320x180:rate=30:duration=4" -f lavfi -i "sine=f=300:d=4" -shortest -c:v libx264 -pix_fmt yuv420p -c:a aac in.mp4
 python3 -m video_editores.cli prova in.mp4 4 >/dev/null && test -s in.proof.txt
 pass "CLI: video-editores prova roda o script"

@@ -1,0 +1,21 @@
+{
+  "_ve": {
+    "modelo": "FLUX.1-schnell (fp8, checkpoint único)",
+    "licenca": "Apache-2.0",
+    "arquivo": "flux1-schnell-fp8.safetensors",
+    "pasta": "ComfyUI/models/checkpoints/",
+    "fonte": "https://huggingface.co/Comfy-Org/flux1-schnell",
+    "passos": 4,
+    "vram_gb": 12,
+    "nota": "cfg 1.0: o negativo não tem efeito neste modelo; descreva no prompt o que deve aparecer"
+  },
+  "1": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": "{{checkpoint}}"}},
+  "2": {"class_type": "CLIPTextEncode", "inputs": {"text": "{{prompt}}", "clip": ["1", 1]}},
+  "3": {"class_type": "CLIPTextEncode", "inputs": {"text": "{{negativo}}", "clip": ["1", 1]}},
+  "4": {"class_type": "EmptySD3LatentImage", "inputs": {"width": "{{largura}}", "height": "{{altura}}", "batch_size": 1}},
+  "5": {"class_type": "KSampler", "inputs": {
+    "model": ["1", 0], "positive": ["2", 0], "negative": ["3", 0], "latent_image": ["4", 0],
+    "seed": "{{semente}}", "steps": "{{passos}}", "cfg": 1.0, "sampler_name": "euler", "scheduler": "simple", "denoise": 1.0}},
+  "6": {"class_type": "VAEDecode", "inputs": {"samples": ["5", 0], "vae": ["1", 2]}},
+  "7": {"class_type": "SaveImage", "inputs": {"images": ["6", 0], "filename_prefix": "{{prefixo}}"}}
+}

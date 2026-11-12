@@ -92,10 +92,11 @@ Quatro camadas (0.5.0):
 - **Decisão:** skill `/partitura` com dois scripts no padrão do plugin: padrão compacto em JSON (grade em texto, manulação, acentos) → MusicXML → Verovio → cartão PNG com a posição de cada nota e de cada tempo; síntese por fórmula determinística e animação da partitura num bloco mp4 + wav com a mesma duração no grid de quadros. Rasterização com resvg (sem biblioteca de sistema, roda no CI dos dois sistemas). Integração pela via geral: o `/video-animado` aceita cena com `video` + `audio` (bloco pronto), em vez de um tipo de bloco específico de bateria.
 - **Consequência:** a notação é revisável em texto (gate com quem toca) e regenerável; a convenção de cores fica no plugin. Limites explícitos: só bateria (instrumento com altura pede sampler e pauta com clave), sem tercinas, um compasso repetido por padrão.
 
-### ADR-15 — Geração de imagem e vídeo por IA (proposto, não implementado)
+### ADR-15 — Geração de imagem e vídeo por IA (fase 1 em execução, 0.13.0)
 - **Contexto:** pergunta recorrente: "o plugin cria vídeo generativo?" Hoje não: tudo é edição, animação por código e síntese de voz/som. Detalhe em `docs/adr/2026-11-09-geracao-por-ia.md`.
 - **Proposta:** dois papéis novos em `video_editores/modelos` (`imagem`: texto → imagem; `video`: texto/imagem → clipe curto), backends locais primeiro e API opcional atrás da mesma interface, skill `/gerar` com gate por prompt e por quadro, semente e prompt gravados no projeto. Começar por imagem (fundos, B-roll estático, ilustrações para o `/video-animado`); vídeo depois, porque exige GPU com 16–24 GB e os modelos abertos ainda mudam rápido.
-- **Estado:** aguarda uma máquina com GPU para validar (mesma pendência do ADR-10). Nenhum código.
+- **Backend (2026-11-12):** ComfyUI, servidor à parte (GPL-3.0, só pela API HTTP, como ffmpeg e Blender no ADR-05), local ou na máquina com GPU. Ganhou do `diffusers` em processo pelo descarregamento de memória e pelas versões compactadas, que levam modelos de vídeo a 8–12 GB, e porque os workflows de modelos novos saem primeiro para ele. Só nós nativos; workflows versionados no pacote com modelo e licença declarados.
+- **Estado:** papel `imagem`, backend `comfyui`, workflow FLUX.1-schnell e operação `gerar-imagem` prontos e testados contra um servidor falso. Skill `/gerar` e papel `video` aguardam validação numa máquina com GPU.
 
 ### ADR-16 — Remotion avaliado, não adotado (2026-11-09)
 - **Contexto:** Remotion (vídeo por React, Chrome headless + ffmpeg, skills oficiais para agentes) foi avaliado como motor de motion graphics e de legenda. Prova mínima e medições em `docs/adr/2026-11-09-remotion-poc/`; detalhe em `docs/adr/2026-11-09-remotion.md`.

@@ -60,4 +60,6 @@ Mostre e espere aprovação antes de: descartar tomadas, queimar legenda (texto 
 | Manim Community | MIT | motion graphics |
 | Blender | GPL | 3D headless |
 | edge-tts | GPL-3 (cliente; o serviço é da Microsoft) | narração do `video-docs` |
+| ComfyUI | GPL-3.0 (servidor à parte, só pela API HTTP; nada é importado) | geração de imagem (`gerar-imagem`, ADR-15) |
+| FLUX.1-schnell | pesos Apache-2.0 | workflow padrão do ComfyUI; cada workflow declara a licença do seu modelo em `_ve.licenca` |
 | AudioCraft | código MIT, pesos CC-BY-NC | trilha e efeitos gerados (não comercial) |

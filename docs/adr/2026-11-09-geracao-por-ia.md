@@ -1,6 +1,6 @@
 # ADR-15 — Geração de imagem e vídeo por IA no plugin
 
-**Data:** 2026-11-09 · **Estado:** proposto (não implementado) · **Alvo:** 0.9.0 ou posterior · **Depende de:** máquina com GPU (pendência do ADR-10)
+**Data:** 2026-11-09, revisto em 2026-11-12 · **Estado:** fase 1 em execução (0.13.0): papel `imagem` com backend ComfyUI · **Depende de:** máquina com GPU para validar a qualidade (pendência do ADR-10)
 
 ## Contexto
 
@@ -27,7 +27,7 @@ Em `video_editores/modelos`, ao lado de ASR, Segmentador e TTS:
 - **`video`**: `gerar(prompt, imagem_inicial=None, duracao_s, fps, semente) -> mp4 sem áudio`; a partir de uma imagem aprovada (image-to-video) é o caminho preferido, porque o gate acontece no quadro parado.
 
 Backends pela mesma regra dos outros papéis (`VE_IMAGEM`, `VE_VIDEO`, `VE_DEVICE`, `video-editores.toml`), com `deps(device)` alimentando o `uv run --with`:
-- **locais primeiro** (ADR-05): modelos abertos com licença permissiva ou de uso livre, executados via `diffusers`; a lista concreta (por exemplo FLUX.1-schnell para imagem; LTX-Video, Wan ou CogVideoX para vídeo) é decidida **na implementação**, conferindo licença e requisitos de memória na data, porque mudam a cada poucos meses;
+- **locais primeiro** (ADR-05): modelos abertos com licença permissiva ou de uso livre, executados num **servidor ComfyUI** (revisão de 2026-11-12, seção abaixo); `diffusers` em processo fica como alternativa possível, não implementada. A lista concreta de modelos (FLUX.1-schnell para imagem; LTX-Video, Wan ou CogVideoX para vídeo) é decidida **por workflow**, conferindo licença e memória na data, porque mudam a cada poucos meses;
 - **API opcional** atrás da mesma interface, desligada por padrão, para quem não tem GPU; nunca obrigatória.
 
 ### Skill `/gerar`
@@ -45,9 +45,29 @@ Integração com o que existe: imagem gerada vira `BG` de cena do `/video-animad
 - Determinismo possível: semente fixa e versão do modelo gravadas; o mesmo JSON regenera a mesma imagem no mesmo backend.
 - Prova: imagem gerada passa pelo mesmo olhar do `/prova` (texto ilegível, mãos, logos de terceiros).
 
+### Backend ComfyUI (revisão de 2026-11-12)
+O ComfyUI (github.com/comfy-org/ComfyUI) é o backend de referência dos papéis `imagem` e, depois, `video`.
+
+**Por que ele e não `diffusers` em processo:**
+- descarrega partes do modelo da GPU e aceita versões compactadas (fp8, GGUF): é o que leva modelos de vídeo como Wan e LTX-Video a caber em 8–12 GB, contra os 16–24 GB estimados acima. Para o papel `video`, é a diferença entre precisar de uma GPU de servidor e de uma de mesa;
+- workflows dos modelos abertos novos costumam sair primeiro para ele;
+- roda em outra máquina sem mudar nada no plugin: quem edita num notebook sem GPU aponta `VE_COMFYUI_URL` para a máquina que tem. Essa é a situação de quem mantém o plugin, num notebook com GPU integrada.
+
+**Licença:** GPL-3.0. Cumpre o ADR-05 do mesmo jeito que ffmpeg e Blender: executável separado. O plugin não importa código do ComfyUI; só envia um workflow em JSON pela API HTTP (`/prompt`, `/history`, `/view`) e baixa o resultado. O backend usa só a biblioteca padrão do Python.
+
+**Regras do backend:**
+- **só nós nativos.** Nó de terceiro (custom node) é código Python arbitrário rodando no servidor, sem revisão, e já houve casos maliciosos. Workflow do plugin que precisar de um nó assim não entra;
+- **workflows versionados no pacote** (`video_editores/modelos/workflows/comfyui/<nome>.json`), no formato de API, com marcadores (`"{{prompt}}"`, `"{{semente}}"`...) e uma chave `_ve` com modelo, licença, arquivo do checkpoint, onde baixar e VRAM esperada. Workflow próprio entra por `VE_COMFYUI_WORKFLOW=arquivo.json`;
+- **reprodutibilidade:** o registro de cada rodada grava, além de prompt e semente, o sha256 do workflow, o checkpoint e a versão do servidor. Mesmo trio = mesma imagem;
+- **erro claro antes da GPU:** `--conferir` (e o `doctor.sh`) checam o servidor e se o checkpoint do workflow está nele, e dizem onde baixar quando não está.
+
+**Primeiro workflow:** `flux-schnell` (FLUX.1-schnell fp8 em checkpoint único, pesos Apache-2.0, 4 passos, ~12 GB). FLUX.1-dev fica fora: pesos sem uso comercial.
+
 ## Ordem
 
-1. **Imagem** (0.9.0): papel `imagem`, um backend local e `/gerar` só para imagem. Validar nos três usos de fundo acima.
+1. **Imagem**: papel `imagem`, um backend local e `/gerar` só para imagem. Validar nos três usos de fundo acima.
+   - **1a, feita em 0.13.0:** papel `imagem`, backend `comfyui`, workflow `flux-schnell`, operação `gerar-imagem` (variações por semente, folha de escolha, registro por rodada), checagem no `doctor.sh`, testes contra um servidor ComfyUI falso (`tests/stub/comfyui_servidor.py`).
+   - **1b, pendente de GPU:** rodar contra um ComfyUI real, medir tempo e VRAM, ajustar prompt-base e tamanho para os três usos, e só então escrever a skill `/gerar` com os gates. Sem essa validação, as instruções da skill seriam palpite.
 2. **Vídeo curto** (depois): papel `video`, image-to-video a partir de imagem aprovada, 3–6 s, 24 ou 30 fps, upscale/interpolação por ffmpeg se o modelo entregar menos.
 3. Fora do plano: geração de voz clonada, avatar falante, vídeo longo gerado.
 

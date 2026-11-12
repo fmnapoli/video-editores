@@ -2,9 +2,9 @@
 
 Configuração, em ordem de precedência:
   1. argumentos explícitos (`get_asr("faster-whisper")`, `--backend` nos scripts);
-  2. variáveis de ambiente VE_ASR, VE_SEG, VE_TTS, VE_DEVICE (auto|cpu|cuda), VE_ENCODER (libx264|h264_nvenc|...);
+  2. variáveis de ambiente VE_ASR, VE_SEG, VE_TTS, VE_IMAGEM, VE_DEVICE (auto|cpu|cuda), VE_ENCODER (libx264|h264_nvenc|...);
   3. arquivo video-editores.toml ($VE_CONFIG ou ./video-editores.toml), seção [modelos];
-  4. padrões: faster-whisper, rembg, edge, device auto, libx264.
+  4. padrões: faster-whisper, rembg, edge, comfyui, device auto, libx264.
 
 Backends extras sem mexer no pacote: VE_MODELOS_EXTRA="asr:meu=pacote.modulo:Classe;seg:outro=mod:Cls".
 """
@@ -13,13 +13,14 @@ import os
 import shutil
 from pathlib import Path
 
-PADRAO = {"asr": "faster-whisper", "seg": "rembg", "tts": "edge", "device": "auto", "encoder": "libx264"}
-_ENV = {"asr": "VE_ASR", "seg": "VE_SEG", "tts": "VE_TTS", "device": "VE_DEVICE", "encoder": "VE_ENCODER"}
+PADRAO = {"asr": "faster-whisper", "seg": "rembg", "tts": "edge", "imagem": "comfyui", "device": "auto", "encoder": "libx264"}
+_ENV = {"asr": "VE_ASR", "seg": "VE_SEG", "tts": "VE_TTS", "imagem": "VE_IMAGEM", "device": "VE_DEVICE", "encoder": "VE_ENCODER"}
 
 REGISTRO = {
     "asr": {"faster-whisper": "video_editores.modelos.asr_faster_whisper:FasterWhisper"},
     "seg": {"rembg": "video_editores.modelos.seg_rembg:Rembg"},
     "tts": {"edge": "video_editores.modelos.tts_edge:EdgeTTS"},
+    "imagem": {"comfyui": "video_editores.modelos.imagem_comfyui:ComfyUI"},
 }
 TIPOS = tuple(REGISTRO)
 
@@ -95,6 +96,10 @@ def get_segmentador(nome=None, **kw):
 
 def get_tts(nome=None, **kw):
     return classe("tts", nome)(**kw)
+
+
+def get_imagem(nome=None, **kw):
+    return classe("imagem", nome)(**kw)
 
 
 def listar() -> dict:

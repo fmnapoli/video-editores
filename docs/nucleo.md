@@ -50,13 +50,14 @@ Converte para cada motor (`ass()`, `ass_bgr()`, `ffcor()`, `rgb()`), resolve arq
 
 ## Modelos de IA trocáveis
 
-Três papéis, cada um com backends registrados em `video_editores/modelos/`:
+Quatro papéis, cada um com backends registrados em `video_editores/modelos/`:
 
 | Papel | Variável | Padrão | Outros |
 |---|---|---|---|
 | ASR (transcrição) | `VE_ASR` | `faster-whisper` | registrar |
 | Segmentação de pessoa | `VE_SEG` | `rembg` (u2net_human_seg; `--model birefnet-portrait` para bordas melhores) | registrar |
 | TTS (narração) | `VE_TTS` | `edge` | registrar |
+| Imagem (geração, ADR-15) | `VE_IMAGEM` | `comfyui`: servidor ComfyUI à parte, em `VE_COMFYUI_URL` (padrão `http://127.0.0.1:8188`), workflow `flux-schnell` | `VE_COMFYUI_WORKFLOW` (nome ou `.json`), `VE_COMFYUI_CHECKPOINT`, `VE_COMFYUI_TIMEOUT`; registrar |
 | Dispositivo | `VE_DEVICE` | `auto` (cuda se houver `nvidia-smi`, senão cpu) | `cpu`, `cuda` |
 | Codificador de vídeo | `VE_ENCODER` | `libx264` | `h264_nvenc`, `hevc_nvenc`, `h264_videotoolbox`, `h264_vaapi` |
 

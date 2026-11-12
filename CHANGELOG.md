@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.13.0 — 2026-11-12
+Geração de imagem por IA, fase 1a do ADR-15, com o ComfyUI como backend. Quem não usa não baixa nada nem precisa de servidor.
+- **Papel `imagem`** em `video_editores.modelos` (`VE_IMAGEM`, `get_imagem`), com o backend **`comfyui`**: fala com um servidor ComfyUI à parte pela API HTTP (`/prompt`, `/history`, `/view`), local ou na máquina que tem a GPU (`VE_COMFYUI_URL`, padrão `http://127.0.0.1:8188`). Só biblioteca padrão; o ComfyUI (GPL-3.0) nunca é importado, como ffmpeg e Blender no ADR-05.
+- **Workflows versionados no pacote**, só com nós nativos, com marcadores e uma chave `_ve` com modelo, licença, checkpoint e onde baixar. Primeiro: `flux-schnell` (FLUX.1-schnell fp8, pesos Apache-2.0, 4 passos). Workflow próprio por `VE_COMFYUI_WORKFLOW`.
+- **`scripts/gerar_imagem.py`** (operação `gerar-imagem`): N variações por semente, folha de escolha com a semente de cada uma e registro `<id>.json` que soma rodadas com prompt, sementes, sha256 do workflow, checkpoint, licença e versão do servidor, para regenerar a escolhida. `--conferir` checa servidor e checkpoint antes de gastar GPU; erros dizem o que fazer (checkpoint ausente com o link, servidor fora, falha do job com a mensagem do nó).
+- **`doctor.sh`** mostra o servidor ComfyUI, a GPU dele e o checkpoint do workflow, como item opcional.
+- ADR-15 revisto: por que ComfyUI e não `diffusers` (memória e modelos de vídeo em 8–12 GB), regras do backend e a fase 1b (validar com GPU real e então a skill `/gerar`). Docs: núcleo, scripts, convenções (licenças), arquitetura.
+- Testes: `nucleo.sh` contra um ComfyUI falso (`tests/stub/comfyui_servidor.py`): variações, folha, registro, workflow preenchido e os quatro erros.
+
 ## 0.12.1 — 2026-11-12
 - **`render-docs.sh` acusava "fonte DejaVu Sans Bold ausente" com a fonte instalada**, de forma intermitente: com `pipefail`, o `grep -q` fecha o pipe no primeiro acerto e o `fc-list` termina por SIGPIPE, o que derruba o teste. A checagem passou a ler de here-string. Aparece mais em máquina com muitas fontes instaladas.
 

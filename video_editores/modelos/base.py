@@ -1,9 +1,10 @@
 """Contratos dos modelos de IA usados pelo plugin. Os backends ficam nos módulos ao lado.
 
-Três papéis, cada um com um método principal:
+Quatro papéis, cada um com um método principal:
   ASR          transcrever(áudio) -> Transcricao           (faster-whisper, ...)
   Segmentador  mascara(imagem) -> máscara da pessoa (PIL L) (rembg/U²-Net, BiRefNet, ...)
   TTS          sintetizar(texto, voz, mp3) -> fronteiras de palavra  (edge-tts, ...)
+  Imagem       gerar(prompt, pasta, sementes, ...) -> PNGs, um por semente  (ComfyUI, ...)  (ADR-15)
 
 Um backend declara `nome`, `descricao` e `deps(device)` (pacotes para `uv run --with`). Importações
 pesadas ficam dentro dos métodos, para que listar e configurar backends não exija os modelos instalados.
@@ -71,3 +72,9 @@ class Segmentador(Protocol):
 @runtime_checkable
 class TTS(Protocol):
     def sintetizar(self, texto: str, voz: str, mp3: str) -> list: ...
+
+
+@runtime_checkable
+class Imagem(Protocol):
+    def gerar(self, prompt: str, saida_dir: Any, negativo: str = "", largura: int = 1344, altura: int = 768,
+              sementes: tuple = (0,), passos: "int | None" = None, prefixo: str = "ve") -> list: ...
