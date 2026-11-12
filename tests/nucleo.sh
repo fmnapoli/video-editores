@@ -101,10 +101,12 @@ os.makedirs("pacote/logos"); os.makedirs("pacote/fontes")
 png("pacote/logos/logo-branco.png", 600, 420, (255, 255, 255, 255))
 open("pacote/logos/logo.svg", "w").write('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10" fill="#2DD4BF"/><rect width="5" height="5" fill="#0B2545"/></svg>')
 json.dump({"cor": {"primaria": {"$value": "#0B2545"}, "destaque": {"value": "#2DD4BF"}, "texto": {"$value": "#FFFFFF"}}}, open("pacote/tokens.json", "w"))
-for raiz, _, arqs in os.walk("/usr/share/fonts"):
-    for a in arqs:
-        if a in ("DejaVuSans.ttf", "DejaVuSans-Bold.ttf"):
-            shutil.copy(os.path.join(raiz, a), "pacote/fontes/")
+for base in ("/usr/share/fonts", "/Library/Fonts", os.path.expanduser("~/Library/Fonts"), "/opt/homebrew/share/fonts", "/usr/local/share/fonts"):
+    for raiz, _, arqs in os.walk(base):
+        for a in arqs:
+            if a in ("DejaVuSans.ttf", "DejaVuSans-Bold.ttf"):
+                shutil.copy(os.path.join(raiz, a), "pacote/fontes/")
+assert len(os.listdir("pacote/fontes")) == 2, "DejaVu Sans (regular e bold) não encontrada para o teste"
 shutil.make_archive("pacote", "zip", "pacote")
 tema = """<?xml version="1.0"?><a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Exemplo"><a:themeElements>
 <a:clrScheme name="Exemplo"><a:dk1><a:sysClr val="windowText" lastClr="000000"/></a:dk1><a:lt1><a:sysClr val="window" lastClr="FFFFFF"/></a:lt1>
