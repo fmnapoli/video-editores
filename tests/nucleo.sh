@@ -90,6 +90,80 @@ python3 -c 'import json; v=json.load(open("fraca.out")); assert len(v["ajustes_p
 rm -rf marca
 pass "marca: resolução (spec > VE_MARCA > marca/), papéis derivados, conversões, contraste e ajuste proposto, validador e prancha"
 
+# extração da identidade (skill /marca): tema de PPTX, pacote de marca (pasta e zip), manual em PDF e tokens
+python3 - <<'PY'
+import json, os, shutil, struct, zipfile, zlib
+def png(caminho, w, h, rgba):
+    lin = b"".join(b"\x00" + bytes(rgba) * w for _ in range(h))
+    def ch(t, d): return struct.pack(">I", len(d)) + t + d + struct.pack(">I", zlib.crc32(t + d))
+    open(caminho, "wb").write(b"\x89PNG\r\n\x1a\n" + ch(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 6, 0, 0, 0)) + ch(b"IDAT", zlib.compress(lin)) + ch(b"IEND", b""))
+os.makedirs("pacote/logos"); os.makedirs("pacote/fontes")
+png("pacote/logos/logo-branco.png", 600, 420, (255, 255, 255, 255))
+open("pacote/logos/logo.svg", "w").write('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10" fill="#2DD4BF"/><rect width="5" height="5" fill="#0B2545"/></svg>')
+json.dump({"cor": {"primaria": {"$value": "#0B2545"}, "destaque": {"value": "#2DD4BF"}, "texto": {"$value": "#FFFFFF"}}}, open("pacote/tokens.json", "w"))
+for raiz, _, arqs in os.walk("/usr/share/fonts"):
+    for a in arqs:
+        if a in ("DejaVuSans.ttf", "DejaVuSans-Bold.ttf"):
+            shutil.copy(os.path.join(raiz, a), "pacote/fontes/")
+shutil.make_archive("pacote", "zip", "pacote")
+tema = """<?xml version="1.0"?><a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Exemplo"><a:themeElements>
+<a:clrScheme name="Exemplo"><a:dk1><a:sysClr val="windowText" lastClr="000000"/></a:dk1><a:lt1><a:sysClr val="window" lastClr="FFFFFF"/></a:lt1>
+<a:dk2><a:srgbClr val="0B2545"/></a:dk2><a:lt2><a:srgbClr val="F8FAFC"/></a:lt2><a:accent1><a:srgbClr val="2DD4BF"/></a:accent1><a:accent2><a:srgbClr val="A78BFA"/></a:accent2></a:clrScheme>
+<a:fontScheme name="Exemplo"><a:majorFont><a:latin typeface="Exemplo Sans"/></a:majorFont><a:minorFont><a:latin typeface="Exemplo Serif"/></a:minorFont></a:fontScheme></a:themeElements></a:theme>"""
+with zipfile.ZipFile("deck.pptx", "w") as z:
+    z.writestr("ppt/theme/theme1.xml", tema)
+    z.writestr("ppt/slideMasters/_rels/slideMaster1.xml.rels", '<Relationships><Relationship Id="r1" Target="../media/image1.png"/></Relationships>')
+    z.write("pacote/logos/logo-branco.png", "ppt/media/image1.png")
+# PDF mínimo de uma página, com três linhas de texto
+linhas = ["Cor primaria: #0B2545", "Destaque  HEX 2DD4BF", "Texto  R 255 G 255 B 255"]
+fluxo = ("BT /F1 14 Tf 40 780 Td " + " ".join(f"({t}) Tj 0 -22 Td" for t in linhas) + " ET").encode()
+objs = [b"<< /Type /Catalog /Pages 2 0 R >>", b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+        b"<< /Length %d >>\nstream\n" % len(fluxo) + fluxo + b"\nendstream",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /ABCDEF+ExemploSans-Bold >>"]
+pdf, pos = b"%PDF-1.4\n", []
+for i, o in enumerate(objs, 1):
+    pos.append(len(pdf)); pdf += b"%d 0 obj\n" % i + o + b"\nendobj\n"
+x = len(pdf)
+pdf += b"xref\n0 6\n0000000000 65535 f \n" + b"".join(b"%010d 00000 n \n" % p for p in pos)
+pdf += b"trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n" % x
+open("manual.pdf", "wb").write(pdf)
+PY
+EXT=(uv run --quiet --with pillow --with fonttools --with pypdf python "$ROOT/scripts/extrair_marca.py")
+"${EXT[@]}" deck.pptx --out m_tema --gravar-sugestao >/dev/null
+"${EXT[@]}" pacote --out m_pacote --gravar-sugestao --nome Exemplo >/dev/null
+"${EXT[@]}" pacote.zip --out m_zip >/dev/null
+"${EXT[@]}" manual.pdf --out m_pdf --gravar-sugestao >/dev/null
+"${EXT[@]}" pacote/tokens.json --out m_tok >/dev/null
+echo '{"cores": {"fundo": "#000000", "acento": "#FF0000", "texto": "#FFFFFF"}}' > m_pdf/guardado.json
+cp m_pdf/guardado.json m_tok/marca.json; "${EXT[@]}" pacote/tokens.json --out m_tok --gravar-sugestao >/dev/null
+cmp -s m_pdf/guardado.json m_tok/marca.json || { echo "extrair_marca sobrescreveu um marca.json existente"; exit 1; }
+if "${EXT[@]}" https://exemplo.invalid --out m_site >/dev/null 2>&1; then echo "site deveria ser recusado"; exit 1; fi
+python3 - <<'PY'
+import json, os
+t = json.load(open("m_tema/rascunho.json")); mt = json.load(open("m_tema/marca.json"))
+assert mt["cores"] == {"fundo": "#0B2545", "acento": "#2DD4BF", "secundario": "#A78BFA", "texto": "#FFFFFF"}, mt
+assert mt["fonte"] == {"familia": "Exemplo Sans"} and mt["origem"][0]["tipo"] == "tema-office" and "logo" not in mt
+assert any(c.get("papel_no_tema") == "accent1" and "slot accent1" in c["evidencia"][0] for c in t["cores"])
+assert os.path.exists(t["logos"][0]["arquivo"]) and t["logos"][0]["altura"] == 420 and any("NOME da fonte" in a for a in t["avisos"])
+mp = json.load(open("m_pacote/marca.json"))
+assert mp["nome"] == "Exemplo" and mp["cores"] == {"fundo": "#0B2545", "acento": "#2DD4BF", "texto": "#FFFFFF"}, mp
+assert mp["fonte"] == {"familia": "DejaVu Sans", "arquivos": {"bold": "fontes/DejaVuSans-Bold.ttf", "regular": "fontes/DejaVuSans.ttf"}}, mp["fonte"]
+assert mp["logo"] == {"svg": "logo.svg", "png": "logo.png"} and all(os.path.exists("m_pacote/" + f) for f in ("logo.svg", "logo.png", "fontes/DejaVuSans.ttf"))
+z = json.load(open("m_zip/rascunho.json"))
+assert not os.path.exists("m_zip/marca.json") and sorted(x["arquivo"] for x in z["logos"]) == ["logos/logo-branco.png", "logos/logo.svg"], z["logos"]
+assert any("token cor.primaria" in e for c in z["cores"] for e in c["evidencia"])
+d = json.load(open("m_pdf/rascunho.json")); md = json.load(open("m_pdf/marca.json"))
+assert {c["hex"] for c in d["cores"]} == {"#0B2545", "#2DD4BF", "#FFFFFF"}, d["cores"]
+assert all(c["evidencia"][0].startswith("p. 1") for c in d["cores"]) and d["fontes"][0]["familia"] == "ExemploSans", d
+assert md["cores"] == {"fundo": "#0B2545", "acento": "#2DD4BF", "texto": "#FFFFFF"} and "logo" not in md
+assert json.load(open("m_tok/rascunho.json"))["sugestao"]["cores"]["contraste_texto_fundo"] > 15
+PY
+uv run --quiet --with pillow --with fonttools python "$ROOT/scripts/validar_marca.py" m_pacote/marca.json >val_ext.json
+python3 -c 'import json; v = json.load(open("val_ext.json")); assert not v["erros"], v'
+test -s m_pacote/prancha.png
+pass "extrair_marca: tema de PPTX, pacote (pasta e zip), PDF e tokens viram rascunho com evidência; sugestão passa no validador; não sobrescreve; site recusado"
+
 # áudio: normalização com teto de pico real (fala simulada: senoide baixa + um estalo a fundo de escala a cada 2 s,
 # o degrau de junção que o loudnorm linear amplificava)
 ffmpeg -v error -y -f lavfi -i "aevalsrc=0.05*sin(2*PI*300*t)+if(lt(mod(t\,2)\,0.005)\,0.99\,0):s=48000:d=8" -c:a pcm_s16le cliques.wav
@@ -165,7 +239,7 @@ python3 -m video_editores.cli integrar todos --projeto integ >/dev/null   # 2ª 
 python3 - <<'PY'
 import json, re, pathlib, tomllib
 p = pathlib.Path("integ")
-sk = sorted(x.name for x in (p / ".agents/skills").iterdir()); assert len(sk) == 21 and "partitura" in sk, sk
+sk = sorted(x.name for x in (p / ".agents/skills").iterdir()); assert len(sk) == 22 and "partitura" in sk and "marca" in sk, sk
 assert sorted(x.name for x in (p / ".kiro/skills").iterdir()) == sk
 for s in (p / ".kiro/skills").glob("*/SKILL.md"):
     t = s.read_text(); fm = re.match(r"---\n(.*?)\n---", t, re.S).group(1)

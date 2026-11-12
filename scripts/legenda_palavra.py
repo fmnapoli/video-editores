@@ -138,9 +138,11 @@ def main():
     ap.add_argument("--modo", choices=["atual", "preenche"], default="atual")
     ap.add_argument("--pos", type=float, default=None, help="centro vertical em fração da altura (padrão 0,68 em vertical, 0,86 em horizontal)")
     ap.add_argument("--tamanho", type=float, default=0.05, help="altura da fonte em fração da altura")
-    ap.add_argument("--font", default="Montserrat")
-    ap.add_argument("--cor", default="#FFFFFF")
-    ap.add_argument("--destaque", default="#FACC15")
+    ap.add_argument("--font", default=None, help="padrão: fonte da marca, senão Montserrat")
+    ap.add_argument("--cor", default=None, help="padrão: texto da marca, senão #FFFFFF")
+    ap.add_argument("--destaque", default=None, help="padrão: destaque da legenda da marca, senão #FACC15")
+    import marca_cli
+    marca_cli.add_arg(ap)
     ap.add_argument("--caixa", action="store_true", help="caixa translúcida atrás do texto em vez de contorno")
     ap.add_argument("--maiusculas", action="store_true")
     ap.add_argument("--espaco-largo", action="store_true",
@@ -148,6 +150,12 @@ def main():
     ap.add_argument("--correcoes", help="JSON {errado: certo}")
     a = ap.parse_args()
 
+    m = marca_cli.carregar(a.marca)
+    a.font = marca_cli.escolhe(a.font, m.fonte, "Montserrat", m)
+    a.cor = marca_cli.escolhe(a.cor, m.cores["texto"], "#FFFFFF", m)
+    a.destaque = marca_cli.escolhe(a.destaque, m.cor(m.legenda.get("destaque") or "acento"), "#FACC15", m)
+    if m.definida and "espaco_largo" in m.legenda:
+        a.espaco_largo = a.espaco_largo or bool(m.legenda["espaco_largo"])
     W, H = probe(a.video)
     ws = carrega_palavras(a.transcricao)
     if a.correcoes:
@@ -194,7 +202,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
     if a.burn:
         subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", a.video,
-                        "-vf", f"ass=filename='{ffesc(out_ass)}'", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
+                        "-vf", f"ass=filename='{ffesc(out_ass)}'{marca_cli.fontsdir(m)}", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
                         "-c:a", "copy", a.burn], check=True)
         print(f"ok -> {a.burn}")
 

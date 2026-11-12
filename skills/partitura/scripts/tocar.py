@@ -49,8 +49,25 @@ AMARELO, BRANCO, CINZA = (255, 212, 59, 255), (241, 245, 249, 255), (148, 163, 1
 rng = np.random.default_rng(7)   # ruído determinístico: o mesmo padrão gera o mesmo wav
 
 
+def _marca(campo, chave):
+    """Arquivo citado em marca/marca.json (ADR-17; $VE_MARCA vence), ou None: _marca("fonte", "bold"), _marca("fundos", "cartela")."""
+    arq = os.path.expanduser(os.environ.get("VE_MARCA") or "marca/marca.json")
+    if not os.path.exists(arq):
+        return None
+    try:
+        d = json.load(open(arq, encoding="utf-8")).get(campo) or {}
+    except ValueError:
+        return None
+    rel = (d.get("arquivos") or {}).get(chave) if campo == "fonte" else d.get(chave)
+    if not rel:
+        return None
+    rel = os.path.expanduser(rel)
+    p = rel if os.path.isabs(rel) else os.path.join(os.path.dirname(os.path.abspath(arq)), rel)
+    return p if os.path.exists(p) else None
+
+
 def fonte_padrao(peso="700"):
-    for c in (os.path.expanduser(f"~/.local/share/fonts/inter/Inter-{peso}.ttf"),
+    for c in (_marca("fonte", "bold") or "", os.path.expanduser(f"~/.local/share/fonts/inter/Inter-{peso}.ttf"),
               "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
               "/Library/Fonts/Arial Bold.ttf", "/System/Library/Fonts/Supplemental/Arial Bold.ttf"):
         if os.path.exists(c):
@@ -191,7 +208,7 @@ def main():
     ap.add_argument("--bpm", type=float, default=72)
     ap.add_argument("--voltas", type=int, default=2)
     ap.add_argument("--contagem", action="store_true", help="um compasso de contagem antes")
-    ap.add_argument("--fundo", help="PNG 1920×1080 da identidade (padrão: gradiente escuro)")
+    ap.add_argument("--fundo", help="PNG 1920×1080 da identidade (padrão: fundos.cartela da marca, senão gradiente escuro)")
     ap.add_argument("--rotulo", default="Exemplo tocado", help="texto pequeno acima do título")
     ap.add_argument("--titulo", help="título grande (padrão: o do padrão)")
     ap.add_argument("--fonte", help="TTF (padrão: Inter, DejaVu Sans Bold ou Arial Bold)")
@@ -228,6 +245,7 @@ def main():
         return
 
     card = Image.open(base_nome + ".png").convert("RGBA")
+    a.fundo = a.fundo or _marca("fundos", "cartela")      # fundo da marca do projeto, se houver
     fundo = Image.open(a.fundo).convert("RGBA").resize((W, H)) if a.fundo else fundo_padrao()
     f_rot, f_tit, f_sub = fonte(a.fonte or fonte_padrao("800"), 34), fonte(a.fonte or fonte_padrao("800"), 64), fonte(a.fonte or fonte_padrao("600"), 34)
     base = fundo.copy()

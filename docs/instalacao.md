@@ -44,7 +44,7 @@ uv tool install scenedetect               # /referencia, /efeitos, /videoaula (o
 
 | Skill | Instalar |
 |---|---|
-| identidade do cliente (`marca/marca.json`) | nada: `uv run --with pillow --with fonttools` baixa sob demanda; a fonte da marca pode ficar em `marca/fontes/` sem instalar |
+| identidade do cliente (`marca/marca.json`) | nada: `uv run --with pillow --with fonttools` (e `--with pypdf` para ler manual em PDF) baixa sob demanda; a fonte da marca pode ficar em `marca/fontes/` sem instalar |
 | `/video-docs` (transcrição opcional) | `uv tool install whisper-ctranslate2`, ou use o `scripts/transcribe.py` do plugin |
 | `/animacao` | `uv tool install manim` (no Linux precisa de `libcairo2-dev libpango1.0-dev`; veja docs.manim.community) |
 | `/3d` | Blender 4.2+ (blender.org) com `blender` no PATH |

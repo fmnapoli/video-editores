@@ -61,6 +61,15 @@ cp exemplos/CINCO.wav antes.wav
 cmp -s antes.wav exemplos/CINCO.wav
 pass "tocar.py: --so-audio regenera o mesmo wav (síntese determinística)"
 
+# identidade do projeto (ADR-17): fundos.cartela da marca vira o fundo do exemplo quando não há --fundo
+mkdir -p marca && ffmpeg -v error -y -f lavfi -i color=c=0xC81E1E:s=1920x1080:d=0.1 -frames:v 1 marca/bg.png
+echo '{"cores": {"fundo": "#0B2545", "acento": "#2DD4BF", "texto": "#FFFFFF"}, "fundos": {"cartela": "bg.png"}}' > marca/marca.json
+"${TOCA[@]}" CINCO --partituras partituras --out exemplos_m --bpm 120 --voltas 1 >/dev/null
+ffmpeg -v error -y -ss 1 -i exemplos_m/CINCO.mp4 -frames:v 1 -vf "crop=8:8:20:20,scale=1:1" -f rawvideo -pix_fmt rgb24 px.rgb
+python3 -c 'r, g, b = open("px.rgb", "rb").read()[:3]; assert r > 150 and g < 80 and b < 80, (r, g, b)'
+rm -rf marca
+pass "tocar.py: fundo da marca do projeto (marca/marca.json) quando não há --fundo"
+
 AND=(uv run --quiet --with librosa --with numpy --with scipy --with soundfile python -I "$P/andamento.py")
 "${AND[@]}" exemplos/CINCO.wav --tempos 5 --bumbo 0 --out medido.json >/dev/null 2>&1
 python3 - <<'PY'

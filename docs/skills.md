@@ -26,6 +26,7 @@ Invocação: `/video-editores:<nome>`, ou em linguagem natural (o Claude escolhe
 | video-docs | gravações de tela | `.mp4`, `.srt`, roteiros, inventário | **3 gates** (inventário, roteiros, piloto) | ver LEIAME |
 | video-animado | roteiro + identidade da marca | cenas Manim, `.mp4`, `.srt`, roteiro final | **2 gates** (roteiro, piloto) + prova | ~1 min por cena em 1080p |
 | partitura | o que a pessoa toca (clipe, fala, caderno) | `padroes.json`, cartões PNG + JSON de posições, exemplo tocado `.mp4` + `.wav` | **sim**: quem toca aprova a transcrição | 2 s por cartão; ~10 s por exemplo tocado |
+| marca | tema PPTX/DOCX, manual PDF, pacote de marca ou tokens | `marca/rascunho.json`, `marca/marca.json`, `marca/prancha.png` | **sim**: prancha da identidade | segundos |
 
 ---
 
@@ -116,6 +117,9 @@ Vídeo inteiro em animação por código, sem bruto: a narração (edge-tts) é 
 
 ## /partitura
 Notação de bateria para vídeo e "exemplo tocado". `partitura.py` lê um padrão compacto (`ts`, `div`, grade em texto por instrumento, manulação, acentos), gera MusicXML, renderiza com Verovio e rasteriza com resvg num cartão PNG (1800×270 para sobrepor em clipe, 1800×430 para o exemplo), gravando no JSON a posição de cada nota e de cada tempo. `tocar.py` sintetiza o som por fórmula (sem samples), anima a partitura (nota acende quando soa, playhead, contador, contagem opcional) e entrega `<ID>.mp4` + `<ID>.wav` com a mesma duração no grid de quadros, que entram no `/video-animado` como cena com `video`/`audio` ou antes de um clipe no `/videoaula`. `andamento.py` mede o andamento do clipe gravado (mediana dos intervalos entre batidas) e a fase do compasso (o "1" pela energia do bumbo), para o exemplo soar no andamento da pessoa e o cursor correr certo. Gate: a pessoa que toca aprova `padroes.json` e a lista de interpretações antes de qualquer vídeo. Só bateria; sem tercinas. Modelo em `skills/partitura/templates/padroes-exemplo.json`.
+
+## /marca
+Identidade visual a partir de fonte externa (ADR-17). `extrair_marca.py` lê o tema de PPTX/POTX/DOCX/XLSX (paleta com os slots `dk1`…`accent6`, fontes de título e corpo, imagens do slide mestre), manual em PDF (HEX/RGB do texto com página e linha, fontes embutidas), pacote de marca em pasta ou zip (SVG, PNG, TTF/OTF com a família real, tokens JSON) e design tokens; grava `marca/rascunho.json` com a evidência de cada candidato e uma sugestão de papéis. O agente escreve o `marca.json`, o `validar_marca.py` confere contraste, glifos e logo e gera a prancha, e o fluxo para ali. Depois do OK, video-docs, video-animado, videoaula, legenda, lettering, checklist e partitura leem a marca sem parâmetro. Fonte proprietária não é baixada; logo só de arquivo oficial; site e Figma ainda não são lidos.
 
 ## /video-docs
 Harness para gravações de tela, documentado em [video-docs-LEIAME.md](video-docs-LEIAME.md) e `skills/video-docs/references/`. Fluxo: inventário → roteiros (com revisão de coerência contra o código) → piloto → lote. Montagem por `spec.json` com `scripts/render-docs.sh`. O spec cobre faixa sobre a barra do navegador e tarja fixa (`chrome`), pastas próprias para `.srt` e roteiro, e legenda em bloco ou por palavra; o build encerra se o TTS falhar e devolve `avisos` de destaque mal posicionado. `confere_saida.py` fecha o lote. Identidade do cliente por `marca/marca.json` (ADR-17), validada com `scripts/validar_marca.py`.

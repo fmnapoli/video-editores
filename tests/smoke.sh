@@ -140,6 +140,44 @@ python3 "$S/checklist_ass.py" in.mp4 itens.json hl.transcript.json --burn out_ch
 grep -q "Sem gatilho" erros.txt && grep -c "Dialogue" itens.ass | grep -q "^5$" && test -s out_check.mp4
 pass "checklist_ass.py: 2 itens no tempo da fala, 1 sem gatilho avisado"
 
+# identidade do projeto (ADR-17): com marca/marca.json, lettering, checklist e legenda por palavra usam fonte e cores
+# da marca; argumento explícito vence; --marca nao volta ao padrão do script
+FD=$(dirname "$(fc-match -f '%{file}' 'DejaVu Sans:bold' 2>/dev/null || echo /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf)")
+mkdir -p marca && cat > marca/marca.json <<JSON
+{"nome": "Teste", "cores": {"fundo": "#0B2545", "acento": "#2DD4BF", "texto": "#F8FAFC"},
+ "fonte": {"familia": "Marca Sans", "arquivos": {"bold": "$FD/DejaVuSans-Bold.ttf"}},
+ "legenda": {"espaco_largo": true}}
+JSON
+python3 "$S/lettering_ass.py" out_tomada.mp4 textos.json --burn out_lettering_m.mp4 >/dev/null
+grep -q "^Style: Base,Marca Sans," textos.ass && grep -q '1c&H00FCFAF8&' textos.ass && grep -q '1c&H00BFD42D&' textos.ass && test -s out_lettering_m.mp4
+python3 "$S/lettering_ass.py" out_tomada.mp4 textos.json --font "Outra" >/dev/null && grep -q "^Style: Base,Outra," textos.ass
+python3 "$S/lettering_ass.py" out_tomada.mp4 textos.json --marca nao >/dev/null
+grep -q "^Style: Base,DejaVu Sans," textos.ass && grep -q '1c&H004FD5FF&' textos.ass
+python3 "$S/checklist_ass.py" in.mp4 itens.json hl.transcript.json 2>/dev/null >/dev/null
+grep -q "^Style: Item,Marca Sans," itens.ass && grep -q '3c&H00BFD42D&' itens.ass
+python3 "$S/checklist_ass.py" in.mp4 itens.json hl.transcript.json --accent "#112233" 2>/dev/null >/dev/null && grep -q '3c&H00332211&' itens.ass
+python3 "$S/legenda_palavra.py" in.mp4 pal.transcript.json --ass m.ass >/dev/null
+grep -q "^Style: Palavra,Marca Sans,96,&H00FCFAF8&" m.ass && grep -q '&H00BFD42D&' m.ass && grep -q '\\h {' m.ass
+python3 "$S/legenda_palavra.py" in.mp4 pal.transcript.json --marca nao --ass n.ass >/dev/null
+grep -q "^Style: Palavra,Montserrat,96,&H00FFFFFF&" n.ass && ! grep -q '\\h {' n.ass
+[[ "$(python3 "$S/marca_cli.py" force-style --tamanho 20)" == "FontName=Marca Sans,FontSize=20,Bold=1,PrimaryColour=&H00FCFAF8,"* ]]
+[[ "$(python3 "$S/marca_cli.py" fontsdir)" == "$FD" && -z "$(python3 "$S/marca_cli.py" fontsdir --marca nao)" ]]
+python3 - "$ROOT" <<'PY'
+import os, sys
+sys.path.insert(0, os.path.join(sys.argv[1], "skills", "videoaula", "scripts"))
+import marca_aula
+pad = {"fundo_centro": "#131C33", "fundo_borda": "#0B1220", "acento": "#4B8BBE", "destaque": "#FFD43B", "texto": "#F1F5F9", "texto2": "#94A3B8"}
+m = marca_aula.carregar({})
+c = marca_aula.cores(m, pad)
+assert c == {"fundo_centro": "#0B2545", "fundo_borda": "#0B2545", "acento": "#2DD4BF", "destaque": "#2DD4BF", "texto": "#F8FAFC", "texto2": "#F8FAFC"}, c
+assert marca_aula.fonte_arquivo(m, 800).endswith("DejaVuSans-Bold.ttf") and marca_aula.cores(m, {"acento": "#000000"}) == {"acento": "#2DD4BF"}
+n = marca_aula.carregar({"marca": False})
+assert marca_aula.cores(n, pad) == pad and marca_aula.fonte_arquivo(n, 800) is None
+PY
+rm -rf marca
+python3 "$S/lettering_ass.py" out_tomada.mp4 textos.json >/dev/null && grep -q "^Style: Base,DejaVu Sans," textos.ass
+pass "marca nos scripts: lettering, checklist e legenda por palavra (fonte, cores, espaço largo), argumento vence, --marca nao, force-style, videoaula"
+
 # estilos cartao e capa
 echo '[{"text":"Funciona?","start":0,"end":1,"style":"cartao","autor":"@x"},{"text":"A\\NB","start":1,"end":2,"style":"capa","kicker":"k"}]' > t2.json
 python3 "$S/lettering_ass.py" in.mp4 t2.json >/dev/null && grep -q "Cartao" t2.ass && grep -q "\\p1" t2.ass

@@ -1,6 +1,6 @@
 # video-editores
 
-Plugin do Claude Code que transforma a IA na sua editora de vídeo: **21 skills** open source, rodando no seu computador, sem SaaS e sem vendor lock-in. Você manda a gravação e pede em português; o `/editar` monta o plano, para nos pontos de aprovação e entrega o vídeo com um relatório do que fez.
+Plugin do Claude Code que transforma a IA na sua editora de vídeo: **22 skills** open source, rodando no seu computador, sem SaaS e sem vendor lock-in. Você manda a gravação e pede em português; o `/editar` monta o plano, para nos pontos de aprovação e entrega o vídeo com um relatório do que fez.
 
 | Skill | O que faz | Ferramenta |
 |---|---|---|
@@ -25,6 +25,7 @@ Plugin do Claude Code que transforma a IA na sua editora de vídeo: **21 skills*
 | `/video-animado` | Vídeo 100% animado por código, narração que dita o tempo de cada cena, sem tela preta | Manim + edge-tts + `montar_cenas.py` |
 | `/videoaula` | Aula gravada (professor + quadro + IDE) → versão redesenhada: cenário novo por IA, diagramas animados no lugar do quadro, capítulos, legenda, −14 LUFS | rembg + Manim + auto-editor + `montar_aula.py` |
 | `/partitura` | Partitura de bateria com R/L e cores por membro, e "exemplo tocado": som sintetizado + notação animada nota a nota no andamento medido do clipe, pronto para entrar como bloco | Verovio + resvg + numpy/scipy + librosa (`partitura.py`, `tocar.py`, `andamento.py`) |
+| `/marca` | Identidade visual a partir de tema PPTX/Slides, manual em PDF ou pacote de marca: `marca.json` lido por todas as skills, com contraste validado e prancha de aprovação | Python (zip/XML, pypdf, fontTools) + Pillow |
 
 No Claude Code, os skills aparecem com o prefixo do plugin (ex.: `/video-editores:corte`). Também são chamados automaticamente pela descrição ("tira os silêncios desse vídeo").
 
@@ -90,7 +91,7 @@ Passo a passo completo: [docs/tutorial.md](docs/tutorial.md).
 | [Outros agentes](docs/agentes.md) | Codex, OpenCode e Kiro: `video-editores integrar`, onde cada um lê skills, MCP e regras |
 | [ADR núcleo/MCP](docs/adr/2026-11-08-nucleo-modelos-mcp.md) | decisão de abstrair modelos, CLI e MCP; integração com GPU; roteiro |
 | [ADRs propostos e avaliações](docs/arquitetura.md#decisões-adrs-resumidos) | geração por IA (ADR-15, proposto) e Remotion (ADR-16, avaliado e não adotado) |
-| [ADR identidade visual](docs/adr/2026-11-11-identidade-visual.md) | `marca/marca.json` como contrato único de cores, fonte e logo (ADR-17; fase 1 na 0.11.0) |
+| [ADR identidade visual](docs/adr/2026-11-11-identidade-visual.md) | `marca/marca.json` como contrato único de cores, fonte e logo (ADR-17; contrato na 0.11.0, todas as skills e extração na 0.12.0) |
 | [Solução de problemas](docs/troubleshooting.md) | sintomas comuns e correções |
 | [video-docs](docs/video-docs-LEIAME.md) | harness de vídeos de documentação |
 | [Contribuindo](CONTRIBUTING.md) | como criar skills e scripts no padrão |

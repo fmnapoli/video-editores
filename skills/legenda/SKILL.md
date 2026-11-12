@@ -39,3 +39,6 @@ Siga `${CLAUDE_PLUGIN_ROOT}/docs/convencoes.md` (pastas, nomes de saída, loudne
 ## Regras
 - Nunca queime sem revisar o texto (passo 3).
 - Mantenha o `.srt` como entrega extra: serve para upload nativo no YouTube.
+
+## Identidade do projeto
+Havendo `marca/marca.json` (skill `/marca`), o `legenda_palavra.py` usa a fonte, a cor de texto, o destaque (`legenda.destaque`) e o `espaco_largo` dela sem parâmetro extra. Parâmetro explícito vence a marca; `--marca CAMINHO` aponta outra e `--marca nao` volta ao padrão do plugin.

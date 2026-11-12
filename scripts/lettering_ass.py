@@ -16,7 +16,8 @@ style: titulo | lower | destaque | cartao | capa     anim: fade | pop | slide | 
 pos: centro em fração da tela (x, y). size: altura da fonte em fração da altura do vídeo.
 "\\N" quebra linha.
 
-Uso: lettering_ass.py VIDEO textos.json [--font "DejaVu Sans"] [--burn SAIDA.mp4]
+Uso: lettering_ass.py VIDEO textos.json [--font "DejaVu Sans"] [--marca marca.json] [--burn SAIDA.mp4]
+Com marca/marca.json no projeto (ADR-17), fonte, cor do texto e cor do destaque vêm da marca.
 """
 import argparse, json, subprocess, sys
 
@@ -68,15 +69,24 @@ PRESETS = {
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("video"); ap.add_argument("textos")
-    ap.add_argument("--font", default="DejaVu Sans")
+    ap.add_argument("--font", default=None, help="padrão: fonte da marca, senão DejaVu Sans")
     ap.add_argument("--burn", default=None)
+    import marca_cli
+    marca_cli.add_arg(ap)
     a = ap.parse_args()
+    m = marca_cli.carregar(a.marca)
+    a.font = marca_cli.escolhe(a.font, m.fonte, "DejaVu Sans", m)
+    presets = dict(PRESETS)
+    if m.definida:   # texto e destaque nas cores da marca; "color" no item continua vencendo
+        for nome, papel in (("titulo", "texto"), ("lower", "texto"), ("capa", "texto"), ("destaque", "acento")):
+            pos0, size0, _, align0 = presets[nome]
+            presets[nome] = (pos0, size0, m.cores[papel], align0)
 
     W, H = probe(a.video)
     items = json.load(open(a.textos, encoding="utf-8"))
     lines = []
     for it in items:
-        pos, size, col, align = PRESETS.get(it.get("style", "titulo"), PRESETS["titulo"])
+        pos, size, col, align = presets.get(it.get("style", "titulo"), presets["titulo"])
         x, y = it.get("pos", pos)
         px = int(H * it.get("size", size))
         c = color(it.get("color", col))
@@ -131,7 +141,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
     if a.burn:
         subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", a.video,
-                        "-vf", f"ass=filename='{ffesc(out_ass)}'", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
+                        "-vf", f"ass=filename='{ffesc(out_ass)}'{marca_cli.fontsdir(m)}", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
                         "-c:a", "copy", a.burn], check=True)
         print(f"ok -> {a.burn}")
 

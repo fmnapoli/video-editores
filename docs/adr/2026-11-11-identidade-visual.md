@@ -1,6 +1,6 @@
 # ADR-17 — Identidade visual como contrato único (`marca.json`) e extração a partir de fonte externa
 
-**Data:** 2026-11-11 · **Estado:** aprovado; **fase 1 implementada na 0.11.0**; fases 2 e 3 pendentes
+**Data:** 2026-11-11 · **Estado:** aprovado; fase 1 na 0.11.0, **fases 2 e 3 na 0.12.0**; site e Figma ficam para quando um projeto pedir
 
 ## Contexto
 
@@ -121,7 +121,7 @@ Fluxo:
 
 1. **0.11.0 — contrato.** `nucleo/marca.py`, `validar_marca.py` e prancha; `/video-docs` e `/video-animado`
    lendo a marca (inclui tela de encerramento no `/video-docs`); identidade de um cliente real convertida à mão como caso de teste.
-2. **0.11.x — demais skills.** `/videoaula`, `/legenda`, `/lettering`, `/checklist`, `/partitura`.
+2. **0.12.0 — demais skills.** `/videoaula`, `/legenda`, `/lettering`, `/checklist`, `/partitura`.
 3. **0.12.0 — extração.** Skill `/marca` com tema de PPTX/Slides, PDF e pacote de marca. Site e Figma só
    quando um projeto pedir.
 
@@ -136,6 +136,20 @@ Diferença restante: a pausa final (0,6 s na cópia, 0,8 s no plugin).
 
 Acrescentado ao contrato durante a implementação: `legenda.estilo`, `legenda.espaco_largo` e os parâmetros
 de página (`pos`, `tamanho`, `janela`, `max_palavras`), sobrescrevíveis por spec.
+
+## Resultado das fases 2 e 3 (0.12.0)
+
+- **Demais skills.** `/lettering`, `/checklist` e `/legenda` (por palavra) resolvem fonte e cores por
+  `scripts/marca_cli.py`; `/videoaula` por `marca_aula.py` (o `aula.json` continua vencendo); `/partitura` usa a
+  fonte e o fundo da marca e mantém as cores por membro, que são código de leitura. Em todas, parâmetro explícito
+  vence a marca e, sem `marca.json`, a saída é a de antes (coberto por teste).
+- **Extração.** `scripts/extrair_marca.py` + skill `/marca`: tema do Office, PDF, pacote (pasta ou zip) e tokens.
+  O script só coleta e sugere; a sugestão de papéis é heurística (no tema: `dk2`/`dk1` → fundo, `lt1` → texto,
+  `accent1` → acento; nas demais fontes: a cor escura mais saturada, a mais clara e a viva de maior contraste) e
+  vai sempre para a prancha. `--gravar-sugestao` nunca sobrescreve um `marca.json`.
+- **Fora do que foi decidido acima:** o validador ainda não escolhe a fonte substituta sozinho (o agente propõe e
+  grava em `fonte.substituta`); CMYK de PDF não é convertido (sem perfil de cor, a conversão enganaria); a fonte
+  do tema vem só como nome.
 
 ## Em aberto
 

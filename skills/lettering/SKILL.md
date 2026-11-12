@@ -31,3 +31,6 @@ Mesma escolha do `video-docs`: texto em ASS/libass, porque o ffmpeg estático n�
 
 ## Combinando com /legenda
 Queime o lettering **antes** da legenda, para a legenda ficar por cima. Ou junte os dois num filtro só: `-vf "ass=textos.ass,subtitles=IN.words.srt:force_style=..."`.
+
+## Identidade do projeto
+Havendo `marca/marca.json` (skill `/marca`), a fonte e as cores dos presets vêm dela (`titulo`, `lower` e `capa` na cor de texto, `destaque` no acento), e a fonte entra por arquivo, sem instalar, sem parâmetro extra. Parâmetro explícito vence a marca; `--marca CAMINHO` aponta outra e `--marca nao` volta ao padrão do plugin.

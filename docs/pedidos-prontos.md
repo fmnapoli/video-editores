@@ -67,7 +67,8 @@ Copie, cole no Claude Code e troque o que estiver entre `< >`. Cada pedido acion
 
 | Pedido | Skills |
 |---|---|
-| "Usa as cores, a fonte e o logo da empresa nos vídeos" | `marca/marca.json` + `validar_marca.py` (prancha para aprovar), lido por video-docs e video-animado |
+| "Usa as cores, a fonte e o logo da empresa nos vídeos" | marca (`marca/marca.json` + prancha para aprovar), lido por todas as skills |
+| "Pega a identidade desse manual de marca" / "aplica o tema dessa apresentação" / "aqui está o pacote de marca" | marca (`extrair_marca.py` → proposta → `validar_marca.py` → prancha) |
 | "Valida essa paleta e me mostra como fica" | `validar_marca.py` (contraste, fonte, logo, prancha) |
 | "Legenda com a palavra falada na cor da marca" | video-docs com `legenda.estilo: "palavra"` |
 

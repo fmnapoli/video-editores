@@ -26,3 +26,6 @@ Siga `${CLAUDE_PLUGIN_ROOT}/docs/convencoes.md`. Script: `${CLAUDE_PLUGIN_ROOT}/
 ## Combinações
 - Checklist + legenda: queime o checklist antes, a legenda por cima.
 - Som "pop" em cada item: passe os tempos impressos pelo script ao `/efeitos`.
+
+## Identidade do projeto
+Havendo `marca/marca.json` (skill `/marca`), a fonte e a cor de destaque (`--accent`) vêm dela sem parâmetro extra. Parâmetro explícito vence a marca; `--marca CAMINHO` aponta outra e `--marca nao` volta ao padrão do plugin.

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.12.0 — 2026-11-11
+Identidade visual, fases 2 e 3 do ADR-17: todas as skills leem a marca, e a skill `/marca` extrai a identidade de uma fonte externa. Sem `marca/marca.json`, a saída é a de antes.
+- **Skill `/marca`** (22ª) e **`scripts/extrair_marca.py`** (operação `extrair-marca`): lê tema de PPTX/POTX/DOCX/DOTX/XLSX (paleta com os slots do tema, fontes de título e corpo, imagens do slide mestre), manual de marca em PDF (HEX e RGB do texto com página e linha, fontes embutidas), pacote de marca em pasta ou zip (SVG, PNG, TTF/OTF com a família real, tokens JSON) e design tokens. Grava `marca/rascunho.json` com a evidência de cada candidato e uma sugestão de papéis; `--gravar-sugestao` escreve um primeiro `marca.json` sem nunca sobrescrever. O fluxo termina na prancha do `validar_marca.py`, que é o ponto de aprovação. URL é recusada: site e Figma ainda não são lidos.
+- **`/lettering`, `/checklist` e `/legenda`** (por palavra) tiram fonte e cores da marca quando o parâmetro não é passado, com a fonte entrando por arquivo (`fontsdir`), sem instalar. `--marca CAMINHO` aponta outra marca e `--marca nao` volta ao padrão. Lógica comum em `scripts/marca_cli.py`, que também imprime `force-style` e `fontsdir` para quem monta ffmpeg à mão.
+- **`/videoaula`**: `identidade.py` e `publicar_aula.py` usam cores e fonte da marca (`marca_aula.py`); `cores` e `fonte_dir` do `aula.json` continuam vencendo.
+- **`/partitura`**: fonte bold da marca nos rótulos e `fundos.cartela` como fundo do exemplo tocado quando não há `--fundo`. As cores por membro não mudam.
+- Docs: skill nova em README, skills, pedidos prontos e `/editar`; `extrair_marca.py` e `marca_cli.py` em scripts; seção "Identidade do projeto" nas skills que passaram a ler a marca; ADR-17 com o resultado das fases 2 e 3.
+- Testes: `nucleo.sh` (extração de tema, pacote em pasta e zip, PDF e tokens; sugestão aprovada pelo validador; não sobrescreve; site recusado), `smoke.sh` (marca nos scripts de texto e na videoaula), `partitura.sh` (fundo da marca).
+
 ## 0.11.0 — 2026-11-11
 Identidade visual como contrato único (ADR-17, fase 1). Sem `marca/marca.json`, a saída é a de antes.
 - **`video_editores/nucleo/marca.py`**: lê `marca/marca.json` (campo `marca` do spec > `VE_MARCA` > pasta do projeto > padrão), deriva papéis opcionais da própria marca, converte cores para ASS, ffmpeg e Pillow, resolve fonte, logo e fundos, mede contraste WCAG e propõe ajuste mínimo.

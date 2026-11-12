@@ -4,6 +4,7 @@ chips de capítulo, máscara e anel do círculo do locutor, lower third e, para 
 e a "tampa" com buraco arredondado por grupo de recorte (gera identidade/l3_geo.json para o montador).
 
 Uso: uv run --with pillow --with numpy python identidade.py aula.json
+Com marca/marca.json no projeto (ADR-17), cores e fonte padrão vêm da marca; `cores` e `fonte_dir` do aula.json vencem.
 Campos usados: cores {fundo_centro, fundo_borda, acento, destaque, texto, texto2}, fonte_dir (TTFs Inter-400/600/700/800),
 capitulos[].titulo, autor, subtitulo_autor, codigo_grupos[].{grupo, crop:[x0,y0,x1,y1]}, identidade (pasta de saída).
 """
@@ -13,11 +14,16 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 W, H = 1920, 1080
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import marca_aula  # noqa: E402
+
 cfg = json.load(open(sys.argv[1], encoding="utf-8"))
+MARCA = marca_aula.carregar(cfg)          # resolvida a partir da raiz do projeto, antes do chdir
 os.chdir(os.path.dirname(os.path.abspath(sys.argv[1])))
 OUT = cfg.get("identidade", "identidade"); os.makedirs(OUT, exist_ok=True)
-C = {"fundo_centro": "#131C33", "fundo_borda": "#0B1220", "acento": "#4B8BBE", "destaque": "#FFD43B",
-     "texto": "#F1F5F9", "texto2": "#94A3B8", **cfg.get("cores", {})}
+C = {**marca_aula.cores(MARCA, {"fundo_centro": "#131C33", "fundo_borda": "#0B1220", "acento": "#4B8BBE",
+                                 "destaque": "#FFD43B", "texto": "#F1F5F9", "texto2": "#94A3B8"}),
+     **cfg.get("cores", {})}
 def rgb(h):
     return tuple(int(h.lstrip("#")[i:i + 2], 16) for i in (0, 2, 4))
 
@@ -27,8 +33,9 @@ FD = os.path.expanduser(cfg.get("fonte_dir", "~/.local/share/fonts/inter"))
 
 
 def font(w, size):
-    for cand in (f"{FD}/Inter-{w}.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"):
-        if os.path.exists(cand): return ImageFont.truetype(cand, size)
+    da_marca = None if "fonte_dir" in cfg else marca_aula.fonte_arquivo(MARCA, w)
+    for cand in (da_marca, f"{FD}/Inter-{w}.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"):
+        if cand and os.path.exists(cand): return ImageFont.truetype(cand, size)
     return ImageFont.load_default()
 
 

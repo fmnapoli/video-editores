@@ -14,10 +14,11 @@ Saída: <itens>.ass (e --burn SAIDA.mp4). Painel à esquerda/direita com moldura
 que entram um a um e ficam até --end (padrão: fim do vídeo).
 
 Uso: checklist_ass.py VIDEO itens.json VIDEO.transcript.json [--side left|right] [--start 0] [--end FIM]
-     [--font "DejaVu Sans"] [--accent "#FF6B35"] [--burn SAIDA.mp4]
+     [--font "DejaVu Sans"] [--accent "#FF6B35"] [--marca marca.json] [--burn SAIDA.mp4]
 """
 import argparse
 import json
+import os
 import subprocess
 import sys
 import unicodedata
@@ -66,10 +67,16 @@ def main():
     ap.add_argument("--side", default="left", choices=["left", "right"])
     ap.add_argument("--start", type=float, default=None, help="quando a moldura aparece (padrão: 0,4 s antes do 1º item)")
     ap.add_argument("--end", type=float, default=None)
-    ap.add_argument("--font", default="DejaVu Sans")
-    ap.add_argument("--accent", default="#FF6B35")
+    ap.add_argument("--font", default=None, help="padrão: fonte da marca, senão DejaVu Sans")
+    ap.add_argument("--accent", default=None, help="padrão: acento da marca, senão #FF6B35")
     ap.add_argument("--burn", default=None)
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import marca_cli
+    marca_cli.add_arg(ap)
     a = ap.parse_args()
+    m = marca_cli.carregar(a.marca)
+    a.font = marca_cli.escolhe(a.font, m.fonte, "DejaVu Sans", m)
+    a.accent = marca_cli.escolhe(a.accent, m.cores["acento"], "#FF6B35", m)
 
     W, H, dur = probe(a.video)
     items = json.load(open(a.itens, encoding="utf-8"))
@@ -135,7 +142,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     print(f"ass -> {out_ass} ({len(timed)} itens: " + ", ".join(f"{it['t']:.1f}s" for it in timed) + ")")
     if a.burn:
         subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", a.video, "-vf",
-                        f"ass=filename='{ffesc(out_ass)}'", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
+                        f"ass=filename='{ffesc(out_ass)}'{marca_cli.fontsdir(m)}", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
                         "-c:a", "copy", a.burn], check=True)
         print(f"ok -> {a.burn}")
 

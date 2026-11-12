@@ -166,6 +166,19 @@ uv run --with pillow --with fonttools python scripts/validar_marca.py marca/marc
 ```
 `legenda_palavra.py --espaco-largo` dobra o espaço entre palavras para fontes de espaço estreito.
 
+## extrair_marca.py
+Coleta candidatos de identidade de uma fonte externa e grava `<out>/rascunho.json` (cores, fontes e logos com a evidência de cada um, `sugestao` de papéis, `avisos`). Aceita `.pptx/.potx/.docx/.dotx/.xlsx` (tema), `.pdf` (manual), pasta ou `.zip` (pacote de marca) e `.json` (tokens). `--gravar-sugestao` escreve um primeiro `marca.json` se não houver um (de pacote, copia logo e fontes para `<out>/`). URL é recusada: site não é lido.
+```bash
+uv run --with pillow --with fonttools --with pypdf python scripts/extrair_marca.py manual.pdf --out marca
+```
+
+## marca_cli.py
+Biblioteca dos scripts de texto (`lettering_ass.py`, `checklist_ass.py`, `legenda_palavra.py`): acrescenta `--marca` (`nao` ignora), resolve fonte e cores pela marca quando o parâmetro não foi passado e devolve o `fontsdir` para o libass. Também serve a quem monta ffmpeg à mão:
+```bash
+python3 scripts/marca_cli.py force-style    # FontName, cores e contorno no formato do filtro subtitles
+python3 scripts/marca_cli.py fontsdir       # pasta dos TTF da marca (vazio se a fonte é do sistema)
+```
+
 ## confere_saida.py (video-docs)
 Confere, para cada spec, se o `.mp4` e o `.srt` existem, se o texto do `.srt` é o das legendas do spec e se o `.mp4` é mais novo que o spec. Sai com 1 listando o que remontar. Rode ao fim de todo lote:
 ```bash

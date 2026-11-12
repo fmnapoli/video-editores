@@ -45,12 +45,15 @@ def thumbnail(cfg, aula, t, out):
     px = W - crop.width + 40; py = H - crop.height + 10
     bg.alpha_composite(sh, dest=(px, py + 16)); bg.alpha_composite(crop, dest=(px, py))
     # texto à esquerda
-    C = {"acento": "#4B8BBE", "destaque": "#FFD43B", "texto": "#F1F5F9", **cfg.get("cores", {})}
+    import marca_aula
+    MARCA = marca_aula.carregar(cfg)
+    C = {**marca_aula.cores(MARCA, {"acento": "#4B8BBE", "destaque": "#FFD43B", "texto": "#F1F5F9"}), **cfg.get("cores", {})}
     col = lambda h: tuple(int(h.lstrip("#")[i:i + 2], 16) for i in (0, 2, 4))  # noqa: E731
     FD = os.path.expanduser(cfg.get("fonte_dir", "~/.local/share/fonts/inter"))
     def font(w, size):
-        for cand in (f"{FD}/Inter-{w}.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"):
-            if os.path.exists(cand): return ImageFont.truetype(cand, size)
+        da_marca = None if "fonte_dir" in cfg else marca_aula.fonte_arquivo(MARCA, w)
+        for cand in (da_marca, f"{FD}/Inter-{w}.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"):
+            if cand and os.path.exists(cand): return ImageFont.truetype(cand, size)
         return ImageFont.load_default()
     d = ImageDraw.Draw(bg)
     if "\n" in cfg["titulo"]:

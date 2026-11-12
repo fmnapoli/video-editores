@@ -102,10 +102,10 @@ Quatro camadas (0.5.0):
 - **Decisão:** não entra como dependência nem como skill. Licença source-available (gratuita só até 3 pessoas; US$ 25/mês por pessoa que escreve código Remotion, inclusive via agente, em empresa com 4+) contraria o ADR-05 e a promessa do README; queimar legenda sobre filmagem levou 318 s contra 17,6 s do `subtitles=` do ffmpeg. Cena gerada rende em velocidade comparável ao Manim e é determinística, mas não justifica Node + 518 MB + Chrome.
 - **Consequência:** melhorias derivadas sem o Remotion: legenda paginada com palavra destacada em ASS no `/legenda` (`legenda_palavra.py`, **feito em 0.9.0**), specs JSON declarativas mantidas em toda skill. Revisitar se a licença mudar e um projeto exigir layout de texto que ASS/Manim não dão; nesse caso, skill opcional só para gráficos com alpha.
 
-### ADR-17 — Identidade visual como contrato único e extração de fonte externa (fase 1 na 0.11.0)
+### ADR-17 — Identidade visual como contrato único e extração de fonte externa (0.11.0 e 0.12.0)
 - **Contexto:** cada skill guarda cores, fonte e logo de um jeito; para usar a marca do cliente no `/video-docs`, um projeto copiou o `build.py`, e a cópia divergiu do plugin. Detalhe em `docs/adr/2026-11-11-identidade-visual.md`.
-- **Proposta:** `marca/marca.json` com papéis de cor, fonte, logo e fundos, lido por todas as skills via `nucleo/marca.py` (sem o arquivo, saída idêntica à de hoje); skill `/marca` que extrai um rascunho de tema de PPTX/Slides, manual em PDF, pacote de marca ou site, valida contraste e fonte e para numa prancha para aprovação.
-- **Estado:** contrato, validador com prancha, `/video-docs` e `/video-animado` feitos na 0.11.0 (aceite: vídeo de um projeto real remontado com SSIM 0,993 contra o montador copiado). Pendentes: demais skills (0.11.x) e extração (0.12.0).
+- **Decisão:** `marca/marca.json` com papéis de cor, fonte, logo e fundos, lido por todas as skills via `nucleo/marca.py` (sem o arquivo, saída idêntica à de hoje); skill `/marca` que extrai um rascunho de tema de PPTX/Slides, manual em PDF, pacote de marca ou site, valida contraste e fonte e para numa prancha para aprovação.
+- **Estado:** contrato, validador com prancha, `/video-docs` e `/video-animado` na 0.11.0 (aceite: vídeo de um projeto real remontado com SSIM 0,993 contra o montador copiado). Na 0.12.0, as demais skills leem a marca e a skill `/marca` extrai de tema do Office, PDF, pacote de marca e tokens. Site e Figma ficam para quando um projeto pedir.
 
 ## Fluxo de dados
 
@@ -143,7 +143,7 @@ padroes.json ─ partitura.py (MusicXML → Verovio → resvg) ─→ partituras
 - `lettering_ass.py` gera ASS e queima;
 - `proof.sh` gera os três artefatos e reprova pico real acima de −1 dBTP (código 3); `normalizar_audio.py` conserta;
 - `montar_cenas.py` fecha vídeo e áudio na duração da narração mesmo com uma cena 3 quadros curta, e usa o áudio próprio de um bloco pronto (`video` + `audio`);
-- sintaxe de todos os scripts, frontmatter dos 21 skills e manifestos JSON.
+- sintaxe de todos os scripts, frontmatter dos 22 skills e manifestos JSON.
 
 `tests/docs_offline.sh` roda o montador do `video-docs` de ponta a ponta com um stub do edge-tts (`tests/stub/edge_tts.py`), então o maior script do repositório também é coberto no CI, em Linux e macOS.
 

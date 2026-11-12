@@ -70,3 +70,6 @@ Validado em nov/2026 num curso de bateria de 19 min (12 padrões em 4/4, 5/4 e 7
 - Um padrão = um compasso repetido. Frase de 2 compassos diferentes = dois padrões (A e B) ou um `ts` dobrado; tercinas (`div` = 3) não são suportadas.
 - Só bateria. Instrumento com altura (baixo, piano) pede notação na pauta com clave e um sampler, fora desta skill; registre o pedido em vez de improvisar com a síntese de bateria.
 - Nada é "pronto" sem o `/prova`: o exemplo tocado tem bateria sintetizada com bandas de ruído, exatamente o material em que o AAC com PNS estourou o pico (por isso toda entrega do núcleo codifica com `-aac_pns 0`).
+
+## Identidade do projeto
+Havendo `marca/marca.json` (skill `/marca`), os rótulos usam a fonte bold da marca e o `tocar.py` usa `fundos.cartela` como fundo quando não há `--fundo`. As cores por membro não mudam: são código de leitura, não identidade.

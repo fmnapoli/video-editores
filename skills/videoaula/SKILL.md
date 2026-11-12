@@ -90,3 +90,6 @@ Subagentes não aceleram render: numa máquina saturada só disputam CPU. Lance 
 - Em aula: margem de corte 0,3 s, sem música sob a fala, legenda em SRT separado por padrão, −14 LUFS.
 - Correções de conteúdo (fala que contradiz a tela) viram call-out ou corte, decididos pelo autor no gate 1; nunca silenciosamente.
 - Dados pessoais na fala ou na tela (ano de nascimento, e-mail): perguntar antes de manter.
+
+## Identidade do projeto
+Havendo `marca/marca.json` (skill `/marca`), `identidade.py` e `publicar_aula.py` tiram dela as cores (`fundo` → borda, `fundo2` → centro, `acento`, `secundario` → destaque, `texto`, `texto2`) e a fonte. `cores` e `fonte_dir` no `aula.json` continuam vencendo; `"marca": false` no `aula.json` ignora a marca.

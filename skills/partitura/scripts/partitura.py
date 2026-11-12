@@ -41,9 +41,27 @@ PES = ("bd", "hf")
 TIPO = {1: "16th", 2: "eighth", 3: "eighth", 4: "quarter", 6: "quarter", 8: "half"}   # em semicolcheias
 
 
+def _marca(campo, chave):
+    """Arquivo citado em marca/marca.json (ADR-17; $VE_MARCA vence), ou None: _marca("fonte", "bold"), _marca("fundos", "cartela")."""
+    arq = os.path.expanduser(os.environ.get("VE_MARCA") or "marca/marca.json")
+    if not os.path.exists(arq):
+        return None
+    try:
+        d = json.load(open(arq, encoding="utf-8")).get(campo) or {}
+    except ValueError:
+        return None
+    rel = (d.get("arquivos") or {}).get(chave) if campo == "fonte" else d.get(chave)
+    if not rel:
+        return None
+    rel = os.path.expanduser(rel)
+    p = rel if os.path.isabs(rel) else os.path.join(os.path.dirname(os.path.abspath(arq)), rel)
+    return p if os.path.exists(p) else None
+
+
 def fonte_padrao(peso="700"):
-    """TTF para o título do cartão: Inter (se instalada), DejaVu Sans Bold ou Arial Bold; senão a fonte do Pillow."""
-    cands = [os.path.expanduser(f"~/.local/share/fonts/inter/Inter-{peso}.ttf"),
+    """TTF para o título do cartão: fonte da marca do projeto, Inter (se instalada), DejaVu Sans Bold ou Arial Bold;
+    senão a fonte do Pillow."""
+    cands = [_marca("fonte", "bold") or "", os.path.expanduser(f"~/.local/share/fonts/inter/Inter-{peso}.ttf"),
              "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
              "/Library/Fonts/Arial Bold.ttf", "/System/Library/Fonts/Supplemental/Arial Bold.ttf"]
     for c in cands:
