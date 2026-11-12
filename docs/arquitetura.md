@@ -102,6 +102,11 @@ Quatro camadas (0.5.0):
 - **Decisão:** não entra como dependência nem como skill. Licença source-available (gratuita só até 3 pessoas; US$ 25/mês por pessoa que escreve código Remotion, inclusive via agente, em empresa com 4+) contraria o ADR-05 e a promessa do README; queimar legenda sobre filmagem levou 318 s contra 17,6 s do `subtitles=` do ffmpeg. Cena gerada rende em velocidade comparável ao Manim e é determinística, mas não justifica Node + 518 MB + Chrome.
 - **Consequência:** melhorias derivadas sem o Remotion: legenda paginada com palavra destacada em ASS no `/legenda` (`legenda_palavra.py`, **feito em 0.9.0**), specs JSON declarativas mantidas em toda skill. Revisitar se a licença mudar e um projeto exigir layout de texto que ASS/Manim não dão; nesse caso, skill opcional só para gráficos com alpha.
 
+### ADR-17 — Identidade visual como contrato único e extração de fonte externa (proposto, não implementado)
+- **Contexto:** cada skill guarda cores, fonte e logo de um jeito; para usar a marca do cliente no `/video-docs`, um projeto copiou o `build.py`, e a cópia divergiu do plugin. Detalhe em `docs/adr/2026-11-11-identidade-visual.md`.
+- **Proposta:** `marca/marca.json` com papéis de cor, fonte, logo e fundos, lido por todas as skills via `nucleo/marca.py` (sem o arquivo, saída idêntica à de hoje); skill `/marca` que extrai um rascunho de tema de PPTX/Slides, manual em PDF, pacote de marca ou site, valida contraste e fonte e para numa prancha para aprovação.
+- **Estado:** aguarda aprovação do formato. Fases: contrato (0.11.0), demais skills (0.11.x), extração (0.12.0).
+
 ## Fluxo de dados
 
 ```
