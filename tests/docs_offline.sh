@@ -38,20 +38,20 @@ grep -q "overlay=" trabalho/demo2/demo2.ffmpeg.txt
 python3 "$CONF" spec2.json | grep -q '^OK'
 
 # TTS que nunca responde: o build sai com erro e o vídeo anterior fica intacto; o conferidor acusa
-antes=$(stat -c %Y saida/demo2.mp4)
+antes=$(python3 -c "import os; print(int(os.path.getmtime(\"saida/demo2.mp4\")))")
 python3 -c 'import json; s=json.load(open("spec2.json")); s["scenes"][1]["legend"][0]="Texto novo que obriga a sintetizar de novo,"; json.dump(s, open("spec2.json","w"), ensure_ascii=False)'
 if PYTHONPATH="$ROOT/tests/stub" VE_STUB_EDGE_FALHAS=9 VE_TTS_ESPERA=0 uv run --quiet --with pillow python "$ROOT/skills/video-docs/scripts/build.py" spec2.json >/dev/null 2>&1; then
   echo "build deveria falhar com o TTS fora"; exit 1
 fi
-[[ $(stat -c %Y saida/demo2.mp4) == "$antes" ]] && test ! -e trabalho/demo2/demo2.parcial.mp4
+[[ $(python3 -c "import os; print(int(os.path.getmtime(\"saida/demo2.mp4\")))") == "$antes" ]] && test ! -e trabalho/demo2/demo2.parcial.mp4
 if python3 "$CONF" spec2.json >conf.txt; then echo "conferidor deveria acusar"; exit 1; fi
 grep -q '^REFAZER  demo2' conf.txt
 
 # identidade (ADR-17): sem marca.json, duas montagens dão os mesmos quadros (gradiente com semente fixa)
 B="$ROOT/skills/video-docs/scripts/build.py"
-h1=$(ffmpeg -v error -i saida/demo.mp4 -map 0:v -f framemd5 - | md5sum)
+h1=$(ffmpeg -v error -i saida/demo.mp4 -map 0:v -f framemd5 - | cksum)
 PYTHONPATH="$ROOT/tests/stub" uv run --quiet --with pillow python "$B" spec.json >/dev/null
-[[ "$h1" == "$(ffmpeg -v error -i saida/demo.mp4 -map 0:v -f framemd5 - | md5sum)" ]] || { echo "montagem sem marca não é determinística"; exit 1; }
+[[ "$h1" == "$(ffmpeg -v error -i saida/demo.mp4 -map 0:v -f framemd5 - | cksum)" ]] || { echo "montagem sem marca não é determinística"; exit 1; }
 grep -q '356BFF' trabalho/demo/demo.ass && d0=$(ffprobe -v error -show_entries format=duration -of csv=p=0 saida/demo.mp4)
 # com marca/marca.json: cores e fonte da marca no ASS, logo na cartela, encerramento de 3 s, legenda por palavra
 mkdir -p marca && cp logo.png marca/logo.png
