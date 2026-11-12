@@ -1,6 +1,7 @@
 .PHONY: test lint doctor docs-example
 
-test:            ## teste de fumaça (ffmpeg + python3) + núcleo (CLI, modelos, tarefas, MCP) + partitura (uv)
+test:            ## versão + teste de fumaça (ffmpeg + python3) + núcleo (CLI, modelos, tarefas, MCP) + partitura (uv)
+	bash tests/versao.sh
 	bash tests/smoke.sh
 	bash tests/nucleo.sh
 	bash tests/partitura.sh

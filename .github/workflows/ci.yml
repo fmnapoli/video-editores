@@ -7,6 +7,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # histórico e tags para o tests/versao.sh
+      - name: versão (pyproject, __init__, plugin.json, CHANGELOG e tags)
+        run: bash tests/versao.sh
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-dejavu-core shellcheck
       - uses: astral-sh/setup-uv@v5
       - name: shellcheck
