@@ -214,9 +214,10 @@ pass "catálogo: todos os scripts existem; comando com uv/--with, bash e python"
 STUB_PIDS=()
 sobe_stub() {  # sobe_stub NOME [args]: servidor falso numa porta livre; URL em $URL. Não chamar dentro de $(...):
   local d="$T/comfy-$1"; mkdir -p "$d"; shift  # o PID precisa chegar ao trap deste shell
-  (cd "$d" && exec python3 "$ROOT/tests/stub/comfyui_servidor.py" porta "$@") >/dev/null 2>&1 &
-  STUB_PIDS+=($!)
-  for _ in $(seq 50); do [[ -s "$d/porta" ]] && break; sleep 0.1; done
+  (cd "$d" && exec python3 "$ROOT/tests/stub/comfyui_servidor.py" porta "$@") >"$d/log" 2>&1 &
+  local pid=$!; STUB_PIDS+=("$pid")
+  for _ in $(seq 300); do [[ -s "$d/porta" ]] && break; kill -0 "$pid" 2>/dev/null || break; sleep 0.1; done
+  [[ -s "$d/porta" ]] || { echo "servidor ComfyUI falso ($d) não subiu:"; cat "$d/log"; exit 1; }
   URL="http://127.0.0.1:$(cat "$d/porta")"
 }
 trap 'kill "${STUB_PIDS[@]}" 2>/dev/null || true; rm -rf "$T"' EXIT

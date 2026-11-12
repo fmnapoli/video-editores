@@ -97,6 +97,7 @@ def vigia(pai):
 
 threading.Thread(target=vigia, args=(os.getppid(),), daemon=True).start()
 srv = ThreadingHTTPServer(("127.0.0.1", 0), H)
-with open(sys.argv[1], "w") as f:
+with open(sys.argv[1] + ".tmp", "w") as f:  # rename atômico: quem espera nunca lê o arquivo pela metade
     f.write(str(srv.server_address[1]))
+os.replace(sys.argv[1] + ".tmp", sys.argv[1])
 srv.serve_forever()
