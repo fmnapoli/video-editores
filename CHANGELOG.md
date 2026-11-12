@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.12.1 — 2026-11-12
+- **`render-docs.sh` acusava "fonte DejaVu Sans Bold ausente" com a fonte instalada**, de forma intermitente: com `pipefail`, o `grep -q` fecha o pipe no primeiro acerto e o `fc-list` termina por SIGPIPE, o que derruba o teste. A checagem passou a ler de here-string. Aparece mais em máquina com muitas fontes instaladas.
+
 ## 0.12.0 — 2026-11-11
 Identidade visual, fases 2 e 3 do ADR-17: todas as skills leem a marca, e a skill `/marca` extrai a identidade de uma fonte externa. Sem `marca/marca.json`, a saída é a de antes.
 - **Skill `/marca`** (22ª) e **`scripts/extrair_marca.py`** (operação `extrair-marca`): lê tema de PPTX/POTX/DOCX/DOTX/XLSX (paleta com os slots do tema, fontes de título e corpo, imagens do slide mestre), manual de marca em PDF (HEX e RGB do texto com página e linha, fontes embutidas), pacote de marca em pasta ou zip (SVG, PNG, TTF/OTF com a família real, tokens JSON) e design tokens. Grava `marca/rascunho.json` com a evidência de cada candidato e uma sugestão de papéis; `--gravar-sugestao` escreve um primeiro `marca.json` sem nunca sobrescrever. O fluxo termina na prancha do `validar_marca.py`, que é o ponto de aprovação. URL é recusada: site e Figma ainda não são lidos.

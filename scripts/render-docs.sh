@@ -15,7 +15,8 @@ command -v ffprobe >/dev/null || die "ffprobe não encontrado"
 grep -qE '^ ... (ass|subtitles) ' <<<"$(ffmpeg -hide_banner -filters 2>/dev/null)" \
   || die "este ffmpeg não tem libass (filtros ass/subtitles). Linux: ffmpeg do apt. macOS: brew install ffmpeg-full e use \$(brew --prefix ffmpeg-full)/bin/ffmpeg."
 if command -v fc-list >/dev/null; then
-  fc-list 2>/dev/null | grep -qi "DejaVuSans-Bold\|DejaVu Sans:style=Bold" \
+  # here-string, não pipe: com pipefail, o grep -q fecha o pipe cedo e o fc-list morre de SIGPIPE (falso "ausente")
+  grep -qi "DejaVuSans-Bold\|DejaVu Sans:style=Bold" <<<"$(fc-list 2>/dev/null)" \
     || die "fonte DejaVu Sans Bold ausente: apt install fonts-dejavu-core | brew install --cask font-dejavu"
 fi
 
