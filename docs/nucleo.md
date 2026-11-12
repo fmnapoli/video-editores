@@ -32,10 +32,21 @@ Scripts Python com dependências rodam com `uv run --with …` (isolado); `--dir
 |---|---|---|
 | `transcrever`, `tomadas`, `montar-trechos`, `destaques` | `scripts/transcribe.py`, `takes.py`, `render_spans.sh`, `highlights.py` | legenda, tomada, destaques |
 | `lettering`, `checklist`, `texto-atras`, `prova`, `doctor` | `scripts/lettering_ass.py`, `checklist_ass.py`, `text_behind.py`, `proof.sh`, `doctor.sh` | lettering, checklist, texto-atras, prova |
-| `docs-render` | `scripts/render-docs.sh` | video-docs |
+| `docs-render`, `docs-conferir` | `scripts/render-docs.sh`, `skills/video-docs/scripts/confere_saida.py` | video-docs |
+| `validar-marca` | `scripts/validar_marca.py` | identidade (video-docs, video-animado) |
 | `cenas-tts`, `cenas-montar`, `cenas-folha` | `skills/video-animado/scripts/*` | video-animado |
 | `partitura`, `partitura-tocar` | `skills/partitura/scripts/partitura.py`, `tocar.py` | partitura |
 | `aula-*` (cenas-modo, layout, remap, identidade, recorte, recorte-paralelo, render-cenas, montar, legenda, finalizar, publicar) | `skills/videoaula/scripts/*` | videoaula |
+
+## Identidade visual (`nucleo/marca.py`)
+
+`video_editores.nucleo.marca.carregar(explicito=None, base=".")` devolve a marca do projeto: caminho explícito
+(campo `marca` do spec, `--marca`) > `$VE_MARCA` > `marca/marca.json` > padrão do plugin (`definida = False`).
+Converte para cada motor (`ass()`, `ass_bgr()`, `ffcor()`, `rgb()`), resolve arquivos (`logo()`, `fundo()`,
+`fonte_arquivo()`, `fontes_dir()` para o `fontsdir` do libass) e mede contraste (`contraste()`,
+`ajustar_contraste()`). Papel de cor opcional ausente deriva da própria marca (`fundo2` = `fundo`,
+`secundario` = `acento`, `texto2` = `texto`). Formato e regras no ADR-17. Hoje leem a marca: `/video-docs`
+(`build.py`) e `/video-animado` (`cena_base.py`); as demais skills entram na 0.11.x.
 
 ## Modelos de IA trocáveis
 

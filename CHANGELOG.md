@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.11.0 — 2026-11-11
+Identidade visual como contrato único (ADR-17, fase 1). Sem `marca/marca.json`, a saída é a de antes.
+- **`video_editores/nucleo/marca.py`**: lê `marca/marca.json` (campo `marca` do spec > `VE_MARCA` > pasta do projeto > padrão), deriva papéis opcionais da própria marca, converte cores para ASS, ffmpeg e Pillow, resolve fonte, logo e fundos, mede contraste WCAG e propõe ajuste mínimo.
+- **`scripts/validar_marca.py`** (operação `validar-marca`): erros de contraste (texto < 7, acento < 3 sobre o fundo), fonte sem glifos do português, arquivo ausente; avisos de acento que some em tela clara, logo pequeno, fonte substituta. Gera a **prancha** de aprovação (cartela, faixa, destaque e legenda sobre claro e escuro, encerramento, paleta, tipografia). Nunca altera a cor oficial: só propõe.
+- **`/video-docs` lê a marca**: cores, fonte (por arquivo, via `fontsdir`, sem instalar), fundo e logo da cartela, logo da faixa, **tela de encerramento** com o logo (`"encerramento": false` desliga) e **legenda por palavra** dentro do montador (`legenda.estilo: "palavra"`, com `pos`, `tamanho`, `janela`, `max_palavras`, `caixa`, `espaco_largo`). O `palavras.transcript.json` passa a cobrir também as cenas com `tts` próprio (tempo repartido por bloco).
+- **`/video-animado`**: o `cena_base.py` lê fonte, cores, fundo e logo do `marca.json` e registra a fonte no Pango.
+- `legenda_palavra.py --espaco-largo` (fonte de espaço estreito); `pronuncia.py` não troca termo colado depois de ponto (extensão de arquivo: "arquivo .log").
+- Gradiente da cartela com semente fixa: duas montagens do mesmo spec dão os mesmos quadros.
+- Aceite: vídeo de um projeto real remontado com o plugin + `marca.json` contra o montador copiado do projeto: SSIM médio 0,993 em 2.520 quadros. O montador copiado deixa de ser necessário.
+- Docs: guia do video-docs (identidade, pastas, lote, faixa do navegador), solução de problemas (tabela do `/video-docs` com os sintomas da 0.10.0 e da 0.11.0), pedidos prontos (regravação, identidade), convenções (pasta `marca/`), núcleo, instalação, skills e README.
+- Testes: `nucleo.sh` (marca e validador), `smoke.sh` (espaço largo, extensão no glossário), `docs_offline.sh` (determinismo sem marca, marca com legenda por palavra e encerramento, `legenda` e `encerramento` no spec, `"marca": false`).
+
 ## 0.10.0 — 2026-11-11
 Lições da regravação de um vídeo de ação já publicado (video-docs, curso de produto) e da comparação com o montador de projeto que tinha divergido do plugin.
 - **`build.py` do video-docs encerra quando o TTS falha** (3 tentativas, `VE_TTS_ESPERA`) e grava o `.mp4` em `trabalho/`, trocando `.mp4` e `.srt` de `out_dir` só no fim. Antes, um lote com o edge-tts fora deixou o vídeo com a narração antiga no lugar, parecendo atualizado.

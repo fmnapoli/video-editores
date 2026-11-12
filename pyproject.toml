@@ -1,6 +1,6 @@
 [project]
 name = "video-editores"
-version = "0.10.0"
+version = "0.11.0"
 description = "Núcleo de edição de vídeo por IA local (transcrição, recorte de pessoa, montagem, legenda) com CLI e servidor MCP; usado pelas skills do plugin video-editores."
 readme = "README.md"
 license = "MIT"

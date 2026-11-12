@@ -8,7 +8,7 @@ mesma velocidade e o mesmo determinismo do `subtitles=`; nada é renderizado qua
 Uso: legenda_palavra.py VIDEO IN.transcript.json [--ass SAIDA.ass] [--burn SAIDA.mp4]
        [--janela 1.5] [--max-palavras 5] [--max-chars AUTO] [--pausa 0.6]
        [--modo atual|preenche] [--pos 0.68|0.86] [--tamanho 0.05] [--font "Montserrat"]
-       [--cor #FFFFFF] [--destaque #FACC15] [--caixa] [--maiusculas] [--correcoes correcoes.json]
+       [--cor #FFFFFF] [--destaque #FACC15] [--caixa] [--maiusculas] [--espaco-largo] [--correcoes correcoes.json]
 
 Entrada: `<nome>.transcript.json` do transcribe.py (segments[].words[] com start/end) ou um .srt com um cue por palavra.
 Saídas: o .ass e um `.paginas.txt` com cada página e seus tempos, para revisar o texto antes de queimar.
@@ -108,7 +108,7 @@ def equilibra(pags, janela, max_chars, pausa):
         b.insert(0, a.pop())
 
 
-def texto_pagina(p, modo, cor, dest, maiusculas):
+def texto_pagina(p, modo, cor, dest, maiusculas, sep=" "):
     t0 = p["start"]
     partes = []
     for i, w in enumerate(p["palavras"]):
@@ -122,7 +122,7 @@ def texto_pagina(p, modo, cor, dest, maiusculas):
             partes.append(f"{{\\1c{dest}\\t({b},{b},\\1c{cor})}}{txt}")
         else:
             partes.append(f"{{\\1c{cor}\\t({a},{a},\\1c{dest})\\t({b},{b},\\1c{cor})}}{txt}")
-    return " ".join(partes)
+    return sep.join(partes)
 
 
 def main():
@@ -143,6 +143,8 @@ def main():
     ap.add_argument("--destaque", default="#FACC15")
     ap.add_argument("--caixa", action="store_true", help="caixa translúcida atrás do texto em vez de contorno")
     ap.add_argument("--maiusculas", action="store_true")
+    ap.add_argument("--espaco-largo", action="store_true",
+                    help="espaço duplo entre palavras, para fonte de espaço estreito em que elas grudam")
     ap.add_argument("--correcoes", help="JSON {errado: certo}")
     a = ap.parse_args()
 
@@ -164,8 +166,9 @@ def main():
         estilo = f"Style: Palavra,{a.font},{px},{primaria},{cor},&H00000000,&H80000000,1,0,0,0,100,100,0,0,1,{max(2, px // 12)},0,5,{margem},{margem},10,1"
     pos = a.pos if a.pos is not None else (0.68 if H > W else 0.86)
     X, Y = W // 2, int(H * pos)
+    sep = "\\h " if a.espaco_largo else " "   # \h = espaço rígido do ASS, somado ao espaço comum
     linhas = [f"Dialogue: 0,{t(p['start'])},{t(p['end'])},Palavra,,0,0,0,,{{\\an5\\pos({X},{Y})}}"
-              f"{texto_pagina(p, a.modo, cor, dest, a.maiusculas)}" for p in pags]
+              f"{texto_pagina(p, a.modo, cor, dest, a.maiusculas, sep)}" for p in pags]
     ass = f"""[Script Info]
 ScriptType: v4.00+
 PlayResX: {W}

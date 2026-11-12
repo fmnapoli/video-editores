@@ -48,6 +48,48 @@ except SystemExit:
 PY
 pass "ffmpeg.codec_video: libx264 padrão, NVENC por VE_ENCODER, valor inválido aborta"
 
+# identidade visual (ADR-17): resolução, papéis derivados, conversões, contraste, erros
+mkdir -p marca && ffmpeg -v error -y -f lavfi -i color=c=white:s=283x81:d=0.1 -frames:v 1 marca/logo.png
+python3 - <<'PY'
+import json, os
+from video_editores.nucleo import marca as M
+assert M.carregar(base="vazio").definida is False and M.carregar().cores["acento"] == "#FF6B35"
+json.dump({"nome": "Teste", "cores": {"fundo": "#002233", "acento": "#00DBFF", "texto": "#FFFFFF"},
+           "logo": {"png": "logo.png"}, "legenda": {"estilo": "palavra"}}, open("marca/marca.json", "w"))
+m = M.carregar()
+assert m.definida and m.nome == "Teste" and m.logo("png").endswith("marca/logo.png") and not m.problemas()
+assert m.cores["fundo2"] == "#002233" and m.cores["secundario"] == "#00DBFF" and m.cores["texto2"] == "#FFFFFF", "opcional deriva da marca"
+assert m.fonte == "DejaVu Sans" and m.fontes_dir() is None and m.legenda["estilo"] == "palavra" and m.legenda["caixa"] is True
+assert M.ass("#00DBFF") == "&H00FFDB00&" and M.ass("#002233", 0x14) == "&H14332200&" and M.ffcor("#002233") == "0x002233"
+assert M.rgb("#00DBFF") == (0, 219, 255) and m.cor("acento") == "#00DBFF" and m.cor("#FACC15") == "#FACC15"
+assert round(M.contraste("#FFFFFF", "#000000")) == 21 and 16 < M.contraste("#FFFFFF", "#002233") < 17
+aj = M.ajustar_contraste("#335577", "#002233", 7)
+assert aj != "#335577" and M.contraste(aj, "#002233") >= 7 and M.ajustar_contraste("#FFFFFF", "#002233", 7) == "#FFFFFF"
+assert M.carregar(False).definida is False, "marca: false força o padrão"
+os.environ["VE_MARCA"] = "nao-existe.json"; assert M.carregar().nome == "Teste"; del os.environ["VE_MARCA"]
+json.dump({"cores": {"fundo": "azul", "texto": "#FFFFFF"}, "logo": {"png": "sumiu.png"}, "legenda": {"estilo": "x"}}, open("ruim.json", "w"))
+p = M.carregar("ruim.json", estrito=False).problemas()
+assert any("acento" in x for x in p) and any("#RRGGBB" in x for x in p) and any("sumiu.png" in x for x in p) and any("estilo" in x for x in p), p
+for ruim in ("ruim.json", "nao-existe.json"):
+    try:
+        M.carregar(ruim); raise AssertionError(ruim)
+    except SystemExit:
+        pass
+PY
+uv run --quiet --with pillow --with fonttools python "$ROOT/scripts/validar_marca.py" marca/marca.json --gravar >val.json
+python3 - <<'PY'
+import json
+v = json.load(open("val.json")); m = json.load(open("marca/marca.json"))
+assert not v["erros"] and v["contraste"]["texto_fundo"] > 16 and m["contraste"]["acento_fundo"] > 9, v
+assert any("tela clara" in a for a in v["avisos"]) and any("pequeno para o encerramento" in a for a in v["avisos"]), v["avisos"]
+PY
+test -s marca/prancha.png
+python3 -c 'import json; json.dump({"cores": {"fundo": "#002233", "acento": "#113355", "texto": "#8899AA"}}, open("fraca.json", "w"))'
+if uv run --quiet --with pillow --with fonttools python "$ROOT/scripts/validar_marca.py" fraca.json --sem-prancha >fraca.out; then echo "validador deveria reprovar contraste"; exit 1; fi
+python3 -c 'import json; v=json.load(open("fraca.out")); assert len(v["ajustes_propostos"]) == 2 and len(v["erros"]) == 2, v'
+rm -rf marca
+pass "marca: resolução (spec > VE_MARCA > marca/), papéis derivados, conversões, contraste e ajuste proposto, validador e prancha"
+
 # áudio: normalização com teto de pico real (fala simulada: senoide baixa + um estalo a fundo de escala a cada 2 s,
 # o degrau de junção que o loudnorm linear amplificava)
 ffmpeg -v error -y -f lavfi -i "aevalsrc=0.05*sin(2*PI*300*t)+if(lt(mod(t\,2)\,0.005)\,0.99\,0):s=48000:d=8" -c:a pcm_s16le cliques.wav

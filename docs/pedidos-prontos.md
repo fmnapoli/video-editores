@@ -59,6 +59,17 @@ Copie, cole no Claude Code e troque o que estiver entre `< >`. Cada pedido acion
 | "Transforma as gravações em `originais/` em vídeos de documentação, um por ação" | video-docs (inventário → roteiros → piloto → lote) |
 | "Transcreve e inventaria o que tem nessas gravações" | video-docs (etapa 1) |
 | "Revisa a narração contra o código em `<pasta>`" | video-docs (revisão de coerência) |
+| "Chegou gravação nova dessa ação: refaz o vídeo e substitui o publicado" | video-docs (regravação: backup, remedir destaques, `confere_saida.py`) |
+| "Cobre a barra do navegador e o nome do cliente em todas as cenas" | video-docs (`chrome.band`, `chrome.client`) |
+| "Confere se todos os vídeos do lote estão atualizados" | video-docs (`confere_saida.py`) |
+
+## Identidade do cliente
+
+| Pedido | Skills |
+|---|---|
+| "Usa as cores, a fonte e o logo da empresa nos vídeos" | `marca/marca.json` + `validar_marca.py` (prancha para aprovar), lido por video-docs e video-animado |
+| "Valida essa paleta e me mostra como fica" | `validar_marca.py` (contraste, fonte, logo, prancha) |
+| "Legenda com a palavra falada na cor da marca" | video-docs com `legenda.estilo: "palavra"` |
 
 ## Revisão e entrega
 

@@ -69,6 +69,9 @@ numerada da seção TTS; `legend` = blocos daquela cena, preservando o `\n` inte
   }
  ],
  "srt_dir": "legendas", "roteiro_dir": "roteiros",   // opcionais
+ "marca": "marca/marca.json",                        // opcional: identidade (padrão: marca/marca.json se existir; false = visual do plugin)
+ "legenda": {"estilo": "palavra"},                   // opcional: sobrescreve "legenda" da marca (bloco | palavra, pos, tamanho, janela, max_palavras, caixa, espaco_largo)
+ "encerramento": false,                              // opcional: sem a tela final com o logo (só existe quando a marca tem logo.png)
  "chrome": {"band": 100, "logo": "marca/logo.png",   // opcional: faixa opaca sobre a barra do navegador
             "client": [x,y,w,h], "client_label": "cliente de teste"},  // tarja fixa em todas as cenas
  "chrome_src": {"b": {"band": 0, "client": null}}    // opcional: ajuste por fonte
@@ -95,6 +98,36 @@ numerada da seção TTS; `legend` = blocos daquela cena, preservando o `\n` inte
   tela (sem o seletor, ou com algo útil ali), ponha `"no_client": true` nela; **confira a última cena**:
   foi lá que, numa regravação, o cliente ficou à mostra porque a tela mudou de layout. `chrome_src`
   ajusta por fonte (ex.: um terminal gravado sem navegador: `{"band": 0, "client": null}`).
+
+## Identidade visual (marca)
+
+O montador não tem mais cor, fonte nem logo para editar no código: tudo vem de `marca/marca.json` na raiz do
+projeto (formato no ADR-17, `docs/adr/2026-11-11-identidade-visual.md`). Sem o arquivo, o visual é o padrão do
+plugin. **Nunca copie o `build.py` para trocar a identidade**: a cópia diverge do plugin em dias.
+
+```json
+{"nome": "Cliente",
+ "cores": {"fundo": "#002233", "acento": "#00DBFF", "texto": "#FFFFFF"},
+ "fonte": {"familia": "Cliente Sans", "arquivos": {"bold": "fontes/ClienteSans-Bold.ttf"}},
+ "logo": {"png": "logo.png"},
+ "fundos": {"cartela": "bg.png", "encerramento": "bg.png"},
+ "legenda": {"estilo": "palavra", "destaque": "acento", "caixa": false}}
+```
+
+O que a marca muda no vídeo: cor dos destaques, barras e chips (`acento`); fundo dos balões e da faixa
+(`fundo`); fonte de tudo, inclusive da legenda (com `arquivos`, a fonte nem precisa estar instalada); fundo e
+logo da cartela; logo da faixa do navegador; tela de encerramento de 3 s com o logo e o subtítulo; e o estilo
+da legenda (`bloco` = SRT queimado; `palavra` = página com a palavra falada na cor de destaque). O `.srt` de
+entrega sai igual nos dois estilos.
+
+Antes do primeiro render com uma marca nova, valide e **mostre a prancha** (gate):
+
+    uv run --with pillow --with fonttools python <plugin>/scripts/validar_marca.py marca/marca.json --gravar
+
+Erro (contraste de texto ou de acento sobre o fundo, fonte sem acentos) bloqueia e vem com a cor proposta;
+a cor oficial só muda com aprovação. Aviso comum: acento claro some em interface branca; nesses projetos use
+`"focus": true` nos destaques. Fonte de espaço estreito gruda as palavras na legenda por palavra:
+`"legenda": {"espaco_largo": true}`.
 
 ## Regras de corte
 

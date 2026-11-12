@@ -71,7 +71,17 @@ PY
 test -s out_palavra.mp4
 python3 "$S/legenda_palavra.py" in.mp4 pal.transcript.json --modo preenche --caixa --ass k.ass >/dev/null
 grep -q '\\k' k.ass && grep -q "^Style: Palavra,Montserrat,96,&H0015CCFA&,&H00FFFFFF&,&H90000000,&H90000000,1,0,0,0,100,100,0,0,3," k.ass
-pass "legenda_palavra.py: páginas por janela/pausa/nº de palavras, órfã equilibrada, destaque por palavra, correções, karaokê e caixa"
+python3 "$S/legenda_palavra.py" in.mp4 pal.transcript.json --espaco-largo --ass el.ass >/dev/null
+grep -q '\\h {' el.ass && ! grep -q '\\h {' k.ass
+python3 - "$ROOT/skills/video-docs/scripts" <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1])
+import pronuncia
+g = {"log": "lógui", ".bak": "ponto béqui", "deploy": "diplói"}
+assert pronuncia.apply("Um dia de log no arquivo .log e no .bak. Deploy feito.", g) == \
+    "Um dia de lógui no arquivo .log e no ponto béqui. diplói feito.", pronuncia.apply("Um dia de log no arquivo .log e no .bak. Deploy feito.", g)
+PY
+pass "legenda_palavra.py: páginas por janela/pausa/nº de palavras, órfã equilibrada, destaque por palavra, correções, karaokê, caixa e espaço largo; glossário não troca extensão de arquivo"
 
 bash "$S/proof.sh" out_lettering.mp4 8 >/dev/null
 test -s out_lettering.proof.jpg && test -s out_lettering.preview.mp4 && grep -q "quadros da folha" out_lettering.proof.txt

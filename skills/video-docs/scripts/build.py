@@ -38,8 +38,24 @@ Scene duration = max(footage, narration + lead + tail); shortfall becomes a free
 """
 import asyncio, hashlib, json, math, os, re, shutil, subprocess, sys, time, unicodedata
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import pathlib  # noqa: E402
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
 import pronuncia  # noqa: E402
+
+
+def _raiz_pacote(arquivo):
+    """Primeira pasta acima do script que contém video_editores/ (raiz do checkout ou site-packages da roda)."""
+    for d in pathlib.Path(arquivo).resolve().parents:
+        if (d / "video_editores" / "__init__.py").is_file():
+            return str(d)
+    return str(pathlib.Path(arquivo).resolve().parents[3])
+
+
+RAIZ = os.environ.get("VE_PKG_DIR") or _raiz_pacote(__file__)
+sys.path.insert(0, RAIZ)
+from video_editores.nucleo import marca as marca_mod  # noqa: E402
 
 
 def ffesc(p):
@@ -50,6 +66,7 @@ def ffesc(p):
 
 W, H, FPS = 1280, 720, 30
 TITLE_DUR = 3.2
+END_DUR = 3.0   # tela de encerramento com o logo; só existe quando a marca tem logo
 TTS_LEAD, TTS_TAIL, TAIL_HOLD = 0.25, 0.35, 0.8
 FIT_CAP, FIT_SLACK, SLOW_MIN = 2.2, 1.2, 0.7
 VOICE = "pt-BR-ThalitaMultilingualNeural"  # pronuncia termos em inglês nativamente
@@ -83,9 +100,37 @@ ACCENT_BGR = "356BFF"
 INK = "&H142A170F&"           # navy 0F172A, 92% opaco
 INK_SOFT = "&H402A170F&"
 DIM = "&H8C000000&"           # preto 45% opaco
-LEGEND_STYLE = (f"FontName={FONT_NAME},FontSize=11,Bold=1,PrimaryColour=&H00FFFFFF,"
-                "OutlineColour=&H00000000,BackColour=&H78000000,BorderStyle=3,Outline=2,"
-                "Shadow=0,MarginV=18,Alignment=2")
+TEXT = "&H00FFFFFF"            # texto de balões, chips e título (estilo ASS, sem & final)
+SUB = "&H00E2E8F0"             # subtítulo da cartela
+
+
+def legend_style():
+    return (f"FontName={FONT_NAME},FontSize=11,Bold=1,PrimaryColour=&H00FFFFFF,"
+            "OutlineColour=&H00000000,BackColour=&H78000000,BorderStyle=3,Outline=2,"
+            "Shadow=0,MarginV=18,Alignment=2")
+
+
+def aplica_marca(m):
+    """Troca as constantes de identidade pelas da marca (ADR-17). Sem marca definida, nada muda."""
+    global FONT, FONT_NAME, ACCENT, ACCENT_BGR, INK, INK_SOFT, TEXT, SUB
+    if not m.definida:
+        return
+    c = m.cores
+    ACCENT, ACCENT_BGR = marca_mod.ass(c["acento"]), marca_mod.ass_bgr(c["acento"])
+    INK, INK_SOFT = marca_mod.ass(c["fundo"], 0x14), marca_mod.ass(c["fundo"], 0x40)
+    TEXT = marca_mod.ass(c["texto"]).rstrip("&")
+    SUB = marca_mod.ass(c["acento"]).rstrip("&")
+    FONT_NAME = m.fonte
+    arq = m.fonte_arquivo("bold")
+    if arq:
+        FONT = arq
+    else:   # fonte do sistema: acha o arquivo pelo fontconfig, para medir o texto dos balões
+        try:
+            out = subprocess.run(["fc-match", "-f", "%{file}", f"{FONT_NAME}:bold"],
+                                 capture_output=True, text=True, check=True).stdout.strip()
+            FONT = out or FONT
+        except (OSError, subprocess.CalledProcessError):
+            pass
 SAFE_TOP, SAFE_BOTTOM = 104, 630   # browser chrome / legend zone
 
 try:
@@ -240,7 +285,8 @@ def ass_ts(t):
 
 
 # ---------------- ASS drawing ----------------
-ASS_HEAD = f"""[Script Info]
+def ass_head():
+    return f"""[Script Info]
 ScriptType: v4.00+
 PlayResX: {W}
 PlayResY: {H}
@@ -250,10 +296,10 @@ ScaledBorderAndShadow: yes
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
 Style: Shape,{FONT_NAME},20,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,7,0,0,0,1
-Style: Balloon,{FONT_NAME},21,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,1,0,0,0,100,100,0,0,1,0,0,5,0,0,0,1
-Style: Chip,{FONT_NAME},17,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,1,0,0,0,100,100,0,0,1,0,0,4,0,0,0,1
-Style: Title,{FONT_NAME},48,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,1,0,0,0,100,100,0,0,1,0,0,4,0,0,0,1
-Style: Sub,{FONT_NAME},26,&H00E2E8F0,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,4,0,0,0,1
+Style: Balloon,{FONT_NAME},21,{TEXT},&H000000FF,&H00000000,&H00000000,1,0,0,0,100,100,0,0,1,0,0,5,0,0,0,1
+Style: Chip,{FONT_NAME},17,{TEXT},&H000000FF,&H00000000,&H00000000,1,0,0,0,100,100,0,0,1,0,0,4,0,0,0,1
+Style: Title,{FONT_NAME},48,{TEXT},&H000000FF,&H00000000,&H00000000,1,0,0,0,100,100,0,0,1,0,0,4,0,0,0,1
+Style: Sub,{FONT_NAME},26,{SUB},&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,0,0,4,0,0,0,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -382,6 +428,13 @@ def title_evs(title, subtitle):
 
 
 
+def end_evs(t0, subtitle):
+    """Encerramento: logo centralizado (overlay no ffmpeg) e a linha do produto embaixo."""
+    if not subtitle:
+        return []
+    return [ev(4, t0 + 0.4, t0 + END_DUR, "Sub", f"{{\\an8\\pos({W/2:.0f},420)\\fad(300,0)}}{subtitle}")]
+
+
 def mmss(x):
     return f"{int(x)//60:02d}:{int(x)%60:02d}" + (f".{int(round((x-int(x))*10))}" if abs(x-int(x))>=0.05 else "")
 
@@ -493,6 +546,14 @@ def main(spec_path):
     voice = spec.get("voice", VOICE)
     gloss = pronuncia.load(spec.get("glossary"), voice=voice)
     os.makedirs(out_dir, exist_ok=True); os.makedirs(work, exist_ok=True)
+    # identidade (ADR-17): "marca" no spec (caminho; false = padrão do plugin) > $VE_MARCA > marca/marca.json
+    m = marca_mod.carregar(spec.get("marca"), base=".")
+    aplica_marca(m)
+    logo_png = m.logo("png") if m.definida else None
+    fim = END_DUR if (logo_png and spec.get("encerramento", True)) else 0.0
+    leg = dict(m.legenda, **spec.get("legenda", {}))
+    if leg.get("estilo", "bloco") not in ("bloco", "palavra"):
+        raise SystemExit("legenda.estilo deve ser 'bloco' ou 'palavra'")
     scenes = spec["scenes"]
     N = len(scenes)
     OW, OH = spec.get("size", [W, H])  # saída; coordenadas/ASS seguem em 1280x720 e o libass escala
@@ -529,7 +590,8 @@ def main(spec_path):
         for s, e, v in clips:
             sc["clip_out"].append((s, e, v, o)); o += (e - s) / v
         t += sc["dur"]
-    total = t + TAIL_HOLD
+    content_end = t + TAIL_HOLD
+    total = content_end + fim
 
     avisos = valida(spec, scenes)
     for a in avisos:
@@ -549,7 +611,8 @@ def main(spec_path):
     srt, n = [], 0
     for sc in scenes:
         if sc.get("legend") and sc["td"]:
-            for s, e, txt in legend_cues(sc["legend"], sc["tts_spoken"], sc["words"], sc["t0"] + TTS_LEAD):
+            sc["cues"] = legend_cues(sc["legend"], sc["tts_spoken"], sc["words"], sc["t0"] + TTS_LEAD)
+            for s, e, txt in sc["cues"]:
                 n += 1
                 srt.append(f"{n}\n{srt_ts(s)} --> {srt_ts(e)}\n{txt}\n")
     # o .srt é escrito no work e só vai para srt_dir depois que o .mp4 sai: falha no meio não deixa par trocado
@@ -558,37 +621,65 @@ def main(spec_path):
     segs = []
     for sc in scenes:
         disp = " ".join(b.replace("\n", " ") for b in sc.get("legend", []))
-        if disp and sc["td"] and not sc.get("tts"):   # com "tts" próprio a fala não corresponde à legenda
+        if not (disp and sc["td"]):
+            continue
+        if sc.get("tts"):   # fala própria, diferente da legenda: tempo repartido por igual dentro de cada bloco
+            ws = []
+            for a, b, txt in sc["cues"]:
+                toks = txt.split()
+                passo = (b - a) / len(toks)
+                ws += [{"start": round(a + q * passo, 3), "end": round(a + (q + 1) * passo, 3), "word": w}
+                       for q, w in enumerate(toks)]
+            segs.append({"words": ws})
+        else:
             off = sc["t0"] + TTS_LEAD
             segs.append({"words": [{"start": round(off + a, 3), "end": round(off + b, 3), "word": w}
                                    for a, b, w in com_pontuacao(sc["words"], disp, gloss)]})
-    json.dump({"segments": segs}, open(os.path.join(work, "palavras.transcript.json"), "w", encoding="utf-8"),
-              ensure_ascii=False)
+    tj = os.path.join(work, "palavras.transcript.json")
+    json.dump({"segments": segs}, open(tj, "w", encoding="utf-8"), ensure_ascii=False)
+    leg_ass = None
+    if leg.get("estilo") == "palavra" and segs:
+        # legenda por página com a palavra falada em destaque (scripts/legenda_palavra.py), nas cores da marca
+        lp = next((c for c in (os.path.join(HERE, "..", "..", "..", "scripts", "legenda_palavra.py"),
+                               os.path.join(RAIZ, "scripts", "legenda_palavra.py")) if os.path.exists(c)), None)
+        if not lp:
+            raise SystemExit("legenda.estilo 'palavra' precisa de scripts/legenda_palavra.py (não encontrado)")
+        dummy = os.path.join(work, f"dummy-{OW}x{OH}.mp4")
+        if not os.path.exists(dummy):
+            run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", f"color=c=black:s={OW}x{OH}:d=0.1", dummy])
+        leg_ass = os.path.join(work, "legenda.ass")
+        run([sys.executable, lp, dummy, tj, "--ass", leg_ass, "--font", FONT_NAME,
+             "--cor", m.cor("texto"), "--destaque", m.cor(leg.get("destaque") or "acento"),
+             "--pos", str(leg.get("pos", 0.915)), "--tamanho", str(leg.get("tamanho", 0.046)),
+             "--janela", str(leg.get("janela", 2.4)), "--max-palavras", str(leg.get("max_palavras", 6))]
+            + (["--caixa"] if leg.get("caixa") else []) + (["--espaco-largo"] if leg.get("espaco_largo") else []))
 
     # 3. ASS
-    ass = [ASS_HEAD] + title_evs(spec["title"], spec.get("subtitle", ""))
+    ass = [ass_head()] + title_evs(spec["title"], spec.get("subtitle", ""))
+    if fim:
+        ass += end_evs(content_end, spec.get("subtitle", ""))
     for i, sc in enumerate(scenes, 1):
         s0, s1 = sc["t0"], sc["t0"] + sc["dur"]
         if sc.get("chip"):
             ass += chip_evs(s0 + 0.1, s1 - 0.1, f"{i}/{N}  ·  {sc['chip']}")
         # masks: tarjas opacas sobre dados pessoais (e-mail, telefone, token, caixa de entrada).
         # {"box":[x,y,w,h], "at":[t0,t1] (segundos do bruto; omitido = cena inteira), "label": "opcional"}
-        for m in sc.get("masks", []):
-            if "at" in m:
-                ms, me = out_time(sc, m["at"][0]), out_time(sc, m["at"][1])
-                if m["at"][1] >= sc["clip_out"][-1][1] - 0.05:
+        for mk in sc.get("masks", []):
+            if "at" in mk:
+                ms, me = out_time(sc, mk["at"][0]), out_time(sc, mk["at"][1])
+                if mk["at"][1] >= sc["clip_out"][-1][1] - 0.05:
                     me = s1
             else:
                 ms, me = s0, s1
-            cap = total if i == N else s1          # última cena: tarja cobre também o TAIL_HOLD
+            cap = content_end if i == N else s1    # última cena: tarja cobre também o TAIL_HOLD
             if me >= s1 - 0.05:
                 me = cap
-            x, y, w, h = m["box"]
+            x, y, w, h = mk["box"]
             ass.append(ev(1, ms, min(me, cap), "Shape",
                           f"{{\\pos(0,0)\\1c&H3B302A&\\1a&H00&\\bord0\\shad0\\p1}}" + rrect(x, y, w, h, 6) + "{\\p0}"))
-            if m.get("label"):
+            if mk.get("label"):
                 ass.append(ev(1, ms, min(me, cap), "Chip",
-                              f"{{\\an5\\pos({x + w / 2:.0f},{y + h / 2:.0f})\\fs15\\1c&HB8B0A8&}}{m['label']}"))
+                              f"{{\\an5\\pos({x + w / 2:.0f},{y + h / 2:.0f})\\fs15\\1c&HB8B0A8&}}{mk['label']}"))
         for c in sc.get("callouts", []):
             if "at" in c:
                 s, e = out_time(sc, c["at"][0]), out_time(sc, c["at"][1])
@@ -609,12 +700,12 @@ def main(spec_path):
             if c.get("arrow"):
                 ass.append(arrow_ev(s, e, *c["arrow"]))
     # faixa sobre a barra do navegador (abas, URL, favoritos) e tarja fixa (ex.: seletor de cliente do portal)
-    chrome_def = {"band": 0, "client": None, "client_label": "oculto", "logo": None}
+    chrome_def = {"band": 0, "client": None, "client_label": "oculto", "logo": logo_png}
     chrome_def.update(spec.get("chrome", {}))
     bands = []
     for i, sc in enumerate(scenes, 1):
         ch = dict(chrome_def, **spec.get("chrome_src", {}).get(sc["src"], {}))
-        s0, s1 = sc["t0"], (total if i == N else sc["t0"] + sc["dur"])
+        s0, s1 = sc["t0"], (content_end if i == N else sc["t0"] + sc["dur"])
         bh = ch.get("band") or 0
         if bh:
             bands.append((s0, s1, bh, ch.get("logo")))
@@ -657,12 +748,37 @@ def main(spec_path):
     for sc in scenes:
         if sc["mp3"]:
             aud.append((len(srcs) + len(aud), sc)); cmd += ["-i", sc["mp3"]]
+    ninp = [len(srcs) + len(aud)]
+
+    def img(path, dur):
+        """Acrescenta uma imagem em loop como entrada e devolve o índice."""
+        cmd.extend(["-loop", "1", "-framerate", str(FPS), "-t", f"{dur:.3f}", "-i", path])
+        ninp[0] += 1
+        return ninp[0] - 1
+
     logos = []   # um overlay por logo distinto, ligado só enquanto a faixa daquela fonte está na tela
     for lg in dict.fromkeys(b[3] for b in bands if b[3]):
-        logos.append((len(srcs) + len(aud) + len(logos), lg, [b for b in bands if b[3] == lg]))
-        cmd += ["-loop", "1", "-framerate", str(FPS), "-t", f"{total + 1:.3f}", "-i", lg]
-    fc = [f"gradients=s={OW}x{OH}:c0=0x0b1220:c1=0x1e3a8a:x0=0:y0=0:x1={OW}:y1={OH}:d={TITLE_DUR}:r={FPS},"
-          f"fade=t=out:st={TITLE_DUR-0.35}:d=0.35,format=yuv420p[v0]"]
+        logos.append((img(lg, total + 1), lg, [b for b in bands if b[3] == lg]))
+
+    def fundo(qual, dur, rotulo):
+        """Fundo da cartela/encerramento: PNG da marca, senão gradiente das cores da marca, senão o do plugin."""
+        arq = (m.fundo(qual) or m.fundo("cartela")) if m.definida else None
+        if arq:
+            return f"[{img(arq, dur)}:v]scale={OW}:{OH},setsar=1,fps={FPS},trim=end_frame={round(dur * FPS)}[{rotulo}]"
+        c0, c1 = ((marca_mod.ffcor(m.cores["fundo"]), marca_mod.ffcor(m.cores["fundo2"])) if m.definida
+                  else ("0x0b1220", "0x1e3a8a"))
+        return f"gradients=s={OW}x{OH}:c0={c0}:c1={c1}:x0=0:y0=0:x1={OW}:y1={OH}:d={dur}:r={FPS}:seed=7[{rotulo}]"
+
+    fc = [fundo("cartela", TITLE_DUR, "bg1")]
+    if logo_png:   # logo pequeno no canto da cartela
+        fc.append(f"[{img(logo_png, TITLE_DUR)}:v]scale=-2:{round(OH * 0.065)}[lgs]")
+        fc.append(f"[bg1][lgs]overlay={round(OW * 0.047)}:{round(OH * 0.075)},trim=end_frame={round(TITLE_DUR * FPS)}[bg1l]")
+    fc.append(f"[{'bg1l' if logo_png else 'bg1'}]fade=t=out:st={TITLE_DUR-0.35}:d=0.35,format=yuv420p[v0]")
+    if fim:        # encerramento: fundo + logo grande centralizado
+        fc.append(fundo("encerramento", END_DUR, "bg2"))
+        fc.append(f"[{img(logo_png, END_DUR)}:v]scale=-2:{round(OH * 0.12)},format=rgba,fade=t=in:st=0:d=0.5:alpha=1[lgb]")
+        fc.append(f"[bg2][lgb]overlay=(W-w)/2:{round(OH * 0.36)}-h/2,trim=end_frame={round(END_DUR * FPS)},"
+                  f"fade=t=in:st=0:d=0.35,format=yuv420p[vend]")
     labels = ["[v0]"]
     k = 1
     # contagem de quadros acumulada: cada clipe termina no quadro exato do timeline,
@@ -683,17 +799,23 @@ def main(spec_path):
             if i == 1 and j == 0:
                 chain += ",fade=t=in:d=0.3"
             fc.append(chain + f"[v{k}]"); labels.append(f"[v{k}]"); k += 1
+    if fim:
+        labels.append("[vend]")
     fc.append("".join(labels) + f"concat=n={len(labels)}:v=1:a=0[vc]")
     # destaques/tarjas (ASS) primeiro, legenda por cima: tarja nunca esconde a legenda
     vlab = "vc"
-    fc.append(f"[vc]ass=filename='{ffesc(ass_path)}'[va]"); vlab = "va"
+    fd = f":fontsdir='{ffesc(m.fontes_dir())}'" if m.fontes_dir() else ""   # fonte da marca fora do sistema
+    fc.append(f"[vc]ass=filename='{ffesc(ass_path)}'{fd}[va]"); vlab = "va"
     for q, (idx, _, bs) in enumerate(logos):
         bh = max(b[2] for b in bs)
         en = "+".join(f"between(t,{a:.3f},{b:.3f})" for a, b, _, _ in bs)
         fc.append(f"[{idx}:v]scale=-2:{round(bh * 0.42 * OH / H)}[lg{q}]")
         fc.append(f"[{vlab}][lg{q}]overlay={round(28 * OW / W)}:{round(bh / 2 * OH / H)}-h/2:enable='{en}'[vl{q}]")
         vlab = f"vl{q}"
-    fc.append(f"[{vlab}]subtitles=filename='{ffesc(srt_path)}':force_style='{LEGEND_STYLE}'[vout]")
+    if leg_ass:
+        fc.append(f"[{vlab}]ass=filename='{ffesc(leg_ass)}'{fd}[vout]")
+    else:
+        fc.append(f"[{vlab}]subtitles=filename='{ffesc(srt_path)}'{fd}:force_style='{legend_style()}'[vout]")
     al = []
     for q, (idx, sc) in enumerate(aud):
         ms = int((sc["t0"] + TTS_LEAD) * 1000)
@@ -718,7 +840,7 @@ def main(spec_path):
            "scenes": [{"t0": round(sc["t0"], 2), "dur": round(sc["dur"], 2), "footage": round(sc["fd"], 2),
                        "tts": round(sc["td"], 2), "freeze": round(sc["freeze"], 2),
                        "speeds": [round(v, 2) for _, _, v in sc["clips"]]} for sc in scenes],
-           "avisos": avisos}
+           "marca": (m.nome or os.path.basename(m.pasta)) if m.definida else None, "avisos": avisos}
     write_roteiro(spec, scenes, total, out_dir)
     print(json.dumps(rep, indent=1, ensure_ascii=False))
 

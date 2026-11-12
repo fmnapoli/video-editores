@@ -105,6 +105,19 @@
 ## `/video-docs`
 Veja [video-docs-LEIAME.md](video-docs-LEIAME.md) ("Pontos que mais pegam") e `skills/video-docs/SKILL.md` ("Pegadinhas que custaram tempo"). Erro de rede no edge-tts significa que a montagem precisa de internet.
 
+| Sintoma | Causa | Solução |
+|---|---|---|
+| vídeo publicado com a narração antiga depois de um lote | o TTS falhou no meio e o lote seguiu (até a 0.9.2 o build não encerrava) | atualize para 0.10.0+; rode `confere_saida.py specs/*/spec.json` e remonte o que ele listar |
+| `edge-tts falhou 3 vezes` | serviço instável ou sem rede | rode de novo (o áudio já sintetizado fica em cache); `VE_TTS_ESPERA=5` aumenta a espera |
+| caixa de destaque no lugar errado em tudo | coordenadas medidas no quadro 1080p | meça no frame `scale=1280:720` ou divida por 1,5; o build avisa quando a caixa sai do quadro |
+| balão em cima da legenda | `balloon_at` com y > 590 | suba o balão; aparece em `avisos` |
+| dado do cliente visível numa cena | tela mudou de layout e a tarja fixa não cobre, ou cena com `no_client` | confira a última cena e as que trocam de tela; ajuste `chrome.client` ou use `masks` |
+| `marca não encontrada` ou lista de problemas ao montar | `"marca"` do spec aponta para arquivo inexistente, cor fora de `#RRGGBB`, logo/fonte/fundo que não existe | corrija o `marca.json`; `validar_marca.py` mostra tudo de uma vez |
+| fonte da marca não aparece (sai DejaVu) | família sem arquivo e não instalada | aponte `fonte.arquivos.bold` para o TTF (não precisa instalar) ou instale e rode `fc-cache -f` |
+| palavras grudadas na legenda por palavra | fonte com espaço estreito | `"legenda": {"espaco_largo": true}` na marca ou no spec |
+| destaque quase invisível em tela branca | acento claro (aviso do validador) | `"focus": true` nos destaques, ou aprove um acento mais escuro |
+| a voz lê "ponto lógui" ou troca a extensão de um arquivo | glossário aplicado a termo colado num ponto (até a 0.10.0) | atualize para 0.11.0; para trocar de propósito, use a chave com o ponto (`".bak"`) |
+
 ## `/videoaula` (e tudo que transcreve ou recorta pessoa)
 
 | Sintoma | Causa | Solução |

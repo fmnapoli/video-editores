@@ -106,7 +106,8 @@ e corrigir pelo código. Mostrar em lote e **parar**.
 
 ## O que o montador faz (`scripts/build.py`)
 
-- Cartela 3,2 s (gradiente navy, título, barra laranja animada, subtítulo).
+- Cartela 3,2 s (gradiente navy, título, barra laranja animada, subtítulo); com `marca/marca.json`, tudo nas
+  cores, fonte e logo da marca, mais tela de encerramento com o logo.
 - Por cena: clipes `[ini, fim, vel]` do bruto; `fit: auto` acelera (≤ 2,2×) ou
   desacelera (≥ 0,7×) a filmagem até casar com a narração; o que sobrar congela.
 - TTS por cena (cache por hash do texto); áudio original fora; `amix` + `loudnorm -16 LUFS`.
@@ -146,6 +147,9 @@ e corrigir pelo código. Mostrar em lote e **parar**.
   `at` caindo num corte.
 - **Barra do navegador e seletor de cliente**: use `chrome.band` e `chrome.client` no spec em vez de uma
   tarja por cena; desligue a tarja com `no_client` nas cenas em que a tela muda (confira a última).
+- **Identidade do cliente**: `marca/marca.json` no projeto (cores, fonte, logo, fundos, estilo da legenda),
+  validado com `scripts/validar_marca.py` e aprovado pela prancha. Nunca copiar o `build.py` para trocar cor
+  ou fonte: foi o que fez um projeto ficar com um montador divergente. Ver "Identidade visual" em `references/producao.md`.
 - **Regravação de vídeo publicado**: nenhuma coordenada do spec antigo vale; ver "Regravação" em
   `references/producao.md`.
 

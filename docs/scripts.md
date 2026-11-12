@@ -159,6 +159,13 @@ bash scripts/render-docs.sh specs/<slug>/spec.json
 ```
 Formato do spec: `skills/video-docs/references/producao.md`.
 
+## validar_marca.py
+Valida `marca/marca.json` (ADR-17) e gera a prancha de aprovação (cartela, faixa, destaque e legenda sobre tela clara e escura, encerramento, paleta, tipografia). Erros: cor obrigatória ausente, arquivo citado inexistente, contraste de texto (< 7) ou de acento (< 3) sobre o fundo, fonte sem os glifos do português. Propõe o ajuste mínimo de cor sem aplicar.
+```bash
+uv run --with pillow --with fonttools python scripts/validar_marca.py marca/marca.json --gravar
+```
+`legenda_palavra.py --espaco-largo` dobra o espaço entre palavras para fontes de espaço estreito.
+
 ## confere_saida.py (video-docs)
 Confere, para cada spec, se o `.mp4` e o `.srt` existem, se o texto do `.srt` é o das legendas do spec e se o `.mp4` é mais novo que o spec. Sai com 1 listando o que remontar. Rode ao fim de todo lote:
 ```bash

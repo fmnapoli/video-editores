@@ -19,6 +19,8 @@ mudar um vídeo, você edita o spec e monta de novo.
 | `skills/video-docs/scripts/build.py` | O montador: spec → `.mp4` + `.srt` + `roteiro-<slug>.md` |
 | `skills/video-docs/references/producao.md` | **Formato completo do spec**, regras de corte, coordenadas e QA |
 | `skills/video-docs/references/revisao-coerencia.md` | Como conferir a narração contra o código antes de publicar |
+| `skills/video-docs/scripts/confere_saida.py` | Confere se o `.mp4` e o `.srt` de cada spec estão atualizados (rodar ao fim de todo lote) |
+| `scripts/validar_marca.py` | Valida o `marca/marca.json` do projeto e gera a prancha de aprovação da identidade |
 | `skills/video-docs/glossario-ingles.json` | Grafia fonética de termos em inglês, só para voz não multilíngue (ver abaixo) |
 | `skills/video-docs/scripts/testar_pronuncia.py` | Ouve um texto com e sem glossário, ou o glossário inteiro |
 | `exemplos/video-docs/` | Exemplo executável com bruto sintético |
@@ -45,8 +47,9 @@ cd exemplos/video-docs
 ../../scripts/render-docs.sh spec.json  # gera saida/demo.mp4 (~17 s), .srt e roteiro-demo.md
 ```
 
-O spec do exemplo usa todos os recursos: cartela, foco, balão, seta automática, tarja,
-mudança de velocidade e uma cena sem `tts`, com termos em inglês (a voz lê a legenda).
+O spec do exemplo usa cartela, foco, balão, seta automática, tarja, mudança de velocidade e uma
+cena sem `tts`, com termos em inglês (a voz lê a legenda). Faixa do navegador, tarja fixa, pastas de
+saída e identidade são opcionais e estão descritos em `references/producao.md`.
 
 ## Montando um projeto seu
 
@@ -54,8 +57,10 @@ mudança de velocidade e uma cena sem `tts`, com termos em inglês (a voz lê a 
 meu-projeto/
   originais/            brutos (nunca alterar)
   specs/<slug>/spec.json
-  saida/                gerado
-  trabalho/<slug>/      gerado (cache de TTS, .ass, timeline.json)
+  marca/marca.json      opcional: identidade do cliente (cores, fonte, logo, fundos)
+  saida/                gerado (.mp4)
+  legendas/ roteiros/   gerados, com "srt_dir" e "roteiro_dir" no spec
+  trabalho/<slug>/      gerado (cache de TTS, .ass, timeline.json, palavras.transcript.json)
 ```
 
 Rode o `render-docs.sh` **a partir da raiz do projeto**, porque os caminhos do spec são
@@ -73,8 +78,42 @@ Pontos que mais pegam:
   `references/producao.md`).
 - Se a fala for mais longa que a filmagem, o último quadro congela. Acima de 3 s,
   acrescente clipe.
-- O `.srt` sai ao lado do `.mp4`. Na entrega, separe os dois em pastas diferentes: o
-  VLC carrega a legenda externa de mesmo nome por cima da queimada e ela aparece dobrada.
+- Sem `"srt_dir"`, o `.srt` sai ao lado do `.mp4`. Use `"srt_dir": "legendas"`: o VLC carrega
+  a legenda externa de mesmo nome por cima da queimada e ela aparece dobrada.
+- O relatório do montador traz `avisos` (caixa fora do quadro, balão sobre a legenda, `at`
+  num trecho cortado). Leia antes de revisar por frames.
+- Se o edge-tts não responder, o build **encerra com erro** e o vídeo anterior fica intacto.
+  Num lote, pare no primeiro erro e termine com o conferidor:
+  `python3 "${CLAUDE_PLUGIN_ROOT}/skills/video-docs/scripts/confere_saida.py" specs/*/spec.json`.
+- Gravação de navegador: `"chrome": {"band": 100}` cobre abas, URL e favoritos com uma faixa;
+  `"chrome": {"client": [x,y,w,h]}` tarja o que aparece em toda tela (seletor de cliente).
+
+## Identidade do cliente
+
+Cores, fonte, logo e estilo de legenda vêm de `marca/marca.json` na raiz do projeto. Sem o
+arquivo, o vídeo sai com o visual padrão do plugin. Não edite nem copie o `build.py` para
+trocar a identidade.
+
+```json
+{"nome": "Cliente",
+ "cores": {"fundo": "#002233", "acento": "#00DBFF", "texto": "#FFFFFF"},
+ "fonte": {"familia": "Cliente Sans", "arquivos": {"bold": "fontes/ClienteSans-Bold.ttf"}},
+ "logo": {"png": "logo.png"},
+ "fundos": {"cartela": "bg.png"},
+ "legenda": {"estilo": "palavra"}}
+```
+
+Só as três cores são obrigatórias. Com logo, a cartela ganha o logo e o vídeo ganha uma tela de
+encerramento de 3 s. `legenda.estilo` é `bloco` (padrão) ou `palavra` (a palavra falada na cor de
+destaque). Antes de montar, valide e olhe a prancha:
+
+```bash
+uv run --with pillow --with fonttools python "${CLAUDE_PLUGIN_ROOT}/scripts/validar_marca.py" marca/marca.json
+```
+
+O validador reprova contraste insuficiente e fonte sem acentos, e propõe a cor corrigida sem
+aplicar. Formato completo e regras (fonte licenciada, logo oficial) no
+[ADR-17](adr/2026-11-11-identidade-visual.md).
 
 ## Pronúncia de termos em inglês
 

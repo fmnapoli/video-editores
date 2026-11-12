@@ -15,7 +15,9 @@ Regras de casamento:
   - palavra inteira; termos com espaço casam com qualquer espaço ("pull request");
   - termos mais longos primeiro ("web app" antes de "app");
   - termo todo em MAIÚSCULAS (sigla: API, URL) casa só em maiúsculas; o resto ignora caixa;
-  - plural com "s" no fim herda a pronúncia + "s" ("containers" -> "contêiners").
+  - plural com "s" no fim herda a pronúncia + "s" ("containers" -> "contêiners");
+  - termo colado depois de um ponto é extensão ou nome de arquivo e não é trocado ("arquivo .log",
+    "appserver.ini"), a não ser que a própria chave comece com ponto (".bak") ou contenha o nome inteiro.
 """
 import json, os, re
 
@@ -61,11 +63,18 @@ def apply(text, gloss):
     acr = {k: v for k, v in gloss.items() if k.isupper() and len(k) > 1}
     low = {k.lower(): v for k, v in gloss.items() if k not in acr}
 
+    def extensao(m):
+        return m.start() > 0 and m.string[m.start() - 1] == "." and not m.group(1).startswith(".")
+
     def sub_low(m):
+        if extensao(m):
+            return m.group(0)
         key = re.sub(r"\s+", " ", m.group(1)).lower()
         return low[key] + m.group(2)
 
     def sub_acr(m):
+        if extensao(m):
+            return m.group(0)
         return acr[re.sub(r"\s+", " ", m.group(1))] + m.group(2)
 
     r = _compile(low.keys(), re.IGNORECASE)

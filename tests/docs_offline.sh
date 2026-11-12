@@ -47,4 +47,35 @@ fi
 if python3 "$CONF" spec2.json >conf.txt; then echo "conferidor deveria acusar"; exit 1; fi
 grep -q '^REFAZER  demo2' conf.txt
 
+# identidade (ADR-17): sem marca.json, duas montagens dão os mesmos quadros (gradiente com semente fixa)
+B="$ROOT/skills/video-docs/scripts/build.py"
+h1=$(ffmpeg -v error -i saida/demo.mp4 -map 0:v -f framemd5 - | md5sum)
+PYTHONPATH="$ROOT/tests/stub" uv run --quiet --with pillow python "$B" spec.json >/dev/null
+[[ "$h1" == "$(ffmpeg -v error -i saida/demo.mp4 -map 0:v -f framemd5 - | md5sum)" ]] || { echo "montagem sem marca não é determinística"; exit 1; }
+grep -q '356BFF' trabalho/demo/demo.ass && d0=$(ffprobe -v error -show_entries format=duration -of csv=p=0 saida/demo.mp4)
+# com marca/marca.json: cores e fonte da marca no ASS, logo na cartela, encerramento de 3 s, legenda por palavra
+mkdir -p marca && cp logo.png marca/logo.png
+python3 - <<'PY'
+import json
+json.dump({"nome": "Teste", "cores": {"fundo": "#002233", "acento": "#00DBFF", "texto": "#FFFFFF"},
+           "fonte": {"familia": "DejaVu Sans"}, "logo": {"png": "logo.png"},
+           "legenda": {"estilo": "palavra", "espaco_largo": True}}, open("marca/marca.json", "w"))
+s = json.load(open("spec.json")); s.update(slug="demo3", work_dir="trabalho/demo3"); json.dump(s, open("spec3.json", "w"), ensure_ascii=False)
+s.update(slug="demo4", work_dir="trabalho/demo4", legenda={"estilo": "bloco"}, encerramento=False); json.dump(s, open("spec4.json", "w"), ensure_ascii=False)
+s.update(slug="demo5", work_dir="trabalho/demo5", marca=False); s.pop("legenda"); s.pop("encerramento"); json.dump(s, open("spec5.json", "w"), ensure_ascii=False)
+PY
+R3=$(PYTHONPATH="$ROOT/tests/stub" uv run --quiet --with pillow python "$B" spec3.json)
+python3 -c 'import json,sys; r=json.loads(sys.argv[1]); assert r["marca"] == "Teste" and abs(r["total"] - float(sys.argv[2]) - 3.0) < 0.05, r' "$R3" "$d0"
+grep -q 'FFDB00' trabalho/demo3/demo3.ass && ! grep -q '356BFF' trabalho/demo3/demo3.ass
+grep -q 'FFDB00' trabalho/demo3/legenda.ass && grep -q '\\h {' trabalho/demo3/legenda.ass
+grep -q "legenda.ass" trabalho/demo3/demo3.ffmpeg.txt && grep -q "vend" trabalho/demo3/demo3.ffmpeg.txt
+grep -c "logo.png" trabalho/demo3/demo3.ffmpeg.txt | grep -q '^1$'   # uma linha de comando; cartela e encerramento usam o logo
+python3 -c 'import json; w=[x for g in json.load(open("trabalho/demo3/palavras.transcript.json"))["segments"] for x in g["words"]]; assert w[0]["word"] == "Neste" and all(a["end"] <= b["start"] + 1e-6 for a, b in zip(w, w[1:])), w[:3]'
+R4=$(PYTHONPATH="$ROOT/tests/stub" uv run --quiet --with pillow python "$B" spec4.json)
+python3 -c 'import json,sys; r=json.loads(sys.argv[1]); assert abs(r["total"] - float(sys.argv[2])) < 0.05, r' "$R4" "$d0"
+grep -q "subtitles=" trabalho/demo4/demo4.ffmpeg.txt && ! grep -q "vend" trabalho/demo4/demo4.ffmpeg.txt
+PYTHONPATH="$ROOT/tests/stub" uv run --quiet --with pillow python "$B" spec5.json >/dev/null
+grep -q '356BFF' trabalho/demo5/demo5.ass   # "marca": false no spec ignora o marca.json do projeto
+rm -rf marca
+
 echo "video-docs offline ok ($(ffprobe -v error -show_entries format=duration -of csv=p=0 saida/demo.mp4)s)"

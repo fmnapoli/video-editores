@@ -9,7 +9,9 @@ meu-projeto/
   trabalho/<slug>/  intermediários: transcrições, .ass, .takes.json, frames, cache
   saida/          vídeos finais
   legendas/       .srt finais (separados do .mp4: o VLC carrega o sidecar e dobra a legenda queimada)
+  marca/          opcional: marca.json (cores, fonte, logo, fundos, legenda) + os arquivos que ele cita
 ```
+Identidade do cliente fica em `marca/marca.json` (ADR-17), nunca em constante editada num script copiado. Valide com `scripts/validar_marca.py` e aprove a prancha antes do primeiro render. Fonte só de pacote do cliente ou com licença que permita; logo só de arquivo oficial.
 Rode os comandos a partir da raiz do projeto. Os scripts de transcrição gravam em `trabalho/<nome>/` automaticamente quando a pasta `trabalho/` existe (ou use `--out-dir`). Caminhos de trabalho em ASCII, sem espaço. Arquivo com espaço, parêntese ou acento entra só como `-i`, nunca dentro do `filter_complex`.
 
 ## Nomes de saída

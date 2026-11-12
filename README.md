@@ -64,6 +64,7 @@ Sem decorar comando. Exemplos (mais em [docs/pedidos-prontos.md](docs/pedidos-pr
 - "Transforma essa aula de 2 horas num vídeo de 10 minutos e tira três Reels."
 - "Faz um checklist do que eu falar e põe a frase forte atrás de mim."
 - "Transforma as gravações em originais/ em vídeos de documentação, um por ação."
+- "Usa as cores, a fonte e o logo da empresa nos vídeos e me mostra a prancha antes."
 - "Refaz essa videoaula com cenário novo, diagramas animados no lugar do Excalidraw e separadores de assunto, mantendo o professor na tela."
 
 Pipeline padrão de Reels que o `/editar` executa:
@@ -89,6 +90,7 @@ Passo a passo completo: [docs/tutorial.md](docs/tutorial.md).
 | [Outros agentes](docs/agentes.md) | Codex, OpenCode e Kiro: `video-editores integrar`, onde cada um lê skills, MCP e regras |
 | [ADR núcleo/MCP](docs/adr/2026-11-08-nucleo-modelos-mcp.md) | decisão de abstrair modelos, CLI e MCP; integração com GPU; roteiro |
 | [ADRs propostos e avaliações](docs/arquitetura.md#decisões-adrs-resumidos) | geração por IA (ADR-15, proposto) e Remotion (ADR-16, avaliado e não adotado) |
+| [ADR identidade visual](docs/adr/2026-11-11-identidade-visual.md) | `marca/marca.json` como contrato único de cores, fonte e logo (ADR-17; fase 1 na 0.11.0) |
 | [Solução de problemas](docs/troubleshooting.md) | sintomas comuns e correções |
 | [video-docs](docs/video-docs-LEIAME.md) | harness de vídeos de documentação |
 | [Contribuindo](CONTRIBUTING.md) | como criar skills e scripts no padrão |

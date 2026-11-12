@@ -1,6 +1,6 @@
 # ADR-17 — Identidade visual como contrato único (`marca.json`) e extração a partir de fonte externa
 
-**Data:** 2026-11-11 · **Estado:** proposto (não implementado) · **Alvo:** 0.11.0 (contrato) e 0.12.0 (extração)
+**Data:** 2026-11-11 · **Estado:** aprovado; **fase 1 implementada na 0.11.0**; fases 2 e 3 pendentes
 
 ## Contexto
 
@@ -124,6 +124,18 @@ Fluxo:
 2. **0.11.x — demais skills.** `/videoaula`, `/legenda`, `/lettering`, `/checklist`, `/partitura`.
 3. **0.12.0 — extração.** Skill `/marca` com tema de PPTX/Slides, PDF e pacote de marca. Site e Figma só
    quando um projeto pedir.
+
+## Resultado da fase 1 (0.11.0)
+
+Aceite: um vídeo já publicado daquele curso foi remontado com o `build.py` do plugin + um
+`marca.json` de oito linhas e comparado com o que o montador copiado do projeto tinha gerado: mesmos tempos de
+cena, SSIM médio 0,993 (mínimo 0,991) nos 2.520 quadros de conteúdo. Para chegar lá, três coisas que só a cópia
+tinha entraram no plugin: legenda por palavra dentro do montador (`legenda.estilo`), espaço largo para a fonte
+da marca (`legenda.espaco_largo`) e a regra do glossário que não troca extensão de arquivo (".log").
+Diferença restante: a pausa final (0,6 s na cópia, 0,8 s no plugin).
+
+Acrescentado ao contrato durante a implementação: `legenda.estilo`, `legenda.espaco_largo` e os parâmetros
+de página (`pos`, `tamanho`, `janela`, `max_palavras`), sobrescrevíveis por spec.
 
 ## Em aberto
 

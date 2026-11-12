@@ -20,6 +20,42 @@ DESTAQUE, SECUNDARIO, TEXTO = "#38BDF8", "#A78BFA", "#FFFFFF"
 ESCURO = "#0F172A"
 BG_PADRAO = "anim/bg_azul.png"       # PNG 1920x1080 com o gradiente (gradiente só no fundo)
 LOGO = "anim/logo.svg"               # logo oficial, sem redesenhar; None para nenhum
+
+
+def _aplica_marca():
+    """marca/marca.json (ADR-17, ou $VE_MARCA) substitui as constantes acima; sem o arquivo, valem elas.
+    Papéis: acento -> DESTAQUE, secundario -> SECUNDARIO, texto -> TEXTO, fundo -> ESCURO,
+    fundos.cartela -> BG_PADRAO, logo.svg -> LOGO; fonte.arquivos é registrada no Pango."""
+    global FONT, DESTAQUE, SECUNDARIO, TEXTO, ESCURO, BG_PADRAO, LOGO
+    import os
+    arq = os.path.expanduser(os.environ.get("VE_MARCA") or "marca/marca.json")
+    if not os.path.exists(arq):
+        return
+    m = json.load(open(arq, encoding="utf-8"))
+    pasta = os.path.dirname(os.path.abspath(arq))
+
+    def caminho(rel):
+        rel = os.path.expanduser(rel)
+        return rel if os.path.isabs(rel) else os.path.join(pasta, rel)
+    c = m.get("cores", {})
+    DESTAQUE = c.get("acento", DESTAQUE)
+    SECUNDARIO = c.get("secundario", c.get("acento", SECUNDARIO))
+    TEXTO, ESCURO = c.get("texto", TEXTO), c.get("fundo", ESCURO)
+    f = m.get("fonte", {})
+    FONT = f.get("familia", FONT)
+    for ttf in (f.get("arquivos") or {}).values():
+        try:
+            import manimpango
+            manimpango.register_font(caminho(ttf))
+        except Exception as e:  # fonte já instalada no sistema também serve
+            print(f"marca: não registrou {ttf} ({e})")
+    if (m.get("fundos") or {}).get("cartela"):
+        BG_PADRAO = caminho(m["fundos"]["cartela"])
+    if "logo" in m:
+        LOGO = caminho(m["logo"]["svg"]) if m["logo"].get("svg") else None
+
+
+_aplica_marca()
 TEMPOS = json.load(open("tts/tempos.json", encoding="utf-8"))
 
 # Faixa reservada à legenda (2 linhas, FontSize 15 / MarginV 22 em 1080p): nada abaixo de y = -2,3.

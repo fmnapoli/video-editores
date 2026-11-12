@@ -65,6 +65,8 @@ OPERACOES = {o.nome: o for o in [
              "VIDEO [N_QUADROS=12]", skill="prova", saidas=("<nome>.proof.jpg", "<nome>.preview.mp4", "<nome>.proof.txt")),
     Operacao("normalizar-audio", "scripts/normalizar_audio.py", "Normaliza a -14/-16 LUFS com teto de pico real (mede antes e depois)",
              "ENTRADA SAIDA.mp4|SAIDA.wav [--alvo -14] [--tp -1.5] [--filtro CADEIA] | ENTRADA --medir", skill="prova, trilha, videoaula, video-animado"),
+    Operacao("validar-marca", "scripts/validar_marca.py", "Valida marca/marca.json (contraste, fonte, logo) e gera a prancha de aprovação",
+             "[marca/marca.json] [--prancha SAIDA.png] [--gravar] [--sem-prancha]", ("pillow", "fonttools"), saidas=("prancha.png",)),
     Operacao("doctor", "scripts/doctor.sh", "Verifica dependências (ffmpeg+libass, uv, CLIs, fontes, GPU)", ""),
     Operacao("docs-render", "scripts/render-docs.sh", "Montador do video-docs (gravações de tela -> vídeos de documentação)",
              "spec.json", ("tts", "pillow"), longa=True, skill="video-docs"),
