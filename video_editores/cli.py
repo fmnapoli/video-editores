@@ -7,7 +7,7 @@
       [--direto] usa o Python atual em vez de `uv run`
   video-editores tarefas [ID]                 estado das tarefas em segundo plano
   video-editores mcp [--http PORTA] [--raiz DIR]   servidor MCP (stdio por padrão)
-  video-editores integrar codex|opencode|kiro|todos [--projeto DIR|--usuario]   skills + MCP + regras noutro agente
+  video-editores integrar codex|opencode|kiro|zcode|todos [--projeto DIR|--usuario]   skills + MCP + regras noutro agente
 
 Exemplos:
   video-editores transcrever originais/aula.mp4 --prompt "Python, lista, dicionário"

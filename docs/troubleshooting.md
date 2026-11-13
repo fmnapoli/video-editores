@@ -10,6 +10,13 @@
 | `${CLAUDE_PLUGIN_ROOT}` vazio | skills copiados sem o plugin | `export CLAUDE_PLUGIN_ROOT=~/src/video-editores` |
 | `uv: command not found` | uv não instalado | `curl -LsSf https://astral.sh/uv/install.sh \| sh` e abra outro terminal |
 
+## Integração com outros agentes (`integrar`)
+
+| Sintoma | Causa | Solução |
+|---|---|---|
+| skill portada falha com `No such file or directory` no meio dos comandos | o port aponta para a pasta de scripts que foi movida, apagada ou ficou em versão antiga | reinstale da fonte atual: rode `video-editores integrar <agente>` (com `--usuario` para skills globais) de novo; `integrar --mostrar` e `make doctor` acusam ports `DESATUALIZADO` com o comando de correção |
+| as ferramentas MCP do video-editores não aparecem no agente | o servidor não está registrado ou não subiu | rode o comando registrado à mão e leia o stderr; confira o arquivo de config do agente em [docs/agentes.md](agentes.md). No ZCode, `~/.zcode/cli/config.json` tem schema estrito: chave desconhecida faz o servidor ser descartado sem aviso |
+
 ## Transcrição (`/tomada`, `/legenda`)
 
 | Sintoma | Solução |
