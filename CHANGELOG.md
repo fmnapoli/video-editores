@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.14.0 — 2026-11-13
+Integração com o ZCode (desktop z.ai) como 4º agente, e a integração ganha antideriva: port que envelhece em silêncio agora é sintoma com comando de correção (ADR-18).
+- **`video-editores integrar zcode`**: skills de usuário em `~/.zcode/skills/` com cabeçalho próprio que traduz o Claude Code para o harness (subagentes → ferramenta Agent, aprovação → AskUserQuestion); em projeto o ZCode já lê `.agents/skills/` e `AGENTS.md`, então o alvo reaproveita esses caminhos; MCP só no escopo global (`~/.zcode/cli/config.json`, `mcp.servers`, formato stdio — schema estrito, sem campo inventado).
+- **Integração como registro de dados** (`video_editores/integrar.py`): o que define cada agente (caminhos, writer MCP, cabeçalho, invocação, nota de usuário) mora em uma entrada do `REGISTRO`; alvo novo é uma linha, não um ramo de `if` espalhado por cinco pontos.
+- **Antideriva para os quatro agentes**: todo port carimba a versão (`<!-- video-editores:port X.Y.Z -->`) e cada destino ganha o manifesto oculto `.video-editores.json` (versão, agente, escopo, raiz, skills); `integrar --mostrar` compara o instalado com a versão atual e acusa `DESATUALIZADO` com o comando de correção — lendo manifesto ou carimbo, então port feito à mão de versão antiga também é reconhecido; `doctor.sh` ganhou a seção "Integração" com a mesma checagem nas pastas globais.
+- **Guarda de procedência**: sobrescrever e remover só toca em portação do plugin; pasta homônima que não é do plugin (o diretório de skills do usuário convive com outros plugins) é preservada e relatada. Falha em uma skill não derruba o relatório (try/except por skill) e o comando sai com erro.
+- O bloco de regras gravado nos agentes passou a listar as skills a partir do repositório (a enumeração fixa já estava sem as últimas).
+- Testes: guarda de procedência com colisão de nome, status `DESATUALIZADO` via `--mostrar`, ZCode em `HOME` isolado (idempotência, formato stdio preservando servidores de terceiros, remoção limpa, aviso de MCP só global). Docs: ADR-18, agentes.md (tabela de 4 colunas, antideriva, ZCode no MCP e nas limitações), troubleshooting (port órfão e MCP ausente).
+
 ## 0.13.0 — 2026-11-12
 Geração de imagem por IA, fase 1a do ADR-15, com o ComfyUI como backend. Quem não usa não baixa nada nem precisa de servidor.
 - **Papel `imagem`** em `video_editores.modelos` (`VE_IMAGEM`, `get_imagem`), com o backend **`comfyui`**: fala com um servidor ComfyUI à parte pela API HTTP (`/prompt`, `/history`, `/view`), local ou na máquina que tem a GPU (`VE_COMFYUI_URL`, padrão `http://127.0.0.1:8188`). Só biblioteca padrão; o ComfyUI (GPL-3.0) nunca é importado, como ffmpeg e Blender no ADR-05.
