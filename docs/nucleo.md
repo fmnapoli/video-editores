@@ -113,9 +113,9 @@ real, medida depois e repetida com teto menor se o pico passar, ou com o ganho c
 passada e, com degraus nas junções de uma montagem por blocos, entregou +9,2 dBTP; o dinâmico mexe na dinâmica da fala. Na CLI:
 `video-editores normalizar-audio ENTRADA SAIDA [--alvo -14] [--tp -1.5] [--filtro ...]`. A saída de vídeo usa `audio.AAC` (256k, sem PNS: o PNS do codificador nativo gerou +4,7 dBTP a partir de um wav limitado a −2,5) e a medição reportada é a do arquivo final.
 
-## Outros agentes (Codex, OpenCode, Kiro)
+## Outros agentes (Codex, OpenCode, Kiro, ZCode)
 
-`video-editores integrar codex|opencode|kiro|todos [--projeto DIR | --usuario]` instala as skills, registra o servidor MCP
+`video-editores integrar codex|opencode|kiro|zcode|todos [--projeto DIR | --usuario]` instala as skills, registra o servidor MCP
 e grava as regras no formato de cada agente. Detalhes, pastas e limitações em [agentes.md](agentes.md).
 
 ## Servidor MCP

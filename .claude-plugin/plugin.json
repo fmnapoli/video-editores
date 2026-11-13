@@ -1,7 +1,7 @@
 {
   "name": "video-editores",
   "version": "0.13.0",
-  "description": "22 skills de edição de vídeo para o Claude Code, com CLI, modelos de IA trocáveis (GPU), servidor MCP e integração com Codex, OpenCode e Kiro: pedido em português, corte, legenda, motion, melhores momentos, vídeos de documentação, videoaulas redesenhadas e partitura de bateria animada. 100% open source e local (ffmpeg, faster-whisper, auto-editor, Manim, rembg, Blender).",
+  "description": "22 skills de edição de vídeo para o Claude Code, com CLI, modelos de IA trocáveis (GPU), servidor MCP e integração com Codex, OpenCode, Kiro e ZCode: pedido em português, corte, legenda, motion, melhores momentos, vídeos de documentação, videoaulas redesenhadas e partitura de bateria animada. 100% open source e local (ffmpeg, faster-whisper, auto-editor, Manim, rembg, Blender).",
   "author": {
     "name": "Fabrizio Malta Di Napoli"
   },
@@ -17,6 +17,7 @@
     "gpu",
     "codex",
     "opencode",
-    "kiro"
+    "kiro",
+    "zcode"
   ]
 }

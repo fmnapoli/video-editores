@@ -108,6 +108,11 @@ Quatro camadas (0.5.0):
 - **Decisão:** `marca/marca.json` com papéis de cor, fonte, logo e fundos, lido por todas as skills via `nucleo/marca.py` (sem o arquivo, saída idêntica à de hoje); skill `/marca` que extrai um rascunho de tema de PPTX/Slides, manual em PDF, pacote de marca ou site, valida contraste e fonte e para numa prancha para aprovação.
 - **Estado:** contrato, validador com prancha, `/video-docs` e `/video-animado` na 0.11.0 (aceite: vídeo de um projeto real remontado com SSIM 0,993 contra o montador copiado). Na 0.12.0, as demais skills leem a marca e a skill `/marca` extrai de tema do Office, PDF, pacote de marca e tokens. Site e Figma ficam para quando um projeto pedir.
 
+### ADR-18 — Integração com o ZCode e antideriva das portações (0.14.0)
+- **Contexto:** o aviso do ADR-12 ("cópia editada à mão divergiria em semanas") se confirmou fora dos três alvos: um usuário portou as skills à mão para o harness ZCode (z.ai) e quatro releases depois seguiam congeladas na v0.9.2, sem que nada detectasse. Detalhe em `docs/adr/2026-11-13-integracao-zcode.md`.
+- **Decisão:** `integrar zcode` como 4º alvo via registro de dados em `integrar.py` (skills de usuário em `~/.zcode/skills/`, MCP global em `~/.zcode/cli/config.json` com schema estrito, regras em `AGENTS.md`; em projeto reaproveita `.agents/skills/`), cabeçalho por agente (no ZCode: subagentes → Agent, aprovação → AskUserQuestion) e antideriva para os quatro alvos: carimbo `video-editores:port X.Y.Z` no port, manifesto oculto por destino, `--mostrar` acusando `DESATUALIZADO` e seção "Integração" no doctor. Guarda de procedência: sobrescrever/remover só toca no que é do plugin.
+- **Consequência:** alvo novo é uma entrada de dados, não um ramo de `if`; port desatualizado virou sintoma com comando de correção; pasta homônima alheia é preservada e relatada. Rota alternativa (plugin como marketplace Claude no ZCode) fica documentada para reavaliação.
+
 ## Fluxo de dados
 
 ```

@@ -29,7 +29,7 @@ Plugin do Claude Code que transforma a IA na sua editora de vídeo: **22 skills*
 
 No Claude Code, os skills aparecem com o prefixo do plugin (ex.: `/video-editores:corte`). Também são chamados automaticamente pela descrição ("tira os silêncios desse vídeo").
 
-Funciona também no **Codex**, no **OpenCode** e no **Kiro**: `video-editores integrar codex|opencode|kiro|todos` instala as mesmas skills, registra o servidor MCP e grava as regras do projeto no formato de cada agente ([docs/agentes.md](docs/agentes.md)).
+Funciona também no **Codex**, no **OpenCode**, no **Kiro** e no **ZCode**: `video-editores integrar codex|opencode|kiro|zcode|todos` instala as mesmas skills, registra o servidor MCP e grava as regras do projeto no formato de cada agente ([docs/agentes.md](docs/agentes.md)).
 
 Por baixo das skills há um núcleo que funciona **sem o Claude**: a CLI `video-editores <operação>` roda qualquer script, os modelos de IA (transcrição, recorte de pessoa, narração) são trocáveis por configuração (`VE_ASR`, `VE_SEG`, `VE_TTS`, `VE_DEVICE=cuda`, `VE_ENCODER=h264_nvenc`), e um servidor MCP expõe as mesmas operações a outros agentes, com tarefas em segundo plano. Detalhes em [docs/nucleo.md](docs/nucleo.md).
 
@@ -88,10 +88,11 @@ Passo a passo completo: [docs/tutorial.md](docs/tutorial.md).
 | [Convenções](docs/convencoes.md) | pastas, nomes, ordem, formatos, loudness, privacidade, licenças |
 | [Arquitetura](docs/arquitetura.md) | camadas, ADRs, fluxo de dados, testes |
 | [Núcleo](docs/nucleo.md) | CLI `video-editores`, modelos trocáveis e GPU, servidor MCP, backend próprio |
-| [Outros agentes](docs/agentes.md) | Codex, OpenCode e Kiro: `video-editores integrar`, onde cada um lê skills, MCP e regras |
+| [Outros agentes](docs/agentes.md) | Codex, OpenCode, Kiro e ZCode: `video-editores integrar`, onde cada um lê skills, MCP e regras |
 | [ADR núcleo/MCP](docs/adr/2026-11-08-nucleo-modelos-mcp.md) | decisão de abstrair modelos, CLI e MCP; integração com GPU; roteiro |
 | [ADRs propostos e avaliações](docs/arquitetura.md#decisões-adrs-resumidos) | geração por IA (ADR-15, proposto) e Remotion (ADR-16, avaliado e não adotado) |
 | [ADR identidade visual](docs/adr/2026-11-11-identidade-visual.md) | `marca/marca.json` como contrato único de cores, fonte e logo (ADR-17; contrato na 0.11.0, todas as skills e extração na 0.12.0) |
+| [ADR integração ZCode](docs/adr/2026-11-13-integracao-zcode.md) | 4º agente de integração e antideriva das portações: carimbo de versão, manifesto, status e guarda de procedência (ADR-18; na 0.14.0) |
 | [Solução de problemas](docs/troubleshooting.md) | sintomas comuns e correções |
 | [video-docs](docs/video-docs-LEIAME.md) | harness de vídeos de documentação |
 | [Contribuindo](CONTRIBUTING.md) | como criar skills e scripts no padrão |
