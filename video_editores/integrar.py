@@ -1,10 +1,10 @@
-"""Integra o video-editores com outros agentes: Codex (OpenAI), OpenCode e Kiro (AWS).
+"""Integra o video-editores com outros agentes: Codex (OpenAI), OpenCode, Kiro (AWS) e ZCode (z.ai).
 
 Para cada agente, três coisas (ADR-12):
   1. skills   as mesmas SKILL.md do plugin, copiadas para a pasta que o agente lê, com `${CLAUDE_PLUGIN_ROOT}`
               trocado pelo caminho real dos scripts e um cabeçalho dizendo como executar fora do Claude Code;
   2. MCP      o servidor video-editores-mcp registrado no formato de configuração do agente;
-  3. regras   um bloco em AGENTS.md (Codex, OpenCode) ou um steering (Kiro) com as convenções do projeto.
+  3. regras   um bloco em AGENTS.md (Codex, OpenCode, ZCode) ou um steering (Kiro) com as convenções do projeto.
 
 Escopos: --projeto DIR (padrão: pasta atual) grava dentro do projeto; --usuario grava na configuração global.
 Tudo idempotente: rodar de novo atualiza o que é nosso e não toca no resto do arquivo. O que é nosso é reconhecível:
@@ -17,8 +17,9 @@ Pastas e arquivos (fontes: docs oficiais, nov/2026):
   Codex     skills .agents/skills/ ou ~/.agents/skills/ · MCP .codex/config.toml ou ~/.codex/config.toml [mcp_servers.x] · AGENTS.md
   OpenCode  skills .agents/skills/ (também .opencode/skills/) ou ~/.config/opencode/skills/ · MCP opencode.json mcp.servers.x · AGENTS.md
   Kiro      skills .kiro/skills/ ou ~/.kiro/skills/ (global só na IDE) · MCP .kiro/settings/mcp.json mcpServers.x · .kiro/steering/*.md
+  ZCode     skills .agents/skills/ (projeto) ou ~/.zcode/skills/ · MCP ~/.zcode/cli/config.json mcp.servers.x (só global) · AGENTS.md
 
-Uso: video-editores integrar codex|opencode|kiro|todos [--projeto DIR] [--usuario] [--raiz-midia DIR]
+Uso: video-editores integrar codex|opencode|kiro|zcode|todos [--projeto DIR] [--usuario] [--raiz-midia DIR]
                                [--sem-skills] [--sem-mcp] [--sem-regras] [--remover] [--mostrar]
 """
 import argparse
@@ -65,6 +66,15 @@ CABECALHO = """> **Fora do Claude Code.** Esta skill vem do plugin [video-editor
 > (`video-editores listar`) e as ferramentas do servidor MCP `video-editores` (`listar_operacoes`, `executar_operacao`,
 > `tarefa_status`). Onde o texto fala em *subagentes*, execute em sequência ou use o mecanismo de paralelismo do seu
 > agente; onde pede *aprovação*, pare e pergunte ao usuário antes de seguir.
+
+"""
+
+CABECALHO_ZCODE = """> **Fora do Claude Code (harness ZCode).** Esta skill vem do plugin [video-editores]({repo}) {versao}. Os scripts estão em
+> `{raiz}` (os comandos abaixo já apontam para lá). Alternativas equivalentes: a CLI `video-editores <operação>`
+> (`video-editores listar`) e as ferramentas do servidor MCP `video-editores` (`listar_operacoes`, `executar_operacao`,
+> `tarefa_status`). Onde o texto fala em *subagentes*, use a ferramenta **Agent** do ZCode (despache em paralelo
+> quando os trabalhos forem independentes) ou execute em sequência; onde pede *aprovação*, pare e pergunte ao usuário
+> com a ferramenta **AskUserQuestion** antes de seguir.
 
 """
 
@@ -249,6 +259,18 @@ def mcp_kiro(arq: Path, cmd: list, remover=False):
     _json_rw(arq, muda)
 
 
+def mcp_zcode(arq: Path, cmd: list, remover=False):
+    """Config do ZCode (~/.zcode/cli/config.json): schema estrito — só as chaves conhecidas; o arquivo é gerenciado
+    pelo próprio app, então este writer só adiciona/remove a chave do servidor e preserva o resto."""
+    def muda(d):
+        srv = d.setdefault("mcp", {}).setdefault("servers", {})
+        if remover:
+            srv.pop(NOME, None)
+        else:
+            srv[NOME] = {"type": "stdio", "command": cmd[0], "args": cmd[1:], "enabled": True}
+    _json_rw(arq, muda)
+
+
 def _toml_str(s):
     return json.dumps(s, ensure_ascii=False)  # strings TOML básicas aceitam a mesma escape do JSON
 
@@ -294,8 +316,20 @@ REGISTRO = {
         "mcp": (".kiro/settings/mcp.json", ".kiro/settings/mcp.json"), "mcp_forma": mcp_kiro,
         "regras": (f".kiro/steering/{NOME}.md", f".kiro/steering/{NOME}.md"),
     },
+    "zcode": {
+        "chamada": "pela descrição ou pedindo `use a skill <nome>`",
+        "cabecalho": CABECALHO_ZCODE, "frontmatter": "", "nota_usuario": None,
+        "skills": (".agents/skills", ".zcode/skills"),  # em projeto o ZCode lê a mesma pasta de Codex/OpenCode
+        "mcp": (None, ".zcode/cli/config.json"), "mcp_forma": mcp_zcode,  # o ZCode só registra MCP global
+        "regras": ("AGENTS.md", None),
+    },
 }
 AGENTES = tuple(REGISTRO)
+
+
+def _dica_mcp(agente: str) -> str:
+    """Quando o alvo não tem registro de MCP no escopo pedido, o que o usuário deve fazer."""
+    return "o ZCode só registra MCP global; rode com --usuario" if agente == "zcode" else "sem MCP neste escopo"
 
 
 def alvos(agente: str, projeto: Path, usuario: bool) -> dict:
@@ -303,9 +337,10 @@ def alvos(agente: str, projeto: Path, usuario: bool) -> dict:
     home = Path.home()
 
     def onde(par):
-        if par is None:
+        c = par[1] if usuario else par[0]
+        if c is None:
             return None
-        return home / par[1] if usuario else projeto / par[0]
+        return (home if usuario else projeto) / c
 
     return {"skills": onde(reg["skills"]), "mcp": onde(reg["mcp"]), "regras": onde(reg["regras"]),
             "cabecalho": reg["cabecalho"], "frontmatter": reg["frontmatter"], "chamada": reg["chamada"],
@@ -330,7 +365,7 @@ def integrar(agente, projeto, usuario=False, raiz_midia=None, skills=True, mcp=T
         if a["mcp"]:
             feito.append(f"{agente}: MCP → {a['mcp']}  cmd: {' '.join(cmd)}")
         else:
-            feito.append(f"{agente}: MCP → (sem MCP neste escopo)")
+            feito.append(f"{agente}: MCP → ({_dica_mcp(agente)})")
         feito.append(f"{agente}: regras → {a['regras'] or '(sem regras no escopo de usuário deste agente)'}")
         return feito, False
     if skills:
@@ -351,7 +386,7 @@ def integrar(agente, projeto, usuario=False, raiz_midia=None, skills=True, mcp=T
             REGISTRO[agente]["mcp_forma"](a["mcp"], cmd, remover)
             feito.append(f"{agente}: servidor MCP {'removido de' if remover else 'registrado em'} {a['mcp']}")
         else:
-            feito.append(f"{agente}: MCP (sem MCP neste escopo)")
+            feito.append(f"{agente}: MCP ({_dica_mcp(agente)})")
     if regras and a["regras"]:
         gravar_bloco(a["regras"], texto_regras(raiz_midia, a["chamada"]), remover, frontmatter=a["frontmatter"])
         feito.append(f"{agente}: regras {'removidas de' if remover else 'gravadas em'} {a['regras']}")

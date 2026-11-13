@@ -66,6 +66,24 @@ else
   opt "pacote video_editores" "rode o doctor de dentro do repositório/plugin para ver os modelos configurados"
 fi
 
+echo "Integração (skills portadas para outros agentes):"
+VERSAO=$(grep -m1 '^version' "$HERE/../pyproject.toml" 2>/dev/null | cut -d'"' -f2)
+if [ -n "$VERSAO" ]; then
+  for d in "$HOME/.agents/skills" "$HOME/.config/opencode/skills" "$HOME/.kiro/skills" "$HOME/.zcode/skills"; do
+    [ -d "$d" ] || continue
+    N=$(grep -ls 'video-editores:port\|plugin \[video-editores\]' "$d"/*/SKILL.md 2>/dev/null | wc -l | tr -d ' ')
+    [ "${N:-0}" -gt 0 ] || continue
+    V=$(grep -h -m1 -oE 'video-editores:port +v?[0-9][0-9.]*|plugin \[video-editores\]\([^)]*\) v[0-9][0-9.]*' "$d"/*/SKILL.md 2>/dev/null | head -1 | grep -oE '[0-9][0-9.]*$')
+    if [ "$V" = "$VERSAO" ]; then
+      ok "$N skills do plugin em $d (port $V, em dia)"
+    else
+      miss "$N skills do plugin em $d estão desatualizadas (port ${V:-?} ≠ plugin $VERSAO)" "da instalação atual, rode: video-editores integrar <agente> [--usuario]"
+    fi
+  done
+else
+  opt "Integração" "rode o doctor de dentro do repositório/plugin para checar ports desatualizados"
+fi
+
 echo "Pacotes Python (baixados sob demanda por 'uv run --with'; nada a instalar):"
 echo "  faster-whisper (/tomada, /legenda), rembg (/texto-atras, /tela-verde), edge-tts + pillow (/video-docs), verovio + resvg-py + numpy + scipy (/partitura)"
 if command -v uv >/dev/null; then

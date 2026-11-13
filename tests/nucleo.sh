@@ -320,6 +320,33 @@ grep -q "Regras minhas" integ/AGENTS.md && ! grep -q "video-editores:inicio" int
 python3 -c "import tomllib; d=tomllib.loads(open('integ/.codex/config.toml').read()); assert 'video-editores' not in d['mcp_servers'] and d['mcp_servers']['outro']"
 pass "integrar: Codex, OpenCode e Kiro (skills, MCP, regras), idempotente, guarda de procedência, status do port, remoção preserva o que não é nosso"
 
+# integração com o ZCode (escopo de usuário, em HOME isolado): skills em ~/.zcode/skills com cabeçalho próprio,
+# MCP global em ~/.zcode/cli/config.json preservando servidores de terceiros; em projeto, sem MCP (só há o global)
+mkdir -p fakehome/.zcode/cli
+printf '{"mcp":{"servers":{"outro":{"type":"stdio","command":"/bin/true","args":[],"enabled":true}}}}' > fakehome/.zcode/cli/config.json
+MOSTRA=$(HOME="$PWD/fakehome" python3 -m video_editores.cli integrar zcode --projeto integ --mostrar)  # escopo projeto: MCP só no usuário
+echo "$MOSTRA" | grep -q "MCP → (o ZCode só registra MCP global; rode com --usuario)"
+HOME="$PWD/fakehome" python3 -m video_editores.cli integrar zcode --usuario --projeto integ >/dev/null
+HOME="$PWD/fakehome" python3 -m video_editores.cli integrar zcode --usuario --projeto integ >/dev/null   # idempotente
+python3 - <<'PY'
+import json, pathlib
+h = pathlib.Path("fakehome")
+sk = sorted(x.name for x in (h / ".zcode/skills").iterdir() if not x.name.startswith("."))
+assert len(sk) == 22 and "marca" in sk, sk
+t = (h / ".zcode/skills/legenda/SKILL.md").read_text()
+assert "CLAUDE_PLUGIN_ROOT" not in t and "harness ZCode" in t and "Agent" in t and "AskUserQuestion" in t and "video-editores:port" in t, t[:400]
+man = json.loads((h / ".zcode/skills/.video-editores.json").read_text())
+assert man["agente"] == "zcode" and man["escopo"] == "usuario", man
+cfg = json.loads((h / ".zcode/cli/config.json").read_text())
+v = cfg["mcp"]["servers"]["video-editores"]
+assert v["type"] == "stdio" and v["args"][-2] == "--raiz" and v["enabled"] is True, v
+assert "outro" in cfg["mcp"]["servers"], cfg   # servidor de terceiros preservado
+PY
+HOME="$PWD/fakehome" python3 -m video_editores.cli integrar zcode --usuario --remover >/dev/null
+test ! -e fakehome/.zcode/skills/legenda && test ! -e fakehome/.zcode/skills/.video-editores.json
+python3 -c "import json; d = json.load(open('fakehome/.zcode/cli/config.json')); assert 'video-editores' not in d['mcp']['servers'] and 'outro' in d['mcp']['servers']"
+pass "integrar zcode: skills de usuário com cabeçalho próprio, MCP global (stdio) preservando terceiros, idempotente e reversível"
+
 if command -v uv >/dev/null; then
   # o comando que os agentes vão executar sobe o servidor por stdio e responde
   uv run --quiet --with "mcp>=2" python -I - "$ROOT" "$T" <<'PY' 2>"$T/stdio.err" || { cat "$T/stdio.err"; exit 1; }
