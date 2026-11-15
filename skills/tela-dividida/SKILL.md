@@ -25,7 +25,7 @@ Mesmo filtro, com `BRUTO.mp4` e `EDITADO.mp4`. Como os tempos diferem, alinhe pe
 
 ## 16:9 → 9:16 (vertical a partir de horizontal)
 - **Recorte central**: `-vf "crop=ih*9/16:ih,scale=1080:1920"`.
-- **Recorte seguindo a pessoa**: extraia 1 frame a cada 2 s (`fps=0.5`), localize o rosto (olhe as imagens) e use `crop=ih*9/16:ih:X:0` por trecho, concatenando; ou `zoompan` para transição suave de X.
+- **Recorte seguindo a pessoa**: extraia 1 frame a cada 2 s (`fps=0.5`), localize o rosto (`scripts/rostos.py IN.mp4 --passo 2` grava a caixa do rosto de cada amostra no `.rostos.json`, em fração do quadro: centro = `x + w/2`; sem ele, olhe as imagens) e use `crop=ih*9/16:ih:X:0` por trecho, concatenando; ou `zoompan` para transição suave de X.
 - **Borrado atrás (sem cortar)**: `-filter_complex "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=30[bg];[0:v]scale=1080:-2[fg];[bg][fg]overlay=(W-w)/2:(H-h)/2"`.
 
 ## 1:1 (feed)

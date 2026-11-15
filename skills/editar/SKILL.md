@@ -27,6 +27,9 @@ Se faltar algo que muda o resultado (ex.: música sim ou não), pergunte **uma**
 | recorta / troca cenário / neon | tela-verde |
 | animação / explica com motion | animacao |
 | 3D | 3d |
+| etiqueta que segue um objeto / "marca e acompanha" / tracking | rastrear |
+| destaca um botão ou uma frase da tela / "onde está escrito X" / tarja em e-mail, CPF, token | ler-tela |
+| "falta imagem aqui" / B-roll de banco (só se o usuário pedir imagem de fora e tiver a chave) | banco (opcional) |
 | melhores momentos / resumo / "aula de 2 h em 10 min" / "tira N reels" | destaques |
 | música / trilha / "onde não falo põe música" | trilha |
 | efeitos sonoros / whoosh | efeitos |
@@ -41,7 +44,7 @@ Se faltar algo que muda o resultado (ex.: música sim ou não), pergunte **uma**
 `originais/` (bruto intocado), `trabalho/<slug>/`, `saida/`, `legendas/`. Slug = nome curto do arquivo, sem espaço.
 
 ## 3. Execute com os gates
-Rode cada skill da lista. **Pare e mostre** antes de: descartar tomadas, queimar legenda (texto revisado), render longo (3D, texto-atrás, IA) e entregar. Entre etapas, uma linha de progresso em linguagem simples, no padrão do relatório abaixo.
+Rode cada skill da lista. **Pare e mostre** antes de: descartar tomadas, queimar legenda (texto revisado), render longo (3D, texto-atrás, IA), tarjar dado sensível, usar vídeo de banco e entregar. Em vídeo com pessoa e texto na tela, a `/prova` roda a conferência de texto sobre o rosto (`rostos.py --conferir`). Entre etapas, uma linha de progresso em linguagem simples, no padrão do relatório abaixo.
 
 ## 4. Relatório de edição (sempre, ao final)
 ```

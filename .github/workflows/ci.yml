@@ -27,6 +27,8 @@ jobs:
         run: bash tests/docs_offline.sh
       - name: partitura (Verovio + resvg + síntese, via uv)
         run: bash tests/partitura.sh
+      - name: visão (rastreamento com OpenCV; rosto, OCR e banco com backends falsos)
+        run: bash tests/visao.sh
   macos:
     runs-on: macos-latest
     steps:
@@ -45,3 +47,5 @@ jobs:
         run: bash tests/docs_offline.sh
       - name: partitura (Verovio + resvg + síntese, via uv)
         run: bash tests/partitura.sh
+      - name: visão (rastreamento com OpenCV; rosto, OCR e banco com backends falsos)
+        run: bash tests/visao.sh

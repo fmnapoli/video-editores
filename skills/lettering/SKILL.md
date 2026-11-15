@@ -27,7 +27,13 @@ Mesma escolha do `video-docs`: texto em ASS/libass, porque o ffmpeg estático n�
    python3 "${CLAUDE_PLUGIN_ROOT}/scripts/lettering_ass.py" IN.mp4 textos.json --font "DejaVu Sans" --burn IN_lettering.mp4
    ```
    A fonte é o nome da família instalada (`fc-list : family`). Montserrat e Inter (OFL) ficam boas em reels.
-4. Rode `/prova` e confira se o texto não cobre o rosto nem a legenda (no estilo reels a legenda fica entre ~55% e ~65% da altura; no clássico, no rodapé). Em vídeo gravado no celular, o script já considera a rotação do arquivo.
+4. Vídeo com pessoa: descubra onde o rosto fica antes de escolher `pos`, e confira depois de queimar.
+   ```bash
+   uv run --with opencv-python-headless --with numpy python "${CLAUDE_PLUGIN_ROOT}/scripts/rostos.py" IN.mp4
+   uv run --with opencv-python-headless --with numpy python "${CLAUDE_PLUGIN_ROOT}/scripts/rostos.py" IN.mp4 --conferir IN_lettering.mp4 --rostos trabalho/IN/IN.rostos.json
+   ```
+   O primeiro grava `IN.rostos.json` (em `trabalho/IN/` quando a pasta `trabalho/` existe, senão ao lado do vídeo; o caminho é impresso) com a zona do rosto no vídeo inteiro e uma `sugestao` de `pos` na maior faixa livre; o segundo sai com código 3 e os intervalos se algum texto passou por cima do rosto. A sugestão é ponto de partida: título que **deve** ficar no topo continua no topo se couber acima da cabeça.
+5. Rode `/prova` e confira se o texto não cobre o rosto nem a legenda (no estilo reels a legenda fica entre ~55% e ~65% da altura; no clássico, no rodapé). Em vídeo gravado no celular, o script já considera a rotação do arquivo.
 
 ## Combinando com /legenda
 Queime o lettering **antes** da legenda, para a legenda ficar por cima. Ou junte os dois num filtro só: `-vf "ass=textos.ass,subtitles=IN.words.srt:force_style=..."`.

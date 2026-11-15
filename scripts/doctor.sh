@@ -30,7 +30,7 @@ command -v scenedetect >/dev/null && ok "scenedetect (/referencia, /efeitos)" ||
 command -v manim       >/dev/null && ok "manim (/animacao, /video-animado)" || opt "manim (/animacao, /video-animado)" "uv tool install manim  (se o manimpango falhar por falta de libpango-dev: micromamba create -n manim -c conda-forge manim, ver docs/troubleshooting.md)"
 command -v blender     >/dev/null && ok "blender (/3d)" || opt "blender (/3d)" "https://www.blender.org/download/"
 
-echo "Modelos de IA (video_editores.modelos; troque com VE_ASR/VE_SEG/VE_TTS/VE_IMAGEM, VE_DEVICE, VE_ENCODER):"
+echo "Modelos de IA (video_editores.modelos; troque com VE_ASR/VE_SEG/VE_TTS/VE_IMAGEM/VE_ROSTO/VE_OCR, VE_DEVICE, VE_ENCODER):"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 if PYTHONPATH="$HERE/.." python3 -c "import video_editores" 2>/dev/null; then
   PYTHONPATH="$HERE/.." python3 - <<'PY2'
@@ -58,6 +58,8 @@ PY3
     OK*) ok "imagem (gerar-imagem): ${COMFY#OK }" ;;
     *)   opt "imagem (gerar-imagem, opcional)" "${COMFY#-- }" ;;
   esac
+  # banco de vídeo (/banco): opcional, só com chave própria; nada mais depende dele
+  if [ -n "${PEXELS_API_KEY:-}" ]; then ok "banco de vídeo (/banco): PEXELS_API_KEY definida"; else opt "banco de vídeo (/banco, opcional)" "desligado: sem PEXELS_API_KEY (chave gratuita em https://www.pexels.com/api/)"; fi
   if command -v ffmpeg >/dev/null; then
     ENCS=$(PYTHONPATH="$HERE/.." python3 -c "from video_editores.nucleo import ffmpeg; print(' '.join(ffmpeg.encoders_disponiveis()))")
     echo "  • codificadores neste ffmpeg: ${ENCS:-nenhum da tabela}"

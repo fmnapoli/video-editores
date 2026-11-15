@@ -142,6 +142,9 @@ e corrigir pelo código. Mostrar em lote e **parar**.
 - **Lote que falhou no meio deixa o vídeo velho com cara de novo**: o build agora encerra com erro se o
   TTS não responde e só troca `.mp4`/`.srt` no fim, mas o lote precisa parar no erro e terminar com
   `scripts/confere_saida.py specs/*/spec.json` (aponta o que está desatualizado).
+- **O `.srt` certo não prova que a voz está certa**: no piloto e em vídeo regravado, transcreva o `.mp4` final e rode
+  `scripts/conferir_fala.py spec.json <final>.transcript.json` do plugin (lê `tts`, senão `legend`): compara o que se ouve com o
+  roteiro, palavra por palavra, e aponta o instante de cada diferença.
 - **Gravação em 1080p, coordenadas em 1280x720**: medir no quadro cheio põe a caixa no lugar errado.
   Extraia o frame já escalado. Os `avisos` do build pegam caixa fora do quadro, balão sobre a legenda e
   `at` caindo num corte.

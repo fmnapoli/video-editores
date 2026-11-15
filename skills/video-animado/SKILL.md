@@ -57,3 +57,4 @@ Scripts desta skill em `${CLAUDE_PLUGIN_ROOT}/skills/video-animado/scripts/`; mo
 - Números na narração ("menos de 3 minutos", "15 indicadores") vêm de medição real do sistema ou do vídeo técnico anterior, com a fonte anotada no roteiro.
 - `-ql` antes de `-qh`, sempre; o render em 1080p vai para segundo plano.
 - Nada é "pronto" sem o `/prova`: folha de contato, preview, `.proof.txt` com −16 LUFS, pico real ≤ −1,5 dBTP e 48 kHz.
+- Confira a fala do vídeo final contra o roteiro: transcreva o `.mp4` entregue e rode `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/conferir_fala.py" cenas/<slug>.json <final>.transcript.json` (lê o campo `narracao`). Pega cena fora de ordem, narração cortada no fim do bloco e palavra que o TTS engoliu.

@@ -292,7 +292,7 @@ python3 - <<'PY'
 import json, re, pathlib, tomllib
 from video_editores import __version__
 p = pathlib.Path("integ")
-sk = sorted(x.name for x in (p / ".agents/skills").iterdir() if not x.name.startswith(".")); assert len(sk) == 22 and "partitura" in sk and "marca" in sk, sk
+sk = sorted(x.name for x in (p / ".agents/skills").iterdir() if not x.name.startswith(".")); assert len(sk) == 25 and "partitura" in sk and "marca" in sk and "ler-tela" in sk, sk
 assert sorted(x.name for x in (p / ".kiro/skills").iterdir() if not x.name.startswith(".")) == sk
 for s in (p / ".kiro/skills").glob("*/SKILL.md"):
     t = s.read_text(); fm = re.match(r"---\n(.*?)\n---", t, re.S).group(1)

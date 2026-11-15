@@ -33,6 +33,22 @@ Siga `${CLAUDE_PLUGIN_ROOT}/docs/convencoes.md` (pastas, nomes de saída, loudne
      -filter_complex "[0:v][1:v]overlay=0:0:eof_action=pass[v]" -map "[v]" -map 0:a -c:a copy IN_anim.mp4
    ```
 
+## Movimento com vida (easing)
+Entre dois quadros-chave, o que muda a sensação é **como** o movimento acelera e freia. Linear parece robô; o padrão do Manim (`smooth`) já acelera e freia, e vale escolher de propósito:
+| O que se move | `rate_func` | Por quê |
+|---|---|---|
+| elemento que entra na tela | `rate_functions.ease_out_cubic` | chega rápido e assenta |
+| elemento que sai | `rate_functions.ease_in_cubic` | arranca devagar e some depressa |
+| destaque, "pop" de um número ou palavra | `rate_functions.ease_out_back` | passa um pouco do ponto e volta |
+| câmera, deslocamento longo | `smooth` (padrão) ou `rate_functions.ease_in_out_sine` | sem tranco nas pontas |
+| contador, barra de progresso, rolagem | `linear` | velocidade constante é a informação |
+
+```python
+self.play(FadeIn(cartao, shift=UP * 0.4), rate_func=rate_functions.ease_out_cubic, run_time=0.45)
+self.play(numero.animate.scale(1.25), rate_func=rate_functions.ease_out_back, run_time=0.3)
+```
+Entradas e saídas curtas (0,25–0,5 s); o que precisa ser lido fica parado. No ASS do `/lettering`, o equivalente é o `anim: pop`.
+
 ## ffmpeg — receitas rápidas
 - **Punch-in (zoom 1.15x num trecho)**: `-vf "scale=iw*1.15:-2,crop=iw/1.15:ih/1.15"` aplicado só ao trecho (separe com `trim` + `concat`) ou `zoompan` para zoom progressivo.
 - **Ken Burns em foto (5s)**: `ffmpeg -loop 1 -i foto.jpg -vf "zoompan=z='min(zoom+0.0015,1.3)':d=150:s=1080x1920:fps=30" -pix_fmt yuv420p -t 5 kb.mp4`

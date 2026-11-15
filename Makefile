@@ -1,10 +1,11 @@
 .PHONY: test lint doctor docs-example
 
-test:            ## versão + teste de fumaça (ffmpeg + python3) + núcleo (CLI, modelos, tarefas, MCP) + partitura (uv)
+test:            ## versão + teste de fumaça (ffmpeg + python3) + núcleo (CLI, modelos, tarefas, MCP) + partitura + visão (uv)
 	bash tests/versao.sh
 	bash tests/smoke.sh
 	bash tests/nucleo.sh
 	bash tests/partitura.sh
+	bash tests/visao.sh
 
 lint:            ## shellcheck + ruff (falha se houver erro)
 	@if command -v shellcheck >/dev/null; then shellcheck -S warning scripts/*.sh tests/*.sh exemplos/video-docs/*.sh skills/videoaula/scripts/*.sh; else echo "shellcheck ausente, pulando"; fi
