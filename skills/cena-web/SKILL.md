@@ -38,8 +38,9 @@ A cena HTML gera um **bloco** (abertura, separador, cartela, objeto 3D com alpha
    # camada transparente para sobrepor: fundo da página transparente e, em WebGL, `alpha: true` (FUNDO = null no modelo)
    uv run --with playwright python "${CLAUDE_PLUGIN_ROOT}/scripts/cena_web.py" trabalho/<slug>/cenas/selo.html trabalho/<slug>/selo.mov --alpha
    ```
-5. Use o bloco: como cena pronta do `/video-animado` (`"video": "abertura.mp4"`), bloco do `/videoaula`, ou sobreposto com `overlay` (o `.mov` com alpha, como no `/animacao`). Bloco sem som: o áudio da cena vem da narração ou de um efeito do `/efeitos`.
-6. `/prova` no resultado.
+5. Para **trocar um trecho** de um vídeo pronto pelo bloco (um separador, uma cartela), corte por tempo em três partes, junte com o demuxer `concat` e confira a emenda extraindo quadros com `-ss` antes e depois: contagem de quadros e `-itsoffset` erram em vídeo montado por blocos (ver solução de problemas).
+6. Use o bloco: como cena pronta do `/video-animado` (`"video": "abertura.mp4"`), bloco do `/videoaula`, ou sobreposto com `overlay` (o `.mov` com alpha, como no `/animacao`). Bloco sem som: o áudio da cena vem da narração ou de um efeito do `/efeitos`.
+7. `/prova` no resultado.
 
 ## Bibliotecas
 A página importa por nome; o script entrega do cache local (baixa do registro do npm na primeira vez, versão fixada e sha256 conferido; `--libs` mostra). Nada vem de CDN e, por padrão, a página não acessa a internet (`--rede` libera).

@@ -109,7 +109,25 @@ for kw, total in casos:
 assert n(quadros.em("indice.mp4", 1.01, cinza=True)) == 31       # primeiro quadro com tempo >= 1,01 s
 assert quadros.em("indice.mp4", 9.0) is None
 PY
-pass "nucleo/quadros: o instante devolvido é o do quadro entregue (todos os quadros, amostrado, início fora do grid)"
+# entrega montada por blocos: os parâmetros de cor mudam aos 2 s e o ffmpeg reinicia o grafo de filtros, zerando o
+# número do quadro. Amostrar pelo número aponta o quadro errado depois da emenda; pelo tempo, não.
+ffmpeg -v error -y -f lavfi -i "color=c=black:s=64x64:r=30:d=2,geq=lum='16+N*1.5':cb=128:cr=128" -c:v libx264 -qp 0 -pix_fmt yuv420p -video_track_timescale 15360 e1.mp4
+ffmpeg -v error -y -f lavfi -i "color=c=black:s=64x64:r=30:d=2,geq=lum='114+N*1.5':cb=128:cr=128" -c:v libx264 -qp 0 -pix_fmt yuv420p \
+  -colorspace bt709 -color_primaries bt709 -color_trc bt709 -color_range tv -video_track_timescale 15360 e2.mp4
+printf "file 'e1.mp4'\nfile 'e2.mp4'\n" > e.txt && ffmpeg -v error -y -f concat -safe 0 -i e.txt -c copy emenda.mp4
+REPETIDOS=$(ffmpeg -hide_banner -i emenda.mp4 -vf showinfo -f null - 2>&1 | grep -o "n: *[0-9]* pts:" | sort | uniq -d | wc -l)
+uv run --quiet --with numpy python - "$REPETIDOS" <<'PY'
+import sys
+from video_editores.nucleo import quadros
+todos = [int(q[0, 0]) for _, _, q in quadros.ler("emenda.mp4", cinza=True)]
+assert len(todos) == 120 and all(a < b for a, b in zip(todos, todos[1:])), "brilho crescente nos dois blocos"
+r = [(t, todos.index(int(q[0, 0]))) for _, t, q in quadros.ler("emenda.mp4", passo=0.5, cinza=True)]
+assert [k for _, k in r] == [0, 15, 30, 45, 60, 75, 90, 105], r            # 60, 75, 90, 105 ficam depois da emenda
+assert all(abs(t * 30 - k) < 0.01 for t, k in r), r
+if int(sys.argv[1]) == 0:
+    print("  - este ffmpeg não reiniciou o grafo na emenda: o caso foi exercitado sem a reinicialização")
+PY
+pass "nucleo/quadros: o instante devolvido é o do quadro entregue (todos os quadros, amostrado, início fora do grid, vídeo que muda de parâmetros no meio)"
 
 # ---------------------------------------------------------------- rastrear (OpenCV real, trajetória conhecida)
 # fundo com ruído parado + cartão de teste que anda 150 px/s para a direita e 40 px/s para cima

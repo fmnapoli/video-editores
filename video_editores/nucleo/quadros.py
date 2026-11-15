@@ -23,8 +23,11 @@ def ler(path, largura=None, passo=None, inicio=0.0, fim=None, cinza=False):
     """Gera (indice, t, quadro). Sem `passo`, todos os quadros; com `passo` (segundos), uma amostra a cada passo.
     `t` é o instante real do quadro no vídeo (taxa de quadros constante): o primeiro quadro entregue é o primeiro
     com tempo >= `inicio`, e a amostra k é o quadro mais próximo de k × passo depois dele. A amostragem escolhe o
-    quadro pelo índice (filtro `select`), não pelo filtro `fps`, que arredonda o tempo e desloca o rótulo em até
-    meio passo. Quadro: uint8 HxWx3 (BGR) ou HxW (cinza)."""
+    quadro pelo TEMPO dele (filtro `select` sobre `t`, sem estado), e não:
+      - pelo filtro `fps`, que arredonda o tempo e desloca o rótulo em até meio passo;
+      - pelo número do quadro (`n`), que o ffmpeg zera quando o vídeo muda de parâmetros no meio (entrega montada
+        por blocos com cor ou SPS diferentes): depois da emenda, toda contagem por quadro aponta o quadro errado.
+    Quadro: uint8 HxWx3 (BGR) ou HxW (cinza)."""
     import math
 
     import numpy as np
@@ -35,7 +38,11 @@ def ler(path, largura=None, passo=None, inicio=0.0, fim=None, cinza=False):
     p_q = max(1.0, passo * taxa) if passo else 1.0       # passo em quadros
     vf = []
     if passo:
-        vf.append(f"select=eq(n\\,0)+gt(floor((n+0.5)/{p_q:.6f})\\,floor((n-0.5)/{p_q:.6f}))")
+        # u = tempo desde o primeiro quadro entregue; entra o quadro em que floor((u + meio quadro) / passo) avança
+        # (o 1% de quadro a mais decide o empate quando k × passo cai exatamente entre dois quadros)
+        d, o = 1.0 / taxa, n0 / taxa - inicio
+        u = f"(t-{o - 0.01 / taxa:.6f})"
+        vf.append(f"select=gt(floor(({u}+{d / 2:.6f})/{p_q * d:.6f})\\,floor(({u}-{d / 2:.6f})/{p_q * d:.6f}))")
     vf.append(f"scale={w}:{h}")
     cmd = ["ffmpeg", "-v", "error", "-ss", f"{inicio:.6f}"]
     if fim is not None:
@@ -51,7 +58,7 @@ def ler(path, largura=None, passo=None, inicio=0.0, fim=None, cinza=False):
             if len(buf) < n:
                 break
             q = np.frombuffer(buf, dtype=np.uint8)
-            quadro = n0 + (math.ceil(i * p_q - 0.5) if passo else i)
+            quadro = n0 + (math.ceil(i * p_q - 0.51) if passo else i)
             yield i, quadro / taxa, (q.reshape(h, w) if cinza else q.reshape(h, w, 3))
             i += 1
     finally:

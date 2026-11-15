@@ -136,6 +136,29 @@ Também do vídeo, e que viraram orientação nas skills em vez de código: esco
 - `banco-video`: validado contra um servidor falso com as rotas da API; **não foi exercitado contra o serviço
   real** neste ciclo (sem chave na máquina de desenvolvimento).
 
+## O que o uso numa aula real mostrou
+
+As operações foram aplicadas a uma videoaula de código já entregue (16 min, 1080p, montada por blocos) para
+produzir uma segunda versão: 26 destaques por OCR no instante em que cada trecho de código é falado, um separador
+de capítulo em 3D (`/cena-web`) e as conferências. Quatro defeitos só apareceram ali, e viraram correção e teste:
+
+- **Contar quadros não é confiável em entrega montada por blocos.** O vídeo mudava de parâmetros aos 6,9 s (emenda
+  da cartela de abertura) e o ffmpeg reinicia o grafo de filtros nesse ponto, zerando o número do quadro: a
+  amostragem por índice passou a apontar quadros 7 s adiantados e a conferência de rosto acusou a aula inteira.
+  `nucleo/quadros.py` agora escolhe a amostra pelo tempo do quadro. Pela mesma razão, trocar um trecho do vídeo
+  por contagem de quadros (`trim=end_frame`, `select=eq(n,…)`) ou por `-itsoffset` + `overlay` saiu deslocado;
+  o que funcionou foi cortar por tempo em partes e juntar, conferindo a emenda por tempo (`-ss`).
+- **O destaque de um pedaço de token cobria o token inteiro** (`str(idade)` dentro de `"+str(idade)+"`): a caixa
+  passou a ser recortada na proporção dos caracteres.
+- **Em aula de código a tela rola logo depois de cada execução.** O modo `--lote` nasceu disso: procura o texto
+  na janela em que é falado e só destaca num trecho em que ele fica parado.
+- **A timeline do GSAP tem `.then()`**: tratada como Promise, travava o render para sempre.
+
+O que a ferramenta não decide sozinha: 4 dos 26 destaques caíram, na primeira rodada, num momento de erro do
+instrutor ou atrás de um pop-up do editor (o texto procurado estava lá, mas não era o momento certo). Quem resolve
+é a folha de quadros conferida a olho, que a skill exige. O OCR também leu `"-"` como `"_"` num caso (resolvido
+com `regex`). Tempo: ~9 min de CPU para os 26 itens.
+
 ## Consequências
 
 - Dependência nova, só para quem usa: `opencv-python-headless` (Apache-2.0) e `rapidocr` (Apache-2.0), via
