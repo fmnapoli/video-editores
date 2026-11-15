@@ -23,6 +23,7 @@ Invocação: `/video-editores:<nome>`, ou em linguagem natural (o Claude escolhe
 | efeitos | vídeo | `_efeitos.mp4` | **sim**: lista de instantes | 10–30 s |
 | ganchos | transcrição | 5 opções + recomendação | escolha | instantâneo |
 | prova | vídeo (+ etapa anterior, + roteiro) | `.proof.jpg`, `.preview.mp4`, `.proof.txt`, `.rosto-coberto.json`, `.fala.md` | entrega ao usuário | 10–20 s (+ transcrição, se conferir a fala) |
+| cena-web | descrição da cena (HTML) | `.mp4`, ou `.mov` ProRes 4444 com alpha | **sim**: quadros de teste | ~6 s por segundo de cena em 1080p |
 | rastrear | vídeo + caixa do objeto + texto | `.rastro.json`, `.rastro.ass`, `_rastro.mp4` | prova do fim do trecho | 1–3 s |
 | ler-tela | print ou vídeo + texto a marcar | `.ocr.json`, `.destaque.ass`, `_destaque.mp4` | **sim** para tarja: lista do que foi coberto | 2–5 s (1ª vez: download de ~100 MB) |
 | banco (opcional) | assunto do trecho + chave própria | `banco/<id>.mp4`, `<id>.json`, créditos | **sim**: folha de escolha | rede |
@@ -121,6 +122,9 @@ Conferência automática (ADR-19), que aponta o instante para olhar e não subst
 |---|---|---|
 | texto sobre o rosto | `rostos.py ANTES.mp4 --conferir DEPOIS.mp4` (entrada e saída da mesma etapa) | código 3 + intervalos em que os pixels do rosto mudaram |
 | fala × roteiro | `conferir_fala.py ROTEIRO FINAL.transcript.json [--equivalentes eq.json]` | código 1 + o que faltou, sobrou ou trocou, com o instante |
+
+## /cena-web
+`cena_web.py` abre a cena num Chrome sem janela, chama `window.veQuadro(t)` para cada quadro, captura e manda ao ffmpeg. A cena é função de `t` (sem relógio), então dois renders dão o mesmo arquivo. Three.js (MIT) para 3D e GSAP (gratuita, licença própria, não open source) para linha do tempo são entregues de um cache local com versão e sha256 fixos; a página não acessa a internet por padrão. Saída `.mp4` opaca ou `.mov` ProRes 4444 com `--alpha`. Serve para blocos gerados (abertura, separador, cartela com layout de página, objeto 3D); filmagem nunca passa pelo navegador. Manim continua o padrão para diagrama sincronizado com a fala e o Blender para 3D fotorrealista. Modelos em `skills/cena-web/templates/`.
 
 ## /rastrear
 `rastrear.py` segue os pontos de textura de uma região (`--caixa X,Y,L,A` em fração do quadro, no instante `--inicio`) com fluxo óptico e ajusta deslocamento, escala e rotação por quadro. Com `--etiqueta`, gera um ASS com um evento por quadro para o texto andar junto (`--ancora`, `--seta`, `--girar`, `--sem-escala`, `--suavizar`). Código 2 quando perde o objeto (coberto, fora de quadro, corte de cena): o rastro vale até ali. Um plano por rastro; sem perspectiva; região lisa é recusada.

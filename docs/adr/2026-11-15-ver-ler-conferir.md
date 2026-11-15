@@ -1,6 +1,6 @@
-# ADR-19 — Ver, ler e conferir: rosto, rastreamento, OCR e conferência da fala
+# ADR-19 — Ver, ler e conferir (rosto, rastreamento, OCR, fala) e cena em HTML com Three.js
 
-**Data:** 2026-11-15 · **Estado:** implementado (0.14.0) · **Motores de animação por HTML:** avaliação pendente, nada adotado
+**Data:** 2026-11-15 · **Estado:** implementado (0.14.0)
 
 ## Contexto
 
@@ -17,11 +17,13 @@ plataformas, folha de contato antes de entregar. Quatro capacidades faltavam, to
 | lê a tela (OCR) e põe o destaque onde o texto está | coordenada medida no olho; tarja de dado sensível à mão |
 | transcreve o áudio final e compara com o roteiro, palavra por palavra | só o `.srt` contra o spec (`docs-conferir`), que não ouve o áudio |
 | busca vídeo de banco por API quando falta imagem | não havia |
+| cena em 3D escrita em HTML (Three.js), layout em CSS, linha do tempo com GSAP, tudo renderizado num navegador sem janela | Manim (2D) e Blender (3D); nenhum caminho para HTML/CSS/WebGL |
 
 O vídeo usa, para isso, uma biblioteca de visão que só existe num sistema operacional, serviços pagos de voz e de
 avatar e quatro motores de animação por HTML. A pergunta deste ADR não é "como copiar a pilha dele", e sim: o que
 dessas ideias melhora o plugin **dentro** das promessas dele (ADR-01, 05): open source, local, determinístico onde
-possível, sem serviço pago no caminho padrão.
+possível, sem serviço pago no caminho padrão. O critério de licença usado aqui é o do `CONTRIBUTING.md`: o que é
+gratuito pode entrar; o que não é open source entra só como opcional, com aviso explícito.
 
 ## Decisão
 
@@ -68,6 +70,25 @@ explicando, e nada no plugin depende dele. É a única operação de edição qu
 termo de busca, entra um vídeo). A escolha é gate (folha de miniaturas) e cada download grava autor, página, licença
 e sha256, que viram os créditos. A skill manda tentar antes o próprio bruto, lettering ou animação.
 
+### 6. Cena em HTML com renderizador próprio (`/cena-web`)
+`cena_web.py` é um renderizador pequeno (~200 linhas): Playwright (Apache-2.0) dirige o Chrome já instalado, chama
+`window.veQuadro(t)` para cada quadro, captura e manda ao ffmpeg. O contrato "a cena é função de `t`" é o que dá
+determinismo; a página é servida por interceptação de requisição (sem porta aberta) e não acessa a internet.
+
+- **Three.js (MIT)** é a biblioteca padrão para 3D; **GSAP** entra como opcional para linha do tempo, com o aviso
+  de licença na skill e nas convenções (gratuita, "no charge", **não é open source**, revogável, com usos
+  proibidos). O modelo com Three.js não depende dela.
+- As duas vêm do registro do npm na versão fixada, com sha256 conferido, para `~/.cache/video-editores/web/`
+  (23 MB). Não há `node_modules` nem Node no caminho: o ADR-16 mediu 518 MB para o Remotion.
+- **Não substitui nada.** Manim continua o padrão para diagrama sincronizado com a fala (`/animacao`,
+  `/video-animado`) e o Blender para 3D fotorrealista (`/3d`). A cena HTML cobre o que o ADR-16 reconheceu que
+  faltava (layout de texto em CSS) e o 3D rápido de autoria. A regra do ADR-16 fica: **filmagem nunca passa pelo
+  navegador**; a cena gera um bloco ou uma camada com alpha, e o ffmpeg compõe.
+- Por que não o HyperFrames (Apache-2.0), que faz o mesmo: ele é uma ferramenta de Node (`npx`), e o plugin já
+  tem `uv`, ffmpeg e o padrão de script determinístico; o contrato de uma função resolve o mesmo problema sem
+  motor de terceiros e sem `node_modules`. O HyperFrames **não foi medido** aqui: a escolha é por encaixe, não
+  por comparação de desempenho.
+
 ## O que foi medido
 
 CPU de notebook, 8 threads, sem GPU.
@@ -79,16 +100,16 @@ CPU de notebook, 8 threads, sem GPU.
 | `rastrear` | sintético, cartão a 150 px/s sobre ruído, 120 quadros | 1,7 s com a queima | erro máximo 3,2 px em 1280×720 |
 | `rastrear` | plano aéreo real, surfista de ~50×90 px sobre água em movimento, câmera aproximando, 102 quadros | 0,9 s | etiqueta no surfista do começo ao fim; confiança mínima 0,77 |
 | `ler-tela` | um quadro 1280×720 de tela | 1,4 s (0,7 s de leitura) | 22 palavras; acentos corretos |
+| `cena-web` | modelo 3D (6 blocos com textura, luz direcional, sombra 2048, câmera em arco), 6 s, 1920×1080 | 35 s (~5 quadros/s) | dois renders com os mesmos quadros (md5 idêntico) |
+| `cena-web` | modelo CSS + GSAP (título, 4 cartões com stagger), 6 s, 1920×1080 | 33 s; 54 s em ProRes 4444 com alpha | timeline posicionada por `seek(t)` |
 | `conferir-fala` | 30 s de fala real, legenda automática de outra origem como roteiro | instantâneo | 79 palavras, 1 "parecida" (nome próprio) e 3 que faltam por causa da borda do recorte |
 
 ## O que foi avaliado e não entrou
 
 | Do vídeo | Decisão | Motivo |
 |---|---|---|
-| Remotion | segue o ADR-16 | licença source-available com assento pago em empresa; nada mudou |
-| HyperFrames (HTML → vídeo, Apache-2.0) | **avaliar em ADR próprio**, com prova medida | a licença resolve a objeção do ADR-16, mas ainda falta o que aquele ADR mediu: tempo de render contra o Manim, custo de instalação (Node + Chrome headless) e determinismo. Não foi medido aqui; sem medição não entra |
-| GSAP | não entra como padrão | licença "no charge" proprietária, revogável e com usos proibidos; não é open source. O Manim já tem as curvas de easing (ver `/animacao`) |
-| Three.js (MIT) | não substitui o Blender | o `/3d` já entrega cena com câmera, luz e sombra, com alpha; o Three.js só faria sentido dentro de um motor HTML, que depende do item acima |
+| Remotion | segue o ADR-16 | cobra assento de empresa com 4 ou mais pessoas; nada mudou |
+| HyperFrames (HTML → vídeo, Apache-2.0) | não entra como dependência | o renderizador próprio cobre o mesmo contrato sem Node (ver decisão 6). Não foi medido aqui |
 | Voz clonada e avatar falante | fora | serviços pagos e fora do plano do ADR-15 (o plugin não imita a pessoa gravada) |
 | Efeito sonoro gerado por descrição | fora | o `/efeitos` sintetiza whoosh, pop e ding pelo ffmpeg; os pesos abertos de geração de áudio são não comerciais |
 | Biblioteca de visão do sistema operacional | fora do padrão | só existe em uma plataforma; o CI roda em duas. Pode entrar como backend extra de `rosto`/`ocr` |
@@ -102,6 +123,9 @@ Também do vídeo, e que viraram orientação nas skills em vez de código: esco
 
 - `rostos`: rosto de frente e de três quartos; perfil fechado, rosto muito pequeno ou coberto
   escapam. A conferência compara pixels: precisa da entrada e da saída da **mesma** etapa (mesma linha do tempo).
+- `cena-web`: ~5 quadros/s em 1080p; WebGL por software (sem pós-processamento pesado); a fonte é a do sistema
+  ou da marca, então a mesma cena pode diferir entre máquinas com fontes diferentes (dentro da mesma máquina o
+  resultado é idêntico).
 - `rastrear`: um plano por rastro; região sem textura é recusada; objeto pequeno sobre fundo que se move é o caso
   difícil e a skill manda conferir o fim do trecho. Sem perspectiva.
 - `ler-tela`: a caixa vale para o quadro lido; em tela com rolagem, o destaque fica no intervalo em que a tela está
@@ -116,8 +140,9 @@ Também do vídeo, e que viraram orientação nas skills em vez de código: esco
 
 - Dependência nova, só para quem usa: `opencv-python-headless` (Apache-2.0) e `rapidocr` (Apache-2.0), via
   `uv run --with`. Quem não usa não baixa nada; o resto do plugin não muda.
-- 25 skills (`/rastrear`, `/ler-tela`, `/banco`); `/prova`, `/lettering`, `/tela-dividida`, `/video-animado`,
+- 26 skills (`/cena-web`, `/rastrear`, `/ler-tela`, `/banco`); `/prova`, `/lettering`, `/tela-dividida`, `/video-animado`,
   `/video-docs`, `/animacao`, `/trilha` e `/editar` ganham passos, sem mudar o que já faziam.
 - `tests/visao.sh` roda no CI nos dois sistemas com OpenCV real para o rastreamento e backends falsos para rosto e
   OCR (`tests/stub/modelos_falsos.py`), no padrão do ComfyUI falso; `VE_TESTE_MODELOS=1` acrescenta o OCR real.
-- Fica aberta a avaliação de um motor de cena por HTML, com o mesmo protocolo do ADR-16.
+- `/cena-web` pede um Chrome ou Chromium na máquina (o `doctor.sh` avisa); `tests/cena_web.sh` roda no CI e é
+  pulado onde não houver navegador. WebGL roda por software: a cena 3D é para blocos curtos, não para minutos.

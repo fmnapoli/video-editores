@@ -26,7 +26,8 @@ Se faltar algo que muda o resultado (ex.: música sim ou não), pergunte **uma**
 | tela dividida / reação / antes e depois | tela-dividida |
 | recorta / troca cenário / neon | tela-verde |
 | animação / explica com motion | animacao |
-| 3D | 3d |
+| 3D | 3d (fotorrealista, modelo importado) ou cena-web (letreiro, blocos, câmera que se move: mais rápido) |
+| abertura / cartela com layout / "em Three.js" / "com GSAP" | cena-web |
 | etiqueta que segue um objeto / "marca e acompanha" / tracking | rastrear |
 | destaca um botão ou uma frase da tela / "onde está escrito X" / tarja em e-mail, CPF, token | ler-tela |
 | "falta imagem aqui" / B-roll de banco (só se o usuário pedir imagem de fora e tiver a chave) | banco (opcional) |

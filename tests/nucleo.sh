@@ -292,7 +292,7 @@ python3 - <<'PY'
 import json, re, pathlib, tomllib
 from video_editores import __version__
 p = pathlib.Path("integ")
-sk = sorted(x.name for x in (p / ".agents/skills").iterdir() if not x.name.startswith(".")); assert len(sk) == 25 and "partitura" in sk and "marca" in sk and "ler-tela" in sk, sk
+sk = sorted(x.name for x in (p / ".agents/skills").iterdir() if not x.name.startswith(".")); assert len(sk) == 26 and "cena-web" in sk and "partitura" in sk and "marca" in sk and "ler-tela" in sk, sk
 assert sorted(x.name for x in (p / ".kiro/skills").iterdir() if not x.name.startswith(".")) == sk
 for s in (p / ".kiro/skills").glob("*/SKILL.md"):
     t = s.read_text(); fm = re.match(r"---\n(.*?)\n---", t, re.S).group(1)
@@ -387,7 +387,7 @@ python3 - <<'PY'
 import json, pathlib
 h = pathlib.Path("fakehome")
 sk = sorted(x.name for x in (h / ".zcode/skills").iterdir() if not x.name.startswith("."))
-assert len(sk) == 25 and "marca" in sk, sk
+assert len(sk) == 26 and "marca" in sk, sk
 t = (h / ".zcode/skills/legenda/SKILL.md").read_text()
 assert "CLAUDE_PLUGIN_ROOT" not in t and "harness ZCode" in t and "Agent" in t and "AskUserQuestion" in t and "video-editores:port" in t, t[:400]
 man = json.loads((h / ".zcode/skills/.video-editores.json").read_text())

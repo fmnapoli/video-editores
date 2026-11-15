@@ -1,0 +1,126 @@
+<!doctype html>
+<!-- Modelo de cena 3D (Three.js, MIT) para o cena_web.py: blocos com texto, luz, sombra e câmera que se move.
+     Tudo é função de t: nada de requestAnimationFrame nem relógio. Troque as constantes e o que há em veQuadro. -->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: transparent; }
+  canvas { display: block; }
+</style>
+<script type="importmap">
+{ "imports": { "three": "/_ve/three/build/three.module.js", "three/addons/": "/_ve/three/examples/jsm/" } }
+</script>
+</head>
+<body>
+<script type="module">
+import * as THREE from "three";
+
+// ---------------------------------------------------------------- o que muda de uma cena para outra
+const TEXTO = "Python";                 // um bloco por caractere
+const TITULO = "Strings são sequências";
+const FUNDO = "#0B1220";                // null = fundo transparente (render com --alpha)
+const COR_BLOCO = "#2B4A7E", COR_CHAO = "#16223B", COR_TEXTO = "#F1F5F9", COR_ACENTO = "#FFD43B", COR_INDICE = "#94A3B8";
+const FONTE = "DejaVu Sans, Inter, Arial, sans-serif";
+window.veDuracao = 6;
+
+// ---------------------------------------------------------------- easing: o jeito de acelerar e frear
+const prende = (x) => Math.min(1, Math.max(0, x));
+const trecho = (t, ini, dur) => prende((t - ini) / dur);          // 0..1 dentro de [ini, ini + dur]
+const saiSuave = (x) => 1 - Math.pow(1 - x, 3);                   // chega rápido e assenta
+const vaiEVolta = (x) => -(Math.cos(Math.PI * x) - 1) / 2;        // sem tranco nas pontas
+const passaDoPonto = (x) => { const c = 1.70158; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+
+// ---------------------------------------------------------------- cena
+const W = innerWidth, H = innerHeight;
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(devicePixelRatio);
+renderer.setSize(W, H);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+if (FUNDO) scene.background = new THREE.Color(FUNDO);
+const camera = new THREE.PerspectiveCamera(38, W / H, 0.1, 100);
+
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x24304d, 2.2));
+const sol = new THREE.DirectionalLight(0xffffff, 4.5);
+sol.position.set(-4.5, 7, 6);
+sol.castShadow = true;
+sol.shadow.mapSize.set(2048, 2048);
+Object.assign(sol.shadow.camera, { left: -8, right: 8, top: 6, bottom: -6, near: 1, far: 20 });
+scene.add(sol);
+
+const chao = new THREE.Mesh(new THREE.PlaneGeometry(40, 40),
+  FUNDO ? new THREE.MeshStandardMaterial({ color: COR_CHAO, roughness: 0.9 }) : new THREE.ShadowMaterial({ opacity: 0.35 }));
+chao.rotation.x = -Math.PI / 2;
+chao.receiveShadow = true;
+scene.add(chao);
+
+// texto vira textura: qualquer fonte do sistema serve, sem arquivo de fonte 3D
+function textura(texto, { cor = COR_TEXTO, fundo = null, px = 180, peso = 700, larg = 256, alt = 256 } = {}) {
+  const c = document.createElement("canvas");
+  c.width = larg; c.height = alt;
+  const g = c.getContext("2d");
+  if (fundo) { g.fillStyle = fundo; g.fillRect(0, 0, larg, alt); }
+  g.font = `${peso} ${px}px ${FONTE}`;
+  g.textAlign = "center"; g.textBaseline = "middle"; g.fillStyle = cor;
+  g.fillText(texto, larg / 2, alt / 2 + px * 0.04);
+  const tx = new THREE.CanvasTexture(c);
+  tx.colorSpace = THREE.SRGBColorSpace; tx.anisotropy = 8;
+  return tx;
+}
+
+const PASSO = 1.25, LADO = 1.0;
+const letras = [...TEXTO];
+const x0 = -((letras.length - 1) * PASSO) / 2;
+const blocos = letras.map((ch, i) => {
+  const lados = new THREE.MeshStandardMaterial({ color: COR_BLOCO, roughness: 0.55, metalness: 0.05 });
+  const tx = textura(ch, { fundo: COR_BLOCO });
+  const frente = new THREE.MeshStandardMaterial({ map: tx, roughness: 0.55, emissive: 0xffffff, emissiveMap: tx, emissiveIntensity: 0.35 });
+  const m = new THREE.Mesh(new THREE.BoxGeometry(LADO, LADO, 0.5), [lados, lados, lados, lados, frente, lados]);
+  m.castShadow = true;
+  m.position.set(x0 + i * PASSO, LADO / 2, 0);
+  scene.add(m);
+  const indice = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.5),
+    new THREE.MeshBasicMaterial({ map: textura(String(i), { cor: COR_INDICE, px: 150 }), transparent: true }));
+  indice.position.set(m.position.x, LADO + 0.45, 0);
+  scene.add(indice);
+  return { m, indice, frente, lados };
+});
+
+const titulo = new THREE.Mesh(new THREE.PlaneGeometry(6.4, 0.8),
+  new THREE.MeshBasicMaterial({ map: textura(TITULO, { px: 120, larg: 2048, alt: 256 }), transparent: true }));
+titulo.position.set(0, 2.55, -0.4);
+scene.add(titulo);
+
+const acento = new THREE.Color(COR_ACENTO), base = new THREE.Color(COR_BLOCO);
+
+// ---------------------------------------------------------------- o instante t
+window.veQuadro = (t) => {
+  // câmera: aproxima em arco nos primeiros 4,5 s
+  const k = vaiEVolta(trecho(t, 0, 4.5));
+  const ang = THREE.MathUtils.lerp(-0.55, 0.14, k), dist = THREE.MathUtils.lerp(9.6, 7.4, k);
+  camera.position.set(Math.sin(ang) * dist, THREE.MathUtils.lerp(3.4, 2.1, k), Math.cos(ang) * dist);
+  camera.lookAt(0, 1.0, 0);
+
+  blocos.forEach(({ m, indice, frente, lados }, i) => {
+    const e = trecho(t, 0.35 + i * 0.16, 0.55);                   // cada bloco cai um pouco depois do anterior
+    m.position.y = LADO / 2 + (1 - saiSuave(e)) * 4.5;
+    m.scale.setScalar(0.001 + passaDoPonto(e) * 0.999);
+    m.rotation.x = (1 - saiSuave(e)) * -1.2;
+    indice.material.opacity = trecho(t, 1.6 + i * 0.12, 0.35);    // os índices entram depois, um a um
+    const d = trecho(t, 3.4 + i * 0.22, 0.3) * (1 - trecho(t, 3.8 + i * 0.22, 0.4));   // destaque que percorre a sequência
+    const cor = base.clone().lerp(acento, d);
+    lados.color.copy(cor);
+    frente.color.copy(new THREE.Color(1, 1, 1).lerp(acento, d * 0.6));
+    m.position.z = d * 0.35;
+  });
+  titulo.material.opacity = saiSuave(trecho(t, 0.1, 0.6));
+  renderer.render(scene, camera);
+};
+</script>
+</body>
+</html>

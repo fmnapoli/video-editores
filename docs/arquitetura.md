@@ -113,11 +113,11 @@ Quatro camadas (0.5.0):
 - **Decisão:** `integrar zcode` como 4º alvo via registro de dados em `integrar.py` (skills de usuário em `~/.zcode/skills/`, MCP global em `~/.zcode/cli/config.json` com schema estrito, regras em `AGENTS.md`; em projeto reaproveita `.agents/skills/`), cabeçalho por agente (no ZCode: subagentes → Agent, aprovação → AskUserQuestion) e antideriva para os quatro alvos: carimbo `video-editores:port X.Y.Z` no port, manifesto oculto por destino, `--mostrar` acusando `DESATUALIZADO` e seção "Integração" no doctor. Guarda de procedência: sobrescrever/remover só toca no que é do plugin.
 - **Consequência:** alvo novo é uma entrada de dados, não um ramo de `if`; port desatualizado virou sintoma com comando de correção; pasta homônima alheia é preservada e relatada. Rota alternativa (plugin como marketplace Claude no ZCode) fica documentada para reavaliação.
 
-### ADR-19 — Ver, ler e conferir: rosto, rastreamento, OCR e conferência da fala (0.14.0)
+### ADR-19 — Ver, ler e conferir (rosto, rastreamento, OCR, fala) e cena em HTML com Three.js (0.14.0)
 - **Contexto:** o agente dependia do olho de quem revisa para saber se um texto cobriu o rosto, para medir a posição de um botão num print e para garantir que a narração final é a do roteiro; etiqueta que acompanha um objeto não existia. Detalhe em `docs/adr/2026-11-15-ver-ler-conferir.md`.
-- **Decisão:** papéis `rosto` (YuNet via OpenCV, MIT) e `ocr` (RapidOCR/PP-OCR, Apache-2.0) em `video_editores/modelos`; rastreamento por fluxo óptico sem modelo (`rastrear.py`); tudo que se desenha continua em ASS (`nucleo/ass.py`); conferência automática na `/prova` (`rostos.py --conferir`, `conferir_fala.py`); banco de vídeo só como opcional com chave própria (`/banco`).
-- **Não adotado:** motor de cena por HTML (HyperFrames, Apache-2.0) fica para ADR próprio com prova medida, no protocolo do ADR-16; GSAP (licença proprietária) e serviços pagos de voz e avatar não entram; rastreador por rede neural testado e descartado (perdeu o objeto onde o fluxo óptico seguiu).
-- **Consequência:** OpenCV e RapidOCR chegam por `uv run --with` só para quem usa; três skills novas (`/rastrear`, `/ler-tela`, `/banco`); `tests/visao.sh` no CI com backends falsos para os modelos. As conferências apontam onde olhar e não substituem a folha de contato.
+- **Decisão:** papéis `rosto` (YuNet via OpenCV, MIT) e `ocr` (RapidOCR/PP-OCR, Apache-2.0) em `video_editores/modelos`; rastreamento por fluxo óptico sem modelo (`rastrear.py`); tudo que se desenha continua em ASS (`nucleo/ass.py`); conferência automática na `/prova` (`rostos.py --conferir`, `conferir_fala.py`); banco de vídeo só como opcional com chave própria (`/banco`); cena em HTML com renderizador próprio (`cena_web.py`: Playwright + Chrome sem janela + ffmpeg, a cena é função de `t`), Three.js (MIT) como padrão para 3D e GSAP (gratuita, não open source) como opcional com aviso.
+- **Não adotado:** Remotion (ADR-16) e serviços pagos de voz e avatar; HyperFrames como dependência (o renderizador próprio cobre o contrato sem Node); rastreador por rede neural testado e descartado (perdeu o objeto onde o fluxo óptico seguiu). Manim e Blender continuam o padrão para diagrama sincronizado e 3D fotorrealista; filmagem nunca passa pelo navegador.
+- **Consequência:** OpenCV, RapidOCR e Playwright chegam por `uv run --with` só para quem usa; quatro skills novas (`/cena-web`, `/rastrear`, `/ler-tela`, `/banco`); `tests/visao.sh` e `tests/cena_web.sh` no CI. As conferências apontam onde olhar e não substituem a folha de contato.
 
 ## Fluxo de dados
 
@@ -155,13 +155,15 @@ padroes.json ─ partitura.py (MusicXML → Verovio → resvg) ─→ partituras
 - `lettering_ass.py` gera ASS e queima;
 - `proof.sh` gera os três artefatos e reprova pico real acima de −1 dBTP (código 3); `normalizar_audio.py` conserta;
 - `montar_cenas.py` fecha vídeo e áudio na duração da narração mesmo com uma cena 3 quadros curta, e usa o áudio próprio de um bloco pronto (`video` + `audio`);
-- sintaxe de todos os scripts, frontmatter dos 25 skills e manifestos JSON.
+- sintaxe de todos os scripts, frontmatter dos 26 skills e manifestos JSON.
 
 `tests/docs_offline.sh` roda o montador do `video-docs` de ponta a ponta com um stub do edge-tts (`tests/stub/edge_tts.py`), então o maior script do repositório também é coberto no CI, em Linux e macOS.
 
 `tests/partitura.sh` roda a `/partitura` de ponta a ponta com os pacotes reais via uv (Verovio + resvg para a notação; numpy + scipy para a síntese): tamanhos dos cartões, notas e tempos com posição, acentos e manulação, erros de grade, e o exemplo tocado com vídeo e wav da mesma duração no grid de quadros, AAC a 48 kHz, pico real ≤ −1,5 dBTP e síntese determinística.
 
 `tests/visao.sh` cobre as operações do ADR-19: `conferir_fala.py` (roteiro igual, tomada repetida, palavra que faltou, palavra parecida, `cenas.json`), `banco_video.py` contra um banco falso (`tests/stub/banco_servidor.py`: desligado sem chave, filtro de duração, folha, registro, crédito, sem sobrescrever), `rastrear.py` com o OpenCV real num vídeo de trajetória conhecida (erro < 6 px em 90 quadros, um evento ASS por quadro, região lisa recusada, corte de cena com código 2) e `rostos.py`/`ler_tela.py` com backends falsos de `tests/stub/modelos_falsos.py` (zona livre e sugestão, texto sobre o rosto com o intervalo exato, busca sem acento, regex, pixels do destaque e da tarja no lugar). `VE_TESTE_MODELOS=1` acrescenta o OCR real.
+
+`tests/cena_web.sh` renderiza uma cena HTML sem biblioteca no Chrome sem janela: número de quadros, mesmo resultado em dois renders, pixel no lugar esperado no instante `t`, camada com alpha em ProRes 4444, e os erros (alpha em `.mp4`, exceção na cena com o quadro, cena sem `veQuadro`, CDN bloqueado). Sem navegador na máquina, o teste é pulado. `VE_TESTE_REDE=1` baixa Three.js e GSAP e renderiza os dois modelos.
 
 `tests/nucleo.sh` cobre o pacote `video_editores`: registro e configuração dos modelos, `codec_video`, `audio.normalizar`, retry do TTS, catálogo (todo script existe), CLI, tarefas em segundo plano e o servidor MCP em processo (`tests/mcp_test.py`, cliente em memória do SDK).
 

@@ -58,6 +58,8 @@ PY3
     OK*) ok "imagem (gerar-imagem): ${COMFY#OK }" ;;
     *)   opt "imagem (gerar-imagem, opcional)" "${COMFY#-- }" ;;
   esac
+  # cena HTML (/cena-web): precisa de um Chrome/Chromium para renderizar
+  if command -v google-chrome >/dev/null || command -v chromium >/dev/null || command -v chromium-browser >/dev/null || [ -n "${VE_CHROME:-}" ] || [ -d "/Applications/Google Chrome.app" ]; then ok "Chrome/Chromium (/cena-web)"; else opt "Chrome/Chromium (/cena-web)" "instale o Google Chrome, aponte VE_CHROME, ou: uv run --with playwright playwright install chromium"; fi
   # banco de vídeo (/banco): opcional, só com chave própria; nada mais depende dele
   if [ -n "${PEXELS_API_KEY:-}" ]; then ok "banco de vídeo (/banco): PEXELS_API_KEY definida"; else opt "banco de vídeo (/banco, opcional)" "desligado: sem PEXELS_API_KEY (chave gratuita em https://www.pexels.com/api/)"; fi
   if command -v ffmpeg >/dev/null; then

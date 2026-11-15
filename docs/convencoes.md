@@ -21,7 +21,7 @@ Rode os comandos a partir da raiz do projeto. Os scripts de transcrição gravam
 ## Ordem recomendada
 ```
 /editar recebe o pedido e monta a ordem. Padrão:
-/referencia (opcional) → /destaques (vídeo longo) → /tomada → /corte → /ganchos → /tela-dividida, /banco (opcional), /animacao, /3d, /tela-verde, /texto-atras, /rastrear, /ler-tela
+/referencia (opcional) → /destaques (vídeo longo) → /tomada → /corte → /ganchos → /tela-dividida, /banco (opcional), /animacao, /cena-web, /3d, /tela-verde, /texto-atras, /rastrear, /ler-tela
 → /checklist → /lettering → /legenda → /trilha → /efeitos → /prova
 ```
 Legenda depois dos efeitos visuais (fica por cima). Áudio por último (cortes mudam o tempo).
@@ -62,6 +62,9 @@ Mostre e espere aprovação antes de: descartar tomadas, queimar legenda (texto 
 | rembg + BiRefNet | MIT | recorte de pessoa |
 | Manim Community | MIT | motion graphics |
 | Blender | GPL | 3D headless |
+| Playwright + Chrome/Chromium | Apache-2.0 (Playwright); o navegador é o instalado na máquina | render de cena HTML (`/cena-web`) |
+| Three.js | MIT | 3D nas cenas HTML |
+| GSAP | gratuita, licença própria "no charge" (**não é open source**; revogável; proíbe uso em ferramenta visual de animação sem código concorrente da dona) | linha do tempo nas cenas HTML; opcional, o modelo com Three.js não depende dela |
 | OpenCV (`opencv-python-headless`) | Apache-2.0 | rastreamento por fluxo óptico; detecção de rosto |
 | YuNet (modelo de rosto, opencv_zoo) | MIT | onde está o rosto; conferência de texto sobre o rosto |
 | RapidOCR + modelos PP-OCR | Apache-2.0 | texto na tela com posição (`/ler-tela`) |

@@ -1,0 +1,50 @@
+<!doctype html>
+<!-- Modelo de cena em HTML/CSS com linha do tempo GSAP para o cena_web.py: layout e quebra de linha por CSS,
+     tempo por timeline pausada. GSAP é gratuita, com licença própria "no charge" (não é open source):
+     https://gsap.com/standard-license. Sem GSAP dá para fazer o mesmo escrevendo estilos em função de t. -->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<style>
+  :root { --fundo: #0B1220; --cartao: #1E293B; --texto: #F1F5F9; --suave: #94A3B8; --acento: #FFD43B; }
+  html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+  body { background: radial-gradient(circle at 50% 40%, #131C33, var(--fundo)); color: var(--texto);
+         font-family: "DejaVu Sans", Inter, Arial, sans-serif; display: flex; align-items: center; justify-content: center; }
+  main { width: 76vw; }
+  h1 { font-size: 5.2vw; margin: 0 0 1.1vw; line-height: 1.05; }
+  h1 em { font-style: normal; color: var(--acento); }
+  .linha { height: 0.35vw; width: 100%; background: var(--acento); transform-origin: left center; margin-bottom: 2.4vw; }
+  ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 1.2vw 1.6vw; }
+  li { background: var(--cartao); border-radius: 0.9vw; padding: 1.3vw 1.6vw; font-size: 2.1vw; line-height: 1.25;
+       box-shadow: 0 0.6vw 1.8vw rgba(0, 0, 0, .35); }
+  li code { font-family: "DejaVu Sans Mono", "JetBrains Mono", monospace; color: var(--acento); }
+  li small { display: block; color: var(--suave); font-size: 1.35vw; margin-top: 0.4vw; }
+</style>
+<script type="importmap">{ "imports": { "gsap": "/_ve/gsap/index.js" } }</script>
+</head>
+<body>
+<main>
+  <h1>Métodos de <em>string</em></h1>
+  <div class="linha"></div>
+  <ul>
+    <li><code>.upper()</code> e <code>.lower()</code><small>maiúsculas e minúsculas</small></li>
+    <li><code>.strip()</code><small>tira os espaços das pontas</small></li>
+    <li><code>.split()</code> e <code>.join()</code><small>de texto para lista, e de volta</small></li>
+    <li><code>.replace()</code><small>troca um trecho por outro</small></li>
+  </ul>
+</main>
+<script type="module">
+import { gsap } from "gsap";
+
+window.veDuracao = 6;
+const tl = gsap.timeline({ paused: true, defaults: { ease: "power3.out" } });
+tl.from("h1", { y: 60, opacity: 0, duration: 0.6 }, 0.2)
+  .from(".linha", { scaleX: 0, duration: 0.7, ease: "power2.inOut" }, 0.5)
+  .from("li", { y: 40, opacity: 0, scale: 0.94, duration: 0.5, ease: "back.out(1.6)", stagger: 0.35 }, 1.0)
+  .to("main", { opacity: 0, y: -30, duration: 0.5, ease: "power2.in" }, 5.4);
+
+// o cena_web.py chama veQuadro(t) para cada quadro: a timeline nunca corre sozinha
+window.veQuadro = (t) => tl.seek(t, false);
+</script>
+</body>
+</html>

@@ -51,6 +51,7 @@ uv tool install scenedetect               # /referencia, /efeitos, /videoaula (o
 | `/partitura` | nada: `uv run --with verovio --with resvg-py` (notação) e `--with numpy --with scipy` (exemplo tocado) baixam sob demanda; sem cairo nem outra biblioteca de sistema |
 | `/texto-atras`, `/tela-verde` (IA) | nada: `uv run --with "rembg[cpu]"` baixa sob demanda. Com GPU NVIDIA: `rembg[gpu]` |
 | `/tomada`, `/legenda` | nada: `uv run --with faster-whisper` baixa sob demanda. O modelo `medium` (~1,5 GB) é baixado no primeiro uso |
+| `/cena-web` | Google Chrome ou Chromium instalado (ou `uv run --with playwright playwright install chromium`); o resto vem por `uv run --with playwright`. Three.js e GSAP são baixados para `~/.cache/video-editores/web/` no primeiro uso (~40 MB) |
 | `/rastrear`, conferência de rosto da `/prova` | nada: `uv run --with opencv-python-headless --with numpy` baixa sob demanda. O detector de rosto baixa um modelo de 230 KB no primeiro uso |
 | `/ler-tela` | nada: `uv run --with rapidocr --with onnxruntime` baixa sob demanda (~100 MB de pacotes com os modelos) |
 | `/banco` (opcional) | chave gratuita em pexels.com/api, em `PEXELS_API_KEY`. Sem a chave o skill fica desligado |

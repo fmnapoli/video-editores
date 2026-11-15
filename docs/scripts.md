@@ -179,6 +179,15 @@ VE_COMFYUI_URL=http://gpu:8188 uv run --with pillow python scripts/gerar_imagem.
 uv run python scripts/gerar_imagem.py --conferir     # servidor no ar e checkpoint presente
 ```
 
+## cena_web.py
+Renderiza uma cena HTML quadro a quadro (Playwright dirigindo o Chrome instalado, ou `VE_CHROME`, ou o Chromium do Playwright) e codifica no ffmpeg.
+```bash
+uv run --with playwright python scripts/cena_web.py CENA.html SAIDA.mp4|SAIDA.mov [--dur S] [--fps 30] [--tamanho 1920x1080] [--escala 1] [--alpha] [--rede] [--espera-quadro]
+uv run --with playwright python scripts/cena_web.py CENA.html --quadro T SAIDA.png
+uv run --with playwright python scripts/cena_web.py --libs
+```
+Contrato da cena: `window.veQuadro = (t) => {...}` (obrigatório; pode devolver `Promise`, e só `Promise` de verdade é esperada: a timeline do GSAP tem `.then()` e travaria o render) e `window.veDuracao` (ou `--dur`). A página é servida de `http://cena.local/` por interceptação de requisição, sem abrir porta: arquivos ao lado do `.html` e as bibliotecas em `/_ve/three/` e `/_ve/gsap/`, baixadas do registro do npm na versão fixada, conferidas por sha256 e guardadas em `~/.cache/video-editores/web/`. Qualquer outra origem é bloqueada e vira `AVISO` no fim (`--rede` libera). Erro de JavaScript na cena encerra o render dizendo o quadro. `.mov` sai em ProRes 4444 (`yuva444p` com `--alpha`); `.mp4` usa `VE_ENCODER`. WebGL roda por software (SwiftShader). `VE_ESPERA_CENA` muda os 20 s de espera pelo `veQuadro`.
+
 ## rostos.py
 Onde está o rosto, e se algum texto passou por cima dele (papel `rosto`, padrão YuNet/OpenCV; o modelo de 230 KB é baixado uma vez para `~/.cache/video-editores/modelos/` e conferido por sha256; `VE_YUNET_MODELO` aponta um arquivo local).
 ```bash
@@ -201,7 +210,9 @@ OCR de imagem ou de um quadro do vídeo (papel `ocr`, padrão RapidOCR com model
 uv run --with rapidocr --with onnxruntime python scripts/ler_tela.py IMAGEM|VIDEO [--t T] [--out ARQ.ocr.json] \
   [--achar "TEXTO"]... [--regex PADRÃO]... [--todos] [--estilo caixa|marca|sublinhado|tarja] [--inicio T] [--fim T] [--cor "#RRGGBB"] [--folga 0.25] [--burn SAIDA]
 ```
-`<nome>.ocr.json`: `linhas[]` (`texto`, `conf`, `caixa` `[x, y, l, a]` em fração da imagem, `palavras[]`) e `achados[]` (`consulta`, `texto`, `caixa`). `--achar` compara sem acento nem caixa e junta as palavras do trecho; linha sem caixas de palavra recebe uma fatia proporcional da caixa da linha. Código 1 quando nada é encontrado, com a lista do que foi lido. Com imagem de entrada, `--burn SAIDA.png` grava a imagem marcada.
+`<nome>.ocr.json`: `linhas[]` (`texto`, `conf`, `caixa` `[x, y, l, a]` em fração da imagem, `palavras[]`) e `achados[]` (`consulta`, `texto`, `caixa`). `--achar` compara sem acento nem caixa e junta as palavras do trecho, recortando a primeira e a última na proporção dos caracteres que entram (em código de largura fixa, um pedaço de dentro de um token sai justo); linha sem caixas de palavra recebe uma fatia proporcional da caixa da linha. Código 1 quando nada é encontrado, com a lista do que foi lido. Com imagem de entrada, `--burn SAIDA.png` grava a imagem marcada.
+
+Vídeo longo com vários destaques: `--lote itens.json` (`[{"achar"|"regex", "entre": [início, fim], "estilo", "dur", "cor"}]`) procura cada texto na sua janela de tempo, uma amostra a cada `--passo` (0,5 s), e escolhe o primeiro trecho em que o texto fica pelo menos `--minimo` (1,5 s) no mesmo lugar, até `dur` (2,5 s). Grava um `.destaques.ass` com tudo e um `.destaques.json` com instante e caixa de cada um; item que só aparece com a tela em movimento sai marcado `curto`, e item não encontrado é listado (código 1, com o `.ass` dos demais).
 
 ## conferir_fala.py
 Compara o roteiro com a transcrição do áudio final (só biblioteca padrão).

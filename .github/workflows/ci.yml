@@ -29,6 +29,8 @@ jobs:
         run: bash tests/partitura.sh
       - name: visão (rastreamento com OpenCV; rosto, OCR e banco com backends falsos)
         run: bash tests/visao.sh
+      - name: cena-web (cena HTML no Chrome sem janela do runner; pulado se não houver navegador)
+        run: bash tests/cena_web.sh
   macos:
     runs-on: macos-latest
     steps:
@@ -49,3 +51,5 @@ jobs:
         run: bash tests/partitura.sh
       - name: visão (rastreamento com OpenCV; rosto, OCR e banco com backends falsos)
         run: bash tests/visao.sh
+      - name: cena-web (cena HTML no Chrome sem janela do runner; pulado se não houver navegador)
+        run: bash tests/cena_web.sh

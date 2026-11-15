@@ -72,6 +72,14 @@ Copie, cole no Claude Code e troque o que estiver entre `< >`. Cada pedido acion
 | "Valida essa paleta e me mostra como fica" | `validar_marca.py` (contraste, fonte, logo, prancha) |
 | "Legenda com a palavra falada na cor da marca" | video-docs com `legenda.estilo: "palavra"` |
 
+## Cena em 3D e cartela com layout
+
+| Pedido | Skills |
+|---|---|
+| "Abertura em 3D com as letras do título, câmera girando" / "um objeto 3D simples com sombra" | cena-web (Three.js) |
+| "Cartela com quatro cartões em duas colunas, entrando um por vez" / "lista com quebra de linha automática" | cena-web (CSS, com ou sem GSAP) |
+| "Um selo girando no canto, por cima do vídeo" | cena-web `--alpha` (camada `.mov`) + overlay do ffmpeg |
+
 ## Marcar o que está na imagem
 
 | Pedido | Skills |

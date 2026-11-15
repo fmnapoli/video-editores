@@ -16,6 +16,7 @@ seg-gpu = ["rembg>=2.0", "onnxruntime-gpu", "pillow", "numpy"]
 tts = ["edge-tts>=6"]
 visao = ["opencv-python-headless>=4.9", "numpy"]
 ocr = ["rapidocr>=3", "onnxruntime"]
+web = ["playwright>=1.45"]
 mcp = ["mcp>=2.0"]
 todos = ["faster-whisper>=1.1", "rembg>=2.0", "onnxruntime", "pillow", "numpy", "edge-tts>=6", "mcp>=2.0"]
 

@@ -10,6 +10,7 @@ Siga `${CLAUDE_PLUGIN_ROOT}/docs/convencoes.md` (pastas, nomes de saída, loudne
 ## Escolha da ferramenta
 - **Manim Community (MIT)** — diagramas, fluxos, gráficos, equações, texto animado. Padrão.
 - **ffmpeg puro** — zoom/punch-in, ken burns em imagem, transições (`xfade`), contadores simples.
+- **HTML (Three.js, CSS, GSAP)** — 3D com câmera e sombra, cartela com layout de página: skill `/cena-web`.
 
 ## Manim
 1. Escreva `anim.py` com uma `Scene`. Para sobrepor ao vídeo, use fundo transparente.
