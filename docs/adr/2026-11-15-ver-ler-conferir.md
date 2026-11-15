@@ -159,6 +159,13 @@ instrutor ou atrás de um pop-up do editor (o texto procurado estava lá, mas n�
 é a folha de quadros conferida a olho, que a skill exige. O OCR também leu `"-"` como `"_"` num caso (resolvido
 com `regex`). Tempo: ~9 min de CPU para os 26 itens.
 
+Numa terceira versão da mesma aula, o `/cena-web` substituiu a abertura (7 s, Three.js + lista em CSS com GSAP),
+os sete separadores de capítulo e um diagrama de 40 s sincronizado com a fala pela transcrição por palavra: nove
+cenas, 65 s de vídeo, 7 min 19 s de render com três processos em paralelo. O que isso ensinou foi de montagem, não
+de render: um corte da entrega original era um dissolve de 3 quadros e deixou um resto do desenho antigo até a
+emenda ser conferida quadro a quadro (a skill passou a pedir isso), e o círculo da webcam do trecho substituído
+foi recortado do original com máscara e recolocado sobre a cena nova.
+
 ## Consequências
 
 - Dependência nova, só para quem usa: `opencv-python-headless` (Apache-2.0) e `rapidocr` (Apache-2.0), via

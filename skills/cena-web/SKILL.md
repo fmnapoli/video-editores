@@ -38,7 +38,7 @@ A cena HTML gera um **bloco** (abertura, separador, cartela, objeto 3D com alpha
    # camada transparente para sobrepor: fundo da página transparente e, em WebGL, `alpha: true` (FUNDO = null no modelo)
    uv run --with playwright python "${CLAUDE_PLUGIN_ROOT}/scripts/cena_web.py" trabalho/<slug>/cenas/selo.html trabalho/<slug>/selo.mov --alpha
    ```
-5. Para **trocar um trecho** de um vídeo pronto pelo bloco (um separador, uma cartela), corte por tempo em três partes, junte com o demuxer `concat` e confira a emenda extraindo quadros com `-ss` antes e depois: contagem de quadros e `-itsoffset` erram em vídeo montado por blocos (ver solução de problemas).
+5. Para **trocar um trecho** de um vídeo pronto pelo bloco (um separador, uma cartela), corte por tempo em três partes, junte com o demuxer `concat` e confira a emenda extraindo quadros com `-ss` antes e depois: contagem de quadros e `-itsoffset` erram em vídeo montado por blocos (ver solução de problemas). Olhe a emenda **quadro a quadro** (dois quadros de cada lado): o corte original pode ser um dissolve de 2 ou 3 quadros, e o bloco novo precisa cobri-lo, senão sobra um resto do desenho antigo por um décimo de segundo. Lembre que `-ss T` entrega o primeiro quadro com tempo ≥ T: para o quadro `n`, use `T = n/fps − 0,01`. Se o trecho tinha a pessoa num círculo ou janela, recorte essa região do original com uma máscara (`crop` + `alphamerge`) e sobreponha na cena nova.
 6. Use o bloco: como cena pronta do `/video-animado` (`"video": "abertura.mp4"`), bloco do `/videoaula`, ou sobreposto com `overlay` (o `.mov` com alpha, como no `/animacao`). Bloco sem som: o áudio da cena vem da narração ou de um efeito do `/efeitos`.
 7. `/prova` no resultado.
 
