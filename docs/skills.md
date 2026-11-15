@@ -22,7 +22,10 @@ Invocação: `/video-editores:<nome>`, ou em linguagem natural (o Claude escolhe
 | trilha | vídeo + música | `_trilha.mp4` | escolha da música | 10–20 s |
 | efeitos | vídeo | `_efeitos.mp4` | **sim**: lista de instantes | 10–30 s |
 | ganchos | transcrição | 5 opções + recomendação | escolha | instantâneo |
-| prova | vídeo | `.proof.jpg`, `.preview.mp4`, `.proof.txt` | entrega ao usuário | 10–20 s |
+| prova | vídeo (+ etapa anterior, + roteiro) | `.proof.jpg`, `.preview.mp4`, `.proof.txt`, `.rosto-coberto.json`, `.fala.md` | entrega ao usuário | 10–20 s (+ transcrição, se conferir a fala) |
+| rastrear | vídeo + caixa do objeto + texto | `.rastro.json`, `.rastro.ass`, `_rastro.mp4` | prova do fim do trecho | 1–3 s |
+| ler-tela | print ou vídeo + texto a marcar | `.ocr.json`, `.destaque.ass`, `_destaque.mp4` | **sim** para tarja: lista do que foi coberto | 2–5 s (1ª vez: download de ~100 MB) |
+| banco (opcional) | assunto do trecho + chave própria | `banco/<id>.mp4`, `<id>.json`, créditos | **sim**: folha de escolha | rede |
 | video-docs | gravações de tela | `.mp4`, `.srt`, roteiros, inventário | **3 gates** (inventário, roteiros, piloto) | ver LEIAME |
 | video-animado | roteiro + identidade da marca | cenas Manim, `.mp4`, `.srt`, roteiro final | **2 gates** (roteiro, piloto) + prova | ~1 min por cena em 1080p |
 | partitura | o que a pessoa toca (clipe, fala, caderno) | `padroes.json`, cartões PNG + JSON de posições, exemplo tocado `.mp4` + `.wav` | **sim**: quem toca aprova a transcrição | 2 s por cartão; ~10 s por exemplo tocado |
@@ -111,6 +114,31 @@ Instantes vindos de: trocas de plano (PySceneDetect), `start` dos letterings, re
 
 ## /prova
 Checklist: legenda legível e fora do rosto, textos no lugar, **nenhum dado sensível**, sem frame preto ou congelado, resolução, codec e loudness no alvo.
+
+Conferência automática (ADR-19), que aponta o instante para olhar e não substitui a folha de contato:
+
+| Conferência | Comando | Acusa |
+|---|---|---|
+| texto sobre o rosto | `rostos.py ANTES.mp4 --conferir DEPOIS.mp4` (entrada e saída da mesma etapa) | código 3 + intervalos em que os pixels do rosto mudaram |
+| fala × roteiro | `conferir_fala.py ROTEIRO FINAL.transcript.json [--equivalentes eq.json]` | código 1 + o que faltou, sobrou ou trocou, com o instante |
+
+## /rastrear
+`rastrear.py` segue os pontos de textura de uma região (`--caixa X,Y,L,A` em fração do quadro, no instante `--inicio`) com fluxo óptico e ajusta deslocamento, escala e rotação por quadro. Com `--etiqueta`, gera um ASS com um evento por quadro para o texto andar junto (`--ancora`, `--seta`, `--girar`, `--sem-escala`, `--suavizar`). Código 2 quando perde o objeto (coberto, fora de quadro, corte de cena): o rastro vale até ali. Um plano por rastro; sem perspectiva; região lisa é recusada.
+
+## /ler-tela
+`ler_tela.py` lê um print ou um quadro (`--t`) e grava as palavras com caixa. `--achar` (sem diferenciar maiúscula nem acento) e `--regex` localizam; `--estilo` desenha no lugar:
+
+| Estilo | Visual |
+|---|---|
+| `marca` | marca-texto translúcido que varre da esquerda para a direita |
+| `caixa` | moldura |
+| `sublinhado` | traço embaixo |
+| `tarja` | retângulo opaco, vídeo inteiro por padrão (privacidade) |
+
+A caixa vale para o quadro lido. Tarja por OCR pede revisão dos quadros depois: texto pequeno ou borrado pode não ser lido.
+
+## /banco (opcional)
+Único skill que usa serviço de terceiros; desligado sem `PEXELS_API_KEY` (chave própria, gratuita). `banco_video.py buscar` grava candidatos e folha de miniaturas (gate), `baixar` grava o vídeo e o registro (autor, página, licença, sha256), `creditos` lista para a descrição. Sai da máquina só o termo de busca. A skill cobre também o corte, a igualação de cor e a inserção sobre a fala.
 
 ## /video-animado
 Vídeo inteiro em animação por código, sem bruto: a narração (edge-tts) é gerada antes e dita a duração de cada `Scene` do Manim; as cenas marcam os instantes por fração da fala e fecham com fade sobre o fundo fixo (nunca preto). Scripts: `tts_cenas.py` (narração + `tempos.json`), `montar_cenas.py` (concat + narração + legenda com a grafia original + loudnorm), `folha_cenas.py` (um quadro por cena). Modelo de cena em `skills/video-animado/templates/cena_base.py`, que lê fonte, cores, fundo e logo de `marca/marca.json` quando existe (ADR-17).

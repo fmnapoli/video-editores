@@ -10,6 +10,7 @@ meu-projeto/
   saida/          vídeos finais
   legendas/       .srt finais (separados do .mp4: o VLC carrega o sidecar e dobra a legenda queimada)
   marca/          opcional: marca.json (cores, fonte, logo, fundos, legenda) + os arquivos que ele cita
+  banco/          opcional: vídeos de banco baixados pelo /banco, cada um com o registro <id>.json (autor, página, licença)
 ```
 Identidade do cliente fica em `marca/marca.json` (ADR-17), nunca em constante editada num script copiado. Parta de uma fonte oficial com a skill `/marca` (`scripts/extrair_marca.py`), valide com `scripts/validar_marca.py` e aprove a prancha antes do primeiro render. Fonte só de pacote do cliente ou com licença que permita; logo só de arquivo oficial.
 Rode os comandos a partir da raiz do projeto. Os scripts de transcrição gravam em `trabalho/<nome>/` automaticamente quando a pasta `trabalho/` existe (ou use `--out-dir`). Caminhos de trabalho em ASCII, sem espaço. Arquivo com espaço, parêntese ou acento entra só como `-i`, nunca dentro do `filter_complex`.
@@ -20,7 +21,7 @@ Rode os comandos a partir da raiz do projeto. Os scripts de transcrição gravam
 ## Ordem recomendada
 ```
 /editar recebe o pedido e monta a ordem. Padrão:
-/referencia (opcional) → /destaques (vídeo longo) → /tomada → /corte → /ganchos → /tela-dividida, /animacao, /3d, /tela-verde, /texto-atras
+/referencia (opcional) → /destaques (vídeo longo) → /tomada → /corte → /ganchos → /tela-dividida, /banco (opcional), /animacao, /3d, /tela-verde, /texto-atras, /rastrear, /ler-tela
 → /checklist → /lettering → /legenda → /trilha → /efeitos → /prova
 ```
 Legenda depois dos efeitos visuais (fica por cima). Áudio por último (cortes mudam o tempo).
@@ -46,7 +47,9 @@ Mostre e espere aprovação antes de: descartar tomadas, queimar legenda (texto 
 ## Privacidade e verdade
 - Nenhum dado pessoal, senha, token, e-mail ou CPF no vídeo final: corte ou tarje.
 - A fala do bruto não é verdade: em conteúdo técnico, confira afirmações contra o código ou a doc oficial.
-- O `/video-docs` envia o texto da narração ao serviço edge-tts da Microsoft: não coloque segredos nem informação confidencial no roteiro; o resto do plugin é 100% local.
+- O `/video-docs` envia o texto da narração ao serviço edge-tts da Microsoft: não coloque segredos nem informação confidencial no roteiro. O `/banco`, opcional e desligado sem chave própria, envia o termo de busca a um banco de vídeo. O resto do plugin é 100% local.
+- Tarja por OCR (`/ler-tela`) não dispensa a revisão dos quadros: o que o OCR não leu continua na tela.
+- Vídeo de banco (`/banco`): só o que tem registro em `banco/<id>.json`; credite o autor e não use clipe com pessoa identificável para sugerir endosso.
 - Música e efeitos só com licença clara (CC0, CC-BY com crédito, ou do usuário). Pesos do MusicGen/AudioGen são não comerciais.
 
 ## Ferramentas e licenças
@@ -59,6 +62,9 @@ Mostre e espere aprovação antes de: descartar tomadas, queimar legenda (texto 
 | rembg + BiRefNet | MIT | recorte de pessoa |
 | Manim Community | MIT | motion graphics |
 | Blender | GPL | 3D headless |
+| OpenCV (`opencv-python-headless`) | Apache-2.0 | rastreamento por fluxo óptico; detecção de rosto |
+| YuNet (modelo de rosto, opencv_zoo) | MIT | onde está o rosto; conferência de texto sobre o rosto |
+| RapidOCR + modelos PP-OCR | Apache-2.0 | texto na tela com posição (`/ler-tela`) |
 | edge-tts | GPL-3 (cliente; o serviço é da Microsoft) | narração do `video-docs` |
 | ComfyUI | GPL-3.0 (servidor à parte, só pela API HTTP; nada é importado) | geração de imagem (`gerar-imagem`, ADR-15) |
 | FLUX.1-schnell | pesos Apache-2.0 | workflow padrão do ComfyUI; cada workflow declara a licença do seu modelo em `_ve.licenca` |

@@ -1,6 +1,6 @@
 # video-editores
 
-Plugin do Claude Code que transforma a IA na sua editora de vídeo: **22 skills** open source, rodando no seu computador, sem SaaS e sem vendor lock-in. Você manda a gravação e pede em português; o `/editar` monta o plano, para nos pontos de aprovação e entrega o vídeo com um relatório do que fez.
+Plugin do Claude Code que transforma a IA na sua editora de vídeo: **25 skills** open source, rodando no seu computador, sem SaaS e sem vendor lock-in. Você manda a gravação e pede em português; o `/editar` monta o plano, para nos pontos de aprovação e entrega o vídeo com um relatório do que fez.
 
 | Skill | O que faz | Ferramenta |
 |---|---|---|
@@ -17,10 +17,13 @@ Plugin do Claude Code que transforma a IA na sua editora de vídeo: **22 skills*
 | `/texto-atras` | Texto entre o fundo e a pessoa | rembg (U²-Net / BiRefNet) |
 | `/tela-verde` | Chroma key, troca de fundo por IA, contorno neon | ffmpeg chromakey / rembg |
 | `/3d` | Texto e objetos 3D com fundo transparente | Blender headless |
+| `/rastrear` | Etiqueta que anda junto com um objeto do vídeo (tracking) | OpenCV, fluxo óptico (`rastrear.py`) |
+| `/ler-tela` | Lê o texto da tela (OCR) e põe destaque ou tarja no lugar certo | RapidOCR (`ler_tela.py`) |
 | `/trilha` | Música de fundo com ducking e loudness | ffmpeg sidechaincompress |
 | `/efeitos` | Sound design sincronizado com cortes | ffmpeg (sons sintetizados) |
 | `/ganchos` | 5 ganchos para os 3 primeiros segundos | Claude + transcrição |
-| `/prova` | Folha de contato, preview e QA | ffmpeg |
+| `/prova` | Folha de contato, preview e QA; confere texto sobre o rosto e fala contra o roteiro | ffmpeg, YuNet/OpenCV (`rostos.py`), `conferir_fala.py` |
+| `/banco` | **Opcional**: B-roll de banco de vídeo, com folha de escolha e créditos (único skill que usa serviço externo; exige chave própria e gratuita) | API do Pexels (`banco_video.py`) |
 | `/video-docs` | Gravação de tela → vídeo de documentação narrado | edge-tts + `build.py` |
 | `/video-animado` | Vídeo 100% animado por código, narração que dita o tempo de cada cena, sem tela preta | Manim + edge-tts + `montar_cenas.py` |
 | `/videoaula` | Aula gravada (professor + quadro + IDE) → versão redesenhada: cenário novo por IA, diagramas animados no lugar do quadro, capítulos, legenda, −14 LUFS | rembg + Manim + auto-editor + `montar_aula.py` |
@@ -64,6 +67,7 @@ Sem decorar comando. Exemplos (mais em [docs/pedidos-prontos.md](docs/pedidos-pr
 - "Edita pro YouTube com os melhores momentos. Onde eu não falo, põe música."
 - "Transforma essa aula de 2 horas num vídeo de 10 minutos e tira três Reels."
 - "Faz um checklist do que eu falar e põe a frase forte atrás de mim."
+- "Põe uma etiqueta que segue a prancha e destaca o botão Salvar quando eu falar dele."
 - "Transforma as gravações em originais/ em vídeos de documentação, um por ação."
 - "Usa as cores, a fonte e o logo da empresa nos vídeos e me mostra a prancha antes."
 - "Refaz essa videoaula com cenário novo, diagramas animados no lugar do Excalidraw e separadores de assunto, mantendo o professor na tela."
@@ -84,6 +88,7 @@ Passo a passo completo: [docs/tutorial.md](docs/tutorial.md).
 | [Pedidos prontos](docs/pedidos-prontos.md) | pedidos por categoria (Reels, aula, vlog, anúncio, docs) e os skills que executam |
 | [Tutorial](docs/tutorial.md) | do bruto ao reels pronto, e variações (docs, referência, efeitos) |
 | [Skills](docs/skills.md) | entrada, saída, parâmetros, gates e tempo de cada skill |
+| [Glossário](docs/glossario.md) | quadro-chave, easing, EDL, recorte, rastreamento, OCR, ducking: o que é cada termo e a skill que faz |
 | [Scripts](docs/scripts.md) | CLI de cada script, formatos JSON e saídas |
 | [Convenções](docs/convencoes.md) | pastas, nomes, ordem, formatos, loudness, privacidade, licenças |
 | [Arquitetura](docs/arquitetura.md) | camadas, ADRs, fluxo de dados, testes |
@@ -91,6 +96,7 @@ Passo a passo completo: [docs/tutorial.md](docs/tutorial.md).
 | [Outros agentes](docs/agentes.md) | Codex, OpenCode, Kiro e ZCode: `video-editores integrar`, onde cada um lê skills, MCP e regras |
 | [ADR núcleo/MCP](docs/adr/2026-11-08-nucleo-modelos-mcp.md) | decisão de abstrair modelos, CLI e MCP; integração com GPU; roteiro |
 | [ADRs propostos e avaliações](docs/arquitetura.md#decisões-adrs-resumidos) | geração por IA (ADR-15, proposto) e Remotion (ADR-16, avaliado e não adotado) |
+| [ADR ver, ler e conferir](docs/adr/2026-11-15-ver-ler-conferir.md) | rosto, rastreamento, OCR e conferência da fala (ADR-19); o que foi avaliado e não entrou |
 | [ADR identidade visual](docs/adr/2026-11-11-identidade-visual.md) | `marca/marca.json` como contrato único de cores, fonte e logo (ADR-17; contrato na 0.11.0, todas as skills e extração na 0.12.0) |
 | [ADR integração ZCode](docs/adr/2026-11-13-integracao-zcode.md) | 4º agente de integração e antideriva das portações: carimbo de versão, manifesto, status e guarda de procedência (ADR-18; na 0.14.0) |
 | [Solução de problemas](docs/troubleshooting.md) | sintomas comuns e correções |
@@ -103,6 +109,7 @@ Passo a passo completo: [docs/tutorial.md](docs/tutorial.md).
 make test           # teste de fumaça com vídeo sintético (ffmpeg + python3)
 bash tests/nucleo.sh        # núcleo: modelos, catálogo, CLI, tarefas e MCP em processo (uv)
 bash tests/docs_offline.sh  # montador do video-docs offline (stub do edge-tts)
+bash tests/visao.sh         # rastreamento, rosto, OCR, conferência da fala e banco de vídeo (uv; modelos falsos)
 make lint           # shellcheck + ruff
 make docs-example   # exemplo do video-docs (precisa de internet para o edge-tts)
 ```

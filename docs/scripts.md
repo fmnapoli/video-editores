@@ -2,7 +2,7 @@
 
 Ficam em `scripts/` e podem ser usados sem o Claude. Os scripts Python que precisam de pacotes rodam com `uv run --with <pacote>`, sem instalar nada globalmente. Desde a 0.5.0 todos têm um nome estável na CLI `video-editores <operação>` (que resolve o `uv run --with` sozinho) e no servidor MCP; a tabela nome → script está em [nucleo.md](nucleo.md).
 
-Os scripts que usam modelos de IA (`transcribe.py`, `text_behind.py`, `matte.py`, `tts_cenas.py`) aceitam `--backend` e respeitam `VE_ASR`/`VE_SEG`/`VE_TTS`/`VE_DEVICE`; `matte.py` e `montar_aula.py` codificam com `VE_ENCODER`.
+Os scripts que usam modelos de IA (`transcribe.py`, `text_behind.py`, `matte.py`, `tts_cenas.py`, `rostos.py`, `ler_tela.py`) aceitam `--backend` e respeitam `VE_ASR`/`VE_SEG`/`VE_TTS`/`VE_ROSTO`/`VE_OCR`/`VE_DEVICE`; `matte.py` e `montar_aula.py` codificam com `VE_ENCODER`.
 
 ## transcribe.py
 Transcrição com timestamps por palavra (faster-whisper, motor CTranslate2, o mesmo do whisper-ctranslate2 usado no video-docs).
@@ -178,6 +178,46 @@ Gera N variações de uma imagem a partir de um prompt no backend de imagem (pad
 VE_COMFYUI_URL=http://gpu:8188 uv run --with pillow python scripts/gerar_imagem.py "fundo abstrato azul, luz suave" --id fundo-abertura --out trabalho/aula01/gerados
 uv run python scripts/gerar_imagem.py --conferir     # servidor no ar e checkpoint presente
 ```
+
+## rostos.py
+Onde está o rosto, e se algum texto passou por cima dele (papel `rosto`, padrão YuNet/OpenCV; o modelo de 230 KB é baixado uma vez para `~/.cache/video-editores/modelos/` e conferido por sha256; `VE_YUNET_MODELO` aponta um arquivo local).
+```bash
+uv run --with opencv-python-headless --with numpy python scripts/rostos.py VIDEO [--passo 0.5] [--inicio T] [--fim T] [--min-conf 0.6] [--out ARQ.rostos.json]
+uv run --with opencv-python-headless --with numpy python scripts/rostos.py ANTES.mp4 --conferir DEPOIS.mp4 [--rostos ARQ.rostos.json] [--limiar 28] [--area 0.05]
+```
+`<nome>.rostos.json`: `quadros[]` com `t` e `rostos[]` (`x`, `y`, `w`, `h` em fração do quadro, `conf`), `zona` (união de todas as caixas), `livre` (folga em cada lado) e `sugestao` (`lado` e `pos` para texto, descontando 15% de cima e de baixo da interface dos aplicativos). A conferência amostra os dois vídeos no mesmo passo e, dentro de cada caixa, conta os pixels cujo brilho mudou mais que `--limiar`; acima de `--area` da caixa, o instante entra em `<depois>.rosto-coberto.json` e o script sai com código 3. Os dois vídeos precisam ter a mesma duração (entrada e saída da mesma etapa).
+
+## rastrear.py
+Rastreamento de uma região por fluxo óptico (Lucas-Kanade com verificação de ida e volta) e transformação de similaridade por RANSAC; só OpenCV, sem modelo.
+```bash
+uv run --with opencv-python-headless --with numpy python scripts/rastrear.py VIDEO --caixa X,Y,L,A [--inicio 0] [--fim T] [--id NOME] [--out PASTA] \
+  [--etiqueta "TEXTO"] [--ancora cima|baixo|centro|esquerda|direita] [--tamanho 0.035] [--cor "#FFD54F"] [--seta] [--girar] [--sem-escala] [--suavizar 5] [--burn SAIDA.mp4]
+```
+`<id>.rastro.json`: `quadros[]` com `t`, `cx`, `cy` (fração do quadro), `escala`, `rot` (graus), `conf` (fração de pontos coerentes) e `cantos` (os quatro cantos da caixa transformada); `perdido_em` e `motivo` quando o rastro termina antes do fim (código 2). `<id>.rastro.ass`: um evento por quadro, com a fronteira meio quadro antes do instante para o arredondamento do ASS não deslocar o evento, e entrada/saída por alfa em 0,2 s. Fonte e cor seguem a marca (`--marca`).
+
+## ler_tela.py
+OCR de imagem ou de um quadro do vídeo (papel `ocr`, padrão RapidOCR com modelos PP-OCR), com busca e desenho no lugar do texto.
+```bash
+uv run --with rapidocr --with onnxruntime python scripts/ler_tela.py IMAGEM|VIDEO [--t T] [--out ARQ.ocr.json] \
+  [--achar "TEXTO"]... [--regex PADRÃO]... [--todos] [--estilo caixa|marca|sublinhado|tarja] [--inicio T] [--fim T] [--cor "#RRGGBB"] [--folga 0.25] [--burn SAIDA]
+```
+`<nome>.ocr.json`: `linhas[]` (`texto`, `conf`, `caixa` `[x, y, l, a]` em fração da imagem, `palavras[]`) e `achados[]` (`consulta`, `texto`, `caixa`). `--achar` compara sem acento nem caixa e junta as palavras do trecho; linha sem caixas de palavra recebe uma fatia proporcional da caixa da linha. Código 1 quando nada é encontrado, com a lista do que foi lido. Com imagem de entrada, `--burn SAIDA.png` grava a imagem marcada.
+
+## conferir_fala.py
+Compara o roteiro com a transcrição do áudio final (só biblioteca padrão).
+```bash
+python3 scripts/conferir_fala.py ROTEIRO.txt|.md|cenas.json|spec.json FINAL.transcript.json [--tolerancia 0.02] [--equivalentes eq.json] [--out ARQ.fala.md]
+```
+Roteiro em texto ignora títulos (`#`), citações (`>`) e trechos entre colchetes; `cenas.json` lê `narracao` e `spec.json` lê `tts` (senão `legend`). Saídas `<nome>.fala.md` e `.fala.json` com cada diferença: `faltou`, `sobrou`, `trocou` ou `parecida` (troca por palavra com 80% de semelhança, que não conta na taxa), o instante e as palavras de antes. Código 1 quando a taxa de palavras com diferença passa de `--tolerancia`.
+
+## banco_video.py
+Opcional (skill `/banco`): busca e download em banco de vídeo, só com `PEXELS_API_KEY`. Só biblioteca padrão e ffmpeg.
+```bash
+python3 scripts/banco_video.py buscar "TERMO" [--id ID] [--orientacao paisagem|retrato|quadrado] [--min-dur 4] [--max-dur 60] [--n 8] [--out banco]
+python3 scripts/banco_video.py baixar ID --escolha N [--altura 1080] [--out banco]
+python3 scripts/banco_video.py creditos [--out banco]
+```
+`buscar` grava `<id>.busca.json` e `<id>.folha.jpg` (miniaturas na ordem dos candidatos); `baixar` pega o menor arquivo cujo lado menor tem a medida de `--altura`, recusa sobrescrever e grava `<id>.json` (autor, página, licença, termo, data, sha256). `VE_BANCO_URL` troca o endereço da API (testes).
 
 ## marca_cli.py
 Biblioteca dos scripts de texto (`lettering_ass.py`, `checklist_ass.py`, `legenda_palavra.py`): acrescenta `--marca` (`nao` ignora), resolve fonte e cores pela marca quando o parâmetro não foi passado e devolve o `fontsdir` para o libass. Também serve a quem monta ffmpeg à mão:

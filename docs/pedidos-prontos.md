@@ -72,10 +72,22 @@ Copie, cole no Claude Code e troque o que estiver entre `< >`. Cada pedido acion
 | "Valida essa paleta e me mostra como fica" | `validar_marca.py` (contraste, fonte, logo, prancha) |
 | "Legenda com a palavra falada na cor da marca" | video-docs com `legenda.estilo: "palavra"` |
 
+## Marcar o que está na imagem
+
+| Pedido | Skills |
+|---|---|
+| "Põe uma etiqueta que acompanha a prancha" / "marca esse carro e segue" | rastrear |
+| "Destaca o botão Salvar quando eu falar dele" / "sublinha o nome do arquivo no print" | ler-tela (o instante vem da transcrição) |
+| "Onde eu apareço, põe o título onde não cubra meu rosto" | lettering (posição pela `sugestao` do `rostos.py`) |
+| "Falta imagem nesse trecho, põe um vídeo de ondas" | banco (opcional: só com chave própria; antes, o próprio bruto ou animacao) |
+
 ## Revisão e entrega
 
 | Pedido | Skills |
 |---|---|
 | "Me mostra como ficou" | prova |
+| "Confere se algum texto ficou em cima do meu rosto" | prova (`rostos.py --conferir`, entrada e saída da etapa de texto) |
+| "Confere se a narração final bate com o roteiro" | prova (`transcribe.py` no vídeo final + `conferir_fala.py`) |
+| "Esconde os e-mails que aparecem na gravação" | ler-tela (`--regex`, `--estilo tarja`) e depois prova |
 | "Exporta a timeline pro DaVinci em vez do vídeo" | corte `--export resolve` |
 | "Gera o SRT separado pra subir no YouTube" | legenda (só SRT) |

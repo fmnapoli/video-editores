@@ -387,7 +387,7 @@ python3 - <<'PY'
 import json, pathlib
 h = pathlib.Path("fakehome")
 sk = sorted(x.name for x in (h / ".zcode/skills").iterdir() if not x.name.startswith("."))
-assert len(sk) == 22 and "marca" in sk, sk
+assert len(sk) == 25 and "marca" in sk, sk
 t = (h / ".zcode/skills/legenda/SKILL.md").read_text()
 assert "CLAUDE_PLUGIN_ROOT" not in t and "harness ZCode" in t and "Agent" in t and "AskUserQuestion" in t and "video-editores:port" in t, t[:400]
 man = json.loads((h / ".zcode/skills/.video-editores.json").read_text())
