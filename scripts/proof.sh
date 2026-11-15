@@ -10,7 +10,9 @@ DUR=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$IN"
 [[ "$DUR" =~ ^[0-9.]+$ && "$N" =~ ^[0-9]+$ && "$N" -gt 0 ]] || { echo "duração ($DUR) ou N ($N) inválidos" >&2; exit 2; }
 COLS=4; ROWS=$(( (N + COLS - 1) / COLS ))
 FPS=$(python3 -c 'import sys; print(f"{int(sys.argv[1])/float(sys.argv[2]):.5f}")' "$N" "$DUR")
-ffmpeg -hide_banner -loglevel error -y -i "$IN" \
+# -reinit_filter 0: vídeo montado por blocos muda de parâmetros (cor, SPS) nas emendas e o ffmpeg reiniciaria o
+# grafo ali, esvaziando o `tile`: a folha saía só com os quadros depois da última emenda.
+ffmpeg -hide_banner -loglevel error -y -reinit_filter 0 -i "$IN" \
   -vf "fps=$FPS,scale=360:-2,tile=${COLS}x${ROWS}:padding=4:margin=4" \
   -frames:v 1 "${BASE}.proof.jpg"
 ffmpeg -hide_banner -loglevel error -y -i "$IN" -vf "scale=-2:480" -c:v libx264 -preset veryfast -crf 30 \

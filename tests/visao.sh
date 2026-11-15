@@ -129,6 +129,14 @@ if int(sys.argv[1]) == 0:
 PY
 pass "nucleo/quadros: o instante devolvido é o do quadro entregue (todos os quadros, amostrado, início fora do grid, vídeo que muda de parâmetros no meio)"
 
+# a folha de contato da /prova também atravessa a emenda: os 4 quadros, do mais escuro (início) ao mais claro (fim)
+bash "$S/proof.sh" emenda.mp4 4 >/dev/null
+ffmpeg -v error -y -i emenda.proof.jpg -vf "scale=4:1:flags=area,format=gray" -f rawvideo folha.g
+python3 -c '
+b = list(open("folha.g", "rb").read())
+assert len(b) == 4 and b[0] < b[1] < b[2] < b[3] and b[3] - b[0] > 80, b'
+pass "proof.sh: folha de contato completa em vídeo que muda de parâmetros no meio"
+
 # ---------------------------------------------------------------- rastrear (OpenCV real, trajetória conhecida)
 # fundo com ruído parado + cartão de teste que anda 150 px/s para a direita e 40 px/s para cima
 ffmpeg -v error -y -f lavfi -i "color=c=gray:s=1280x720:r=30:d=3,noise=all_seed=7:alls=40" -f lavfi -i "testsrc=s=200x140:r=30:d=3" \
