@@ -248,8 +248,33 @@ set +e; "${LER[@]}" tela.mp4 --achar "não existe" --out nada.ocr.json 2>err.txt
 ffmpeg -v error -y -i tela.mp4 -frames:v 1 -update 1 print.png
 "${LER[@]}" print.png --achar "salvar" --estilo caixa --marca nao --burn print_caixa.png >/dev/null && test -s print_caixa.png && test -s print.ocr.json
 "${LER[@]}" print.png --achar "salvar" --estilo caixa --marca nao --out leitura.json >/dev/null
+"${LER[@]}" print.png --achar "figura" --achar "@exemplo" --todos --out dentro.json >/dev/null       # trecho de dentro de uma palavra
+python3 - <<'PY'
+import json
+a, b, c = json.load(open("dentro.json"))["achados"]
+assert a["texto"] == "figura" and abs(a["caixa"][0] - 0.0975) < 0.001 and abs(a["caixa"][2] - 0.075) < 0.001, a   # letras 4–9 das 12 de "Configuração"
+assert [x["texto"] for x in (b, c)] == ["@exemplo", "@exemplo"] and abs(b["caixa"][0] - 0.204) < 0.001 and abs(c["caixa"][0] - 0.404) < 0.001, (b, c)
+PY
 python3 -c 'import json; assert json.load(open("leitura.json"))["achados"]' && grep -q "^Dialogue:" leitura.destaque.ass   # o ASS não cai em cima do JSON
-pass "ler_tela.py: acha sem acento nem caixa, regex de e-mail, marca-texto no lugar, tarja opaca no vídeo inteiro, print"
+# --lote: cada texto procurado na sua janela de tempo; o que não aparece é listado e o .ass sai com o resto
+cat > itens.json <<'JSON'
+[{"achar": "salvar alterações", "entre": [0.5, 2.0], "estilo": "caixa", "dur": 2.0},
+ {"regex": "bia@\\w+", "entre": [1.0, 1.5]},
+ {"achar": "não existe", "entre": [0, 1]}]
+JSON
+set +e; "${LER[@]}" tela.mp4 --lote itens.json --marca nao --out lote.destaques.json > lote.txt; RC=$?; set -e
+[[ $RC == 1 ]] && grep -q "NÃO ENCONTRADO" lote.txt || { echo "--lote: rc=$RC"; cat lote.txt; exit 1; }
+python3 - <<'PY'
+import json
+d = json.load(open("lote.destaques.json"))
+a, b = d["destaques"]
+assert (a["inicio"], a["fim"], a["estilo"], a["curto"]) == (0.5, 2.5, "caixa", False), a     # começa na janela e dura `dur`
+assert b["texto"] == "bia@exemplo" and (b["inicio"], b["fim"]) == (1.0, 3.5) and b["estilo"] == "marca", b   # padrões: marca, 2,5 s
+assert [x["item"] for x in d["nao_encontrados"]] == [3]
+ev = [ln for ln in open("lote.destaques.ass", encoding="utf-8").read().splitlines() if ln.startswith("Dialogue:")]
+assert len(ev) == 2 and ev[0].startswith("Dialogue: 2,0:00:00.50,0:00:02.50") and ev[1].startswith("Dialogue: 2,0:00:01.00,0:00:03.50"), ev
+PY
+pass "ler_tela.py: acha sem acento nem caixa, regex de e-mail, marca-texto no lugar, tarja opaca no vídeo inteiro, print, trecho de dentro de uma palavra, lote por janela de tempo"
 
 # ---------------------------------------------------------------- catálogo e registro
 python3 - <<'PY'

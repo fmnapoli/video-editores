@@ -20,6 +20,18 @@ Uso: ler_tela.py IMAGEM|VIDEO [--t 12.4] [--out ARQ.ocr.json] [--backend rapidoc
 A caixa vale para o quadro lido: em gravação de tela com rolagem, use um intervalo em que a tela está parada
 (ou rode de novo em outro --t). Sai com código 1 quando --achar/--regex não encontra nada, listando o que leu.
 
+Vários destaques num vídeo longo (aula, tutorial), sem saber o instante exato em que cada texto aparece:
+
+     ler_tela.py VIDEO --lote itens.json [--passo 0.5] [--minimo 1.5] [--out ARQ.destaques.json] [--burn SAIDA.mp4]
+  itens.json: [{"achar": "str(idade)", "entre": [294, 306], "estilo": "marca", "dur": 2.5}, ...]
+     achar ou regex · entre: janela de tempo (da fala, pelo .transcript.json) em que procurar · estilo e cor
+     opcionais (padrão marca) · dur: duração máxima do destaque (padrão 2,5 s)
+  Para cada item, lê um quadro a cada --passo dentro da janela e escolhe o primeiro trecho em que o texto fica
+  pelo menos --minimo (1,5 s) no mesmo lugar (tela parada), até `dur`; se a tela não para, usa o trecho mais
+  longo e marca o item como CURTO no relatório. Grava um .ass só com todos os destaques e um
+  relatório com o instante e a caixa de cada um; item não encontrado é listado e o script sai com código 1
+  (o .ass sai mesmo assim, com os que foram achados).
+
 Dependências: `uv run --with rapidocr --with onnxruntime` (ou `video-editores ler-tela ...`, que resolve sozinho).
 """
 import argparse
@@ -70,15 +82,19 @@ def uniao(caixas):
 
 
 def trecho(linha, ini, fim):
-    """Caixa do intervalo de caracteres [ini, fim) da linha: união das palavras tocadas; sem caixas de palavra,
-    fatia proporcional da caixa da linha."""
+    """Caixa do intervalo de caracteres [ini, fim) da linha: união das palavras tocadas, cada uma recortada na
+    proporção dos caracteres que entram (em código, `str(idade)` dentro de `"+str(idade)+"` sai justo, porque a
+    fonte é de largura fixa); sem caixas de palavra, fatia proporcional da caixa da linha."""
     pals = linha["palavras"]
     if pals:
         tocadas, pos = [], 0
         for p in pals:
-            a, b = pos, pos + len(p["texto"])
-            if a < fim and b > ini:
-                tocadas.append(p["caixa"])
+            n = len(p["texto"])
+            a, b = pos, pos + n
+            if a < fim and b > ini and n:
+                x, y, w, h = p["caixa"]
+                o0, o1 = max(a, ini), min(b, fim)
+                tocadas.append([x + w * (o0 - a) / n, y, w * (o1 - o0) / n, h])
             pos = b + 1
         if tocadas:
             return uniao(tocadas)
@@ -139,6 +155,88 @@ def eventos(achados, W, H, estilo, ini, fim, cor_hex, folga):
     return linhas
 
 
+def ler_linhas(ocr, img):
+    """OCR de um quadro -> linhas no formato do .ocr.json, com o texto de busca de cada uma."""
+    H, W = img.shape[:2]
+    linhas = []
+    for ln in ocr.ler(img):
+        pals = [{"texto": p.texto, "conf": p.conf, "caixa": frac(p, W, H)} for p in ln.palavras]
+        linhas.append({"texto": ln.texto, "conf": ln.caixa.conf, "caixa": frac(ln.caixa, W, H), "palavras": pals,
+                       "busca": " ".join(p["texto"] for p in pals) if pals else ln.texto})
+    return linhas
+
+
+def lote(a, src, marca_cli):
+    """Vários destaques: procura cada texto na sua janela de tempo e segura o destaque enquanto a tela não anda."""
+    itens = json.loads(pathlib.Path(a.lote).read_text(encoding="utf-8"))
+    ocr = modelos.get_ocr(a.backend, device=modelos.device())
+    m = marca_cli.carregar(a.marca)
+    acento = marca_cli.escolhe(a.cor, m.cores["acento"], "#FFD54F", m)
+    fim_video = duracao(src)
+    W = H = None
+    eventos_ass, rel, faltou = [], [], []
+    for i, it in enumerate(itens, 1):
+        consulta = it.get("achar") or it.get("regex")
+        if not consulta or "entre" not in it:
+            sys.exit(f"--lote, item {i}: precisa de `achar` ou `regex` e de `entre` [início, fim]")
+        t0_j, t1_j = float(it["entre"][0]), min(float(it["entre"][1]), fim_video)
+        estilo, dur = it.get("estilo", "marca"), float(it.get("dur", 2.5))
+        if estilo not in ("caixa", "marca", "sublinhado", "tarja"):
+            sys.exit(f"--lote, item {i}: estilo desconhecido {estilo!r}")
+
+        # lê a janela inteira num processo só do ffmpeg (uma amostra a cada --passo) e agrupa as amostras
+        # seguidas em que o texto está no mesmo lugar (tela parada)
+        trechos, ultimo = [], None
+        for _, t, img in quadros.ler(src, passo=a.passo, inicio=t0_j, fim=min(t1_j + dur, fim_video)):
+            H, W = img.shape[:2]
+            na_janela = t <= t1_j + 1e-6
+            segue = bool(trechos) and trechos[-1]["ultimo"] == ultimo and ultimo is not None
+            if not na_janela and not segue:
+                break                       # passou da janela e o último trecho já terminou
+            achados = procurar(ler_linhas(ocr, img), [it["achar"]] if it.get("achar") else [],
+                               [it["regex"]] if it.get("regex") else [], False)
+            ac = achados[0] if achados else None
+            if ac and segue and all(abs(ac["caixa"][k] - trechos[-1]["ac"]["caixa"][k]) <= 0.008 for k in (0, 1)):
+                trechos[-1].update(fim=t + a.passo, ultimo=t)
+            elif ac and na_janela:
+                trechos.append({"ini": t, "fim": t + a.passo, "ac": ac, "ultimo": t})
+            ultimo = t
+            if trechos and trechos[-1]["fim"] - trechos[-1]["ini"] >= dur:
+                break
+        if not trechos:
+            faltou.append({"item": i, "consulta": consulta, "entre": [t0_j, t1_j]})
+            print(f"  {i:>2}. NÃO ENCONTRADO \"{consulta}\" entre {t0_j:g}s e {t1_j:g}s")
+            continue
+        # o primeiro trecho com pelo menos `minimo` s parado; se nenhum, o mais longo (e o relatório avisa)
+        bons = [x for x in trechos if x["fim"] - x["ini"] >= a.minimo - 1e-6]
+        esc = bons[0] if bons else max(trechos, key=lambda x: x["fim"] - x["ini"])
+        ac, ini, fim = esc["ac"], esc["ini"], min(esc["fim"], esc["ini"] + dur)
+        curto = fim - ini < a.minimo - 1e-6
+        cor_hex = it.get("cor") or ("#000000" if estilo == "tarja" else acento)
+        eventos_ass += eventos([ac], W, H, estilo, ini, fim, cor_hex, a.folga)
+        rel.append({"item": i, "consulta": consulta, "texto": ac["texto"], "estilo": estilo, "inicio": round(ini, 2),
+                    "fim": round(fim, 2), "caixa": ac["caixa"], "curto": curto})
+        print(f"  {i:>2}. \"{ac['texto']}\" {estilo} {ini:.1f}–{fim:.1f}s em x {ac['caixa'][0]:.3f} y {ac['caixa'][1]:.3f}"
+              + ("  (CURTO: a tela não para nesse trecho)" if curto else ""))
+    if a.out:
+        out = pathlib.Path(a.out)
+    else:
+        base = pathlib.Path("trabalho") / src.stem if pathlib.Path("trabalho").is_dir() else src.parent
+        base.mkdir(parents=True, exist_ok=True)
+        out = base / (src.stem + ".destaques.json")
+    out.write_text(json.dumps({"source": str(src), "backend": ocr.nome, "passo": a.passo, "destaques": rel,
+                               "nao_encontrados": faltou}, ensure_ascii=False, indent=1), encoding="utf-8")
+    arq_ass = out.with_suffix(".ass")
+    if W:
+        arq_ass.write_text(ass.documento(W, H, "DejaVu Sans", eventos_ass), encoding="utf-8")
+    print(f"ok: {len(rel)} destaque(s), {len(faltou)} não encontrado(s) -> {out}" + (f" e {arq_ass}" if W else ""))
+    if a.burn and rel:
+        ass.queimar(src, arq_ass, a.burn)
+        print(f"ok -> {a.burn}")
+    if faltou:
+        sys.exit(1)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("fonte", help="imagem (png/jpg) ou vídeo")
@@ -154,6 +252,9 @@ def main():
     ap.add_argument("--cor", default=None, help="padrão: acento da marca, senão #FFD54F; tarja: #000000")
     ap.add_argument("--folga", type=float, default=0.25, help="margem em volta do texto, em fração da altura dele")
     ap.add_argument("--burn", default=None)
+    ap.add_argument("--lote", default=None, metavar="itens.json", help="vários destaques, cada um procurado na sua janela de tempo")
+    ap.add_argument("--passo", type=float, default=0.5, help="--lote: intervalo entre os quadros lidos, em segundos")
+    ap.add_argument("--minimo", type=float, default=1.5, help="--lote: tempo mínimo com a tela parada para o destaque valer")
     import marca_cli
     marca_cli.add_arg(ap)
     a = ap.parse_args()
@@ -161,6 +262,10 @@ def main():
     if not src.is_file():
         sys.exit(f"não achei {src}")
     eh_imagem = src.suffix.lower() in IMAGENS
+    if a.lote:
+        if eh_imagem:
+            sys.exit("--lote é para vídeo")
+        return lote(a, src, marca_cli)
     if a.burn and not a.estilo:
         sys.exit("--burn precisa de --estilo")
     if a.estilo and not (a.achar or a.regex):
@@ -181,11 +286,7 @@ def main():
     H, W = img.shape[:2]
 
     ocr = modelos.get_ocr(a.backend, device=modelos.device())
-    linhas = []
-    for ln in ocr.ler(img):
-        pals = [{"texto": p.texto, "conf": p.conf, "caixa": frac(p, W, H)} for p in ln.palavras]
-        linhas.append({"texto": ln.texto, "conf": ln.caixa.conf, "caixa": frac(ln.caixa, W, H), "palavras": pals,
-                       "busca": " ".join(p["texto"] for p in pals) if pals else ln.texto})
+    linhas = ler_linhas(ocr, img)
     achados = procurar(linhas, a.achar, a.regex, a.todos)
     for ln in linhas:
         del ln["busca"]

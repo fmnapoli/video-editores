@@ -24,7 +24,7 @@ class RapidOCR(Backend):
         except ImportError:
             raise SystemExit("faltam dependências: uv run --with rapidocr --with onnxruntime ...") from None
         # o RapidOCR registra em INFO cada modelo que carrega, colorido, no stderr: só avisos e erros interessam
-        self._motor = _Motor(params={"Global.log_level": "warning"})
+        self._motor = _Motor(params={"Global.log_level": "error"})
 
     def ler(self, imagem):
         """Imagem BGR (numpy) ou caminho -> lista de LinhaOCR, de cima para baixo, em pixels da imagem."""

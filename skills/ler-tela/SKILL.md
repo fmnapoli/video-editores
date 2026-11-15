@@ -27,7 +27,13 @@ Script: `${CLAUDE_PLUGIN_ROOT}/scripts/ler_tela.py` (RapidOCR com modelos PP-OCR
      --regex '[\w.+-]+@[\w-]+\.[\w.]+' --estilo tarja --burn trabalho/<slug>/<slug>_tarja.mp4
    ```
    Mostre ao usuário a lista do que foi coberto e um quadro do resultado **antes** de seguir: tarja é gate.
-5. Se sair com código 1 ("NÃO ENCONTRADO"), o script lista o que leu: ajuste o texto de `--achar` ao que está na tela, ou mude `--t` para um quadro em que o texto já apareceu.
+5. **Vários destaques num vídeo longo** (aula, tutorial): escreva `itens.json` com o texto e a janela de tempo em que ele é falado (do `.transcript.json`), e rode uma vez só. O script procura cada texto na janela, espera a tela parar e gera um `.ass` único.
+   ```bash
+   # itens.json: [{"achar": "str(idade)", "entre": [296, 313]}, {"achar": ".upper()", "entre": [820, 828], "estilo": "caixa"}]
+   uv run --with rapidocr --with onnxruntime python "${CLAUDE_PLUGIN_ROOT}/scripts/ler_tela.py" IN.mp4 --lote itens.json --burn trabalho/<slug>/<slug>_destaques.mp4
+   ```
+   Leia o relatório: item `CURTO` (a tela rola logo depois) fica melhor fora ou com a janela mais adiante; item não encontrado costuma ser o OCR lendo um símbolo de outro jeito (`-` como `_`): troque `achar` por `regex`. Dê à janela alguns segundos depois da fala, porque em aula de código o texto termina de ser digitado depois de dito. Conte ~1 s de processamento por segundo de janela.
+6. Se sair com código 1 ("NÃO ENCONTRADO"), o script lista o que leu: ajuste o texto de `--achar` ao que está na tela, ou mude `--t` para um quadro em que o texto já apareceu.
 
 ## Estilos
 | `--estilo` | Visual | Uso |
