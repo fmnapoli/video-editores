@@ -1,10 +1,12 @@
 """Contratos dos modelos de IA usados pelo plugin. Os backends ficam nos módulos ao lado.
 
-Quatro papéis, cada um com um método principal:
+Seis papéis, cada um com um método principal:
   ASR          transcrever(áudio) -> Transcricao           (faster-whisper, ...)
   Segmentador  mascara(imagem) -> máscara da pessoa (PIL L) (rembg/U²-Net, BiRefNet, ...)
   TTS          sintetizar(texto, voz, mp3) -> fronteiras de palavra  (edge-tts, ...)
   Imagem       gerar(prompt, pasta, sementes, ...) -> PNGs, um por semente  (ComfyUI, ...)  (ADR-15)
+  Rosto        detectar(quadro BGR) -> caixas dos rostos    (YuNet/OpenCV, ...)   (ADR-19)
+  OCR          ler(imagem BGR) -> linhas com palavras e caixas  (RapidOCR/PP-OCR, ...)  (ADR-19)
 
 Um backend declara `nome`, `descricao` e `deps(device)` (pacotes para `uv run --with`). Importações
 pesadas ficam dentro dos métodos, para que listar e configurar backends não exija os modelos instalados.
@@ -46,6 +48,24 @@ class Transcricao:
         return [w for s in self.segments for w in s.words]
 
 
+@dataclass
+class Caixa:
+    """Retângulo em pixels da imagem analisada (origem no canto superior esquerdo)."""
+    x: float
+    y: float
+    w: float
+    h: float
+    conf: float = 1.0
+    texto: str = ""
+
+
+@dataclass
+class LinhaOCR:
+    texto: str
+    caixa: Caixa
+    palavras: list = field(default_factory=list)   # list[Caixa], com `texto` preenchido
+
+
 class Backend:
     nome: str = ""
     descricao: str = ""
@@ -78,3 +98,13 @@ class TTS(Protocol):
 class Imagem(Protocol):
     def gerar(self, prompt: str, saida_dir: Any, negativo: str = "", largura: int = 1344, altura: int = 768,
               sementes: tuple = (0,), passos: "int | None" = None, prefixo: str = "ve") -> list: ...
+
+
+@runtime_checkable
+class Rosto(Protocol):
+    def detectar(self, quadro: Any, min_conf: float = 0.6) -> list: ...   # list[Caixa]
+
+
+@runtime_checkable
+class OCR(Protocol):
+    def ler(self, imagem: Any) -> list: ...   # list[LinhaOCR]
