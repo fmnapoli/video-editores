@@ -166,6 +166,15 @@ de render: um corte da entrega original era um dissolve de 3 quadros e deixou um
 emenda ser conferida quadro a quadro (a skill passou a pedir isso), e o círculo da webcam do trecho substituído
 foi recortado do original com máscara e recolocado sobre a cena nova.
 
+Numa quarta versão, a aula inteira foi recomposta num layout novo extraído de um vídeo de referência (`/referencia`
+para medir grade, tipografia e elementos fixos; `/cena-web` para as 14 cenas e para as 32 variações da régua fixa em
+PNG com alpha; ffmpeg para recortar o painel de código e a webcam da entrega e recolocá-los). Dois achados de
+montagem foram para a solução de problemas, com medição: `-ss` no instante exato de um quadro pula esse quadro
+quando os tempos da entrega estão uma fração de milissegundo antes da grade (todo trecho saía 33 ms adiantado; o
+`nucleo/quadros.py` ganhou tolerância e teste), e compor camadas na mesma chamada que salta no tempo as atrasa em
+cerca de 20 quadros (a saída foi cortar sem perda e compor depois). A conferência quadro a quadro das emendas também
+achou um defeito da entrega original: um único quadro solto entre dois planos.
+
 ## Consequências
 
 - Dependência nova, só para quem usa: `opencv-python-headless` (Apache-2.0) e `rapidocr` (Apache-2.0), via

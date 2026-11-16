@@ -34,17 +34,21 @@ def ler(path, largura=None, passo=None, inicio=0.0, fim=None, cinza=False):
     w, h = tamanho(path, largura)
     taxa = _fps(path)
     inicio = max(0.0, inicio)
-    n0 = math.ceil(inicio * taxa - 1e-6)                 # índice do primeiro quadro entregue
+    # Tolerância de 2 ms no início: em entrega montada por blocos os tempos podem ficar uma fração de milissegundo
+    # antes da grade (673,0993 em vez de 673,1) e um -ss no instante exato pularia justamente o quadro pedido.
+    folga = 0.002 if inicio > 0 else 0.0
+    n0 = math.ceil((inicio - folga) * taxa - 1e-6)       # índice do primeiro quadro entregue
+    busca = inicio - folga
     p_q = max(1.0, passo * taxa) if passo else 1.0       # passo em quadros
     vf = []
     if passo:
         # u = tempo desde o primeiro quadro entregue; entra o quadro em que floor((u + meio quadro) / passo) avança
         # (o 1% de quadro a mais decide o empate quando k × passo cai exatamente entre dois quadros)
-        d, o = 1.0 / taxa, n0 / taxa - inicio
+        d, o = 1.0 / taxa, n0 / taxa - busca
         u = f"(t-{o - 0.01 / taxa:.6f})"
         vf.append(f"select=gt(floor(({u}+{d / 2:.6f})/{p_q * d:.6f})\\,floor(({u}-{d / 2:.6f})/{p_q * d:.6f}))")
     vf.append(f"scale={w}:{h}")
-    cmd = ["ffmpeg", "-v", "error", "-ss", f"{inicio:.6f}"]
+    cmd = ["ffmpeg", "-v", "error", "-ss", f"{busca:.6f}"]
     if fim is not None:
         cmd += ["-to", f"{fim:.6f}"]
     cmd += ["-i", str(path), "-an", "-sn", "-vf", ",".join(vf), "-fps_mode", "passthrough", "-f", "rawvideo",

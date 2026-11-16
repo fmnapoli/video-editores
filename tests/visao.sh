@@ -129,6 +129,23 @@ if int(sys.argv[1]) == 0:
 PY
 pass "nucleo/quadros: o instante devolvido é o do quadro entregue (todos os quadros, amostrado, início fora do grid, vídeo que muda de parâmetros no meio)"
 
+# tempos 0,65 ms antes da grade a partir do segundo quadro (acontece depois de uma emenda): pedir o instante nominal de
+# um quadro tem de entregar esse quadro, não o seguinte
+ffmpeg -v error -y -i indice.mp4 -vf "settb=1/15360,setpts='if(eq(N\,0)\,0\,N*512-10)'" -fps_mode passthrough -enc_time_base 1/15360 \
+  -c:v libx264 -qp 0 -pix_fmt yuv420p -video_track_timescale 15360 fora.mp4
+uv run --quiet --with numpy python - <<'PY'
+import subprocess
+from video_editores.nucleo import quadros
+pts = sorted(float(x) for x in subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "packet=pts_time", "-of", "csv=p=0", "fora.mp4"],
+                                               capture_output=True, text=True).stdout.split())
+assert pts[0] == 0 and 0.0004 < 1.0 - pts[30] < 0.0009, pts[29:32]   # o quadro 30 está em 0,99935 s, não em 1,0
+todos = [int(q[0, 0]) for _, _, q in quadros.ler("fora.mp4", cinza=True)]
+assert todos.index(int(quadros.em("fora.mp4", 1.0, cinza=True)[0, 0])) == 30, "pedir 1,0 s tem de entregar o quadro de 0,99935 s, não o seguinte"
+r = [(round(t * 30), todos.index(int(q[0, 0]))) for _, t, q in quadros.ler("fora.mp4", passo=0.5, inicio=1.0, cinza=True)]
+assert r[:4] == [(30, 30), (45, 45), (60, 60), (75, 75)], r
+PY
+pass "nucleo/quadros: tempos uma fração de milissegundo antes da grade não fazem pular o quadro pedido"
+
 # a folha de contato da /prova também atravessa a emenda: os 4 quadros, do mais escuro (início) ao mais claro (fim)
 bash "$S/proof.sh" emenda.mp4 4 >/dev/null
 ffmpeg -v error -y -i emenda.proof.jpg -vf "scale=4:1:flags=area,format=gray" -f rawvideo folha.g
