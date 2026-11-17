@@ -1,6 +1,6 @@
 # ADR-19 — Ver, ler e conferir (rosto, rastreamento, OCR, fala) e cena em HTML com Three.js
 
-**Data:** 2026-11-15 · **Estado:** implementado (0.14.0)
+**Data:** 2026-11-15 · **Estado:** implementado (0.15.0)
 
 ## Contexto
 

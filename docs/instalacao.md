@@ -101,5 +101,5 @@ Com GPU, nada a instalar à mão: `VE_DEVICE=cuda` faz o backend de segmentaçã
 ```bash
 uv tool install "video-editores @ git+https://github.com/fmnapoli/video-editores"   # video-editores listar | modelos | <operação>
 claude mcp add video-editores -- uvx --from "video-editores[mcp] @ git+https://github.com/fmnapoli/video-editores" video-editores-mcp --raiz /caminho/do/projeto
-cd /caminho/do/projeto && video-editores integrar todos     # Codex, OpenCode e Kiro: skills + MCP + regras (docs/agentes.md)
+cd /caminho/do/projeto && video-editores integrar todos     # Codex, OpenCode, Kiro e ZCode: skills + MCP + regras (docs/agentes.md)
 ```

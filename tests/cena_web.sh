@@ -61,6 +61,42 @@ if VE_ESPERA_CENA=3 "${WEB[@]}" vazio.html v.mp4 2>err.txt; then echo "cena sem 
 grep -q "não definiu window.veQuadro" err.txt && grep -q "cdn.exemplo.invalid" err.txt
 pass "cena_web.py: --alpha exige .mov; erro da cena aponta o quadro; cena sem veQuadro e recurso de CDN bloqueado são explicados"
 
+# sem --rede nada sai da máquina: imagem, fetch, WebSocket e janela aberta pela cena não chegam a um servidor local,
+# e o render termina com o aviso de cada endereço (recurso bloqueado não derruba o vídeo)
+python3 - <<'PYOUVE' &
+import os, socket
+s = socket.socket(); s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1); s.bind(("127.0.0.1", 0)); s.listen(8)
+open("porta.tmp", "w").write(str(s.getsockname()[1])); os.replace("porta.tmp", "porta.txt"); s.settimeout(60)
+try:
+    while True:
+        c, _ = s.accept(); open("chegou.txt", "ab").write(c.recv(200) + b"\n"); c.close()
+except socket.timeout:
+    pass
+PYOUVE
+OUVE=$!
+for _ in $(seq 50); do [[ -s porta.txt ]] && break; sleep 0.1; done
+P=$(cat porta.txt)
+cat > vaza.html <<HTML
+<!doctype html><img src="http://127.0.0.1:$P/img.png">
+<script>
+window.veDuracao = 0.2;
+try { new WebSocket("ws://127.0.0.1:$P/ws"); } catch (e) {}
+window.open("http://127.0.0.1:$P/popup");
+fetch("http://127.0.0.1:$P/fetch").catch(() => 0);
+window.veQuadro = (t) => {};
+</script>
+HTML
+"${WEB[@]}" vaza.html vaza.mp4 --tamanho 320x180 >/dev/null 2>aviso.txt
+kill $OUVE 2>/dev/null || true
+if [[ ! -s vaza.mp4 || -e chegou.txt ]]; then echo "a cena falou com a rede sem --rede (ou não renderizou):"; cat chegou.txt aviso.txt 2>/dev/null; exit 1; fi
+for r in img.png ws popup fetch; do grep -q "recurso não entregue: .*127.0.0.1:$P/$r" aviso.txt || { echo "faltou o aviso de $r"; cat aviso.txt; exit 1; }; done
+if VE_ENCODER=codificador_que_nao_existe "${WEB[@]}" cena.html enc.mp4 --tamanho 320x180 2>err.txt; then echo "codificador inexistente devia falhar"; exit 1; fi
+grep -q "ffmpeg falhou ao codificar" err.txt && test ! -e enc.mp4
+if grep -q "Traceback" err.txt; then echo "ffmpeg que morre cedo virou traceback"; cat err.txt; exit 1; fi
+if "${WEB[@]}" cena.html z.mp4 --fps 0 2>err.txt; then echo "--fps 0 devia falhar"; exit 1; fi
+grep -q "maiores que zero" err.txt
+pass "cena_web.py: sem --rede, imagem, fetch, WebSocket e window.open não saem da máquina e viram aviso; ffmpeg que falha e --fps 0 dão erro claro, sem vídeo pela metade"
+
 if [[ "${VE_TESTE_REDE:-}" == 1 ]]; then
   for m in cena-three cena-gsap; do
     "${WEB[@]}" "$ROOT/skills/cena-web/templates/$m.html" "$m.png" --quadro 3.5 --tamanho 960x540 2>aviso.txt >/dev/null

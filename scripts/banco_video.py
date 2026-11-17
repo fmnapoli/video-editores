@@ -29,6 +29,7 @@ import hashlib
 import json
 import os
 import pathlib
+import re
 import subprocess
 import sys
 import urllib.error
@@ -49,11 +50,46 @@ def chave():
     return k
 
 
-def http(url, cabecalhos=None, destino=None):
-    req = urllib.request.Request(url, headers={"User-Agent": "video-editores", **(cabecalhos or {})})
+def identificador(texto):
+    """O id vira nome de arquivo dentro de --out: só letras, números, `-` e `_` (nada de `/` nem `..`)."""
+    ident = re.sub(r"[^a-z0-9_-]+", "-", (texto or "").lower()).strip("-")[:40]
+    if not ident:
+        sys.exit("id vazio: passe --id com letras, números, - ou _")
+    return ident
+
+
+def url_aceita(url):
+    """Só https (http quando o banco é um servidor próprio em VE_BANCO_URL): a resposta da API e o .busca.json
+    não podem mandar ler `file://` nem outro esquema."""
+    esquema = urllib.parse.urlsplit(str(url)).scheme.lower()
+    if esquema == "https" or (esquema == "http" and os.environ.get("VE_BANCO_URL")):
+        return url
+    sys.exit(f"endereço recusado ({str(url)[:80]}): o banco só baixa de https://")
+
+
+def http(url, cabecalhos=None, destino=None, limite=20 * 2**20):
+    """GET com limite de tamanho. Com `destino`, grava em blocos num `.baixando` e só renomeia no fim."""
+    req = urllib.request.Request(url_aceita(url), headers={"User-Agent": "video-editores", **(cabecalhos or {})})
+    tmp = pathlib.Path(str(destino) + ".baixando") if destino else None
     try:
         with urllib.request.urlopen(req, timeout=120) as r:
-            dados = r.read()
+            url_aceita(r.geturl())   # redirecionamento também não sai do https
+            partes, total = [], 0
+            saida = open(tmp, "wb") if tmp else None
+            try:
+                while bloco := r.read(1 << 20):
+                    total += len(bloco)
+                    if total > limite:
+                        raise ValueError(f"resposta maior que {limite // 2**20} MB")
+                    saida.write(bloco) if saida else partes.append(bloco)
+            finally:
+                if saida:
+                    saida.close()
+            dados = b"".join(partes)
+    except ValueError as e:
+        if tmp:
+            tmp.unlink(missing_ok=True)
+        sys.exit(f"download recusado: {e}")
     except urllib.error.HTTPError as e:
         if e.code in (401, 403):
             sys.exit(f"o banco recusou a chave (HTTP {e.code}): confira PEXELS_API_KEY")
@@ -61,9 +97,11 @@ def http(url, cabecalhos=None, destino=None):
             sys.exit("limite de requisições do banco atingido (HTTP 429): espere e tente de novo")
         sys.exit(f"erro do banco: HTTP {e.code} em {url.split('?')[0]}")
     except OSError as e:
+        if tmp:
+            tmp.unlink(missing_ok=True)
         sys.exit(f"sem resposta do banco ({e}): confira a rede")
     if destino:
-        pathlib.Path(destino).write_bytes(dados)
+        tmp.replace(destino)
         return destino
     return dados
 
@@ -93,7 +131,7 @@ def buscar(a):
         sys.exit(f"nenhum vídeo para \"{a.termo}\" com {a.min_dur:g}–{a.max_dur:g} s: tente outro termo (em inglês costuma render mais)")
     pasta = pathlib.Path(a.out)
     pasta.mkdir(parents=True, exist_ok=True)
-    ident = a.id or "-".join(a.termo.lower().split())[:40]
+    ident = identificador(a.id or a.termo)
     (pasta / f"{ident}.busca.json").write_text(json.dumps(
         {"id": ident, "banco": "pexels", "termo": a.termo, "orientacao": a.orientacao,
          "data": datetime.date.today().isoformat(), "candidatos": cands}, ensure_ascii=False, indent=1), encoding="utf-8")
@@ -101,9 +139,15 @@ def buscar(a):
     tmp = pasta / f".{ident}.mini"
     tmp.mkdir(exist_ok=True)
     ok = []
-    for i, c in enumerate(cands, 1):
-        if c["miniatura"]:
-            ok.append(http(c["miniatura"], destino=tmp / f"{i:02}.jpg"))
+    if any(c["miniatura"] for c in cands):
+        for i, c in enumerate(cands, 1):
+            mini = tmp / f"{i:02}.jpg"
+            if c["miniatura"]:
+                http(c["miniatura"], destino=mini)
+            else:   # sem miniatura: quadro preto no lugar, para a posição na folha continuar sendo o número da escolha
+                subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "color=c=black:s=480x270",
+                                "-frames:v", "1", "-update", "1", str(mini)], check=True)
+            ok.append(mini)
     folha = pasta / f"{ident}.folha.jpg"
     if ok:
         col = min(4, len(ok))
@@ -124,6 +168,7 @@ def buscar(a):
 
 def baixar(a):
     chave()
+    a.ident = identificador(a.ident)
     pasta = pathlib.Path(a.out)
     arq = pasta / f"{a.ident}.busca.json"
     if not arq.is_file():
@@ -142,7 +187,13 @@ def baixar(a):
     mp4 = pasta / f"{a.ident}.mp4"
     if mp4.exists():
         sys.exit(f"{mp4} já existe: use outro --id na busca ou apague o arquivo (nada é sobrescrito)")
-    http(f["link"], destino=mp4)
+    http(f["link"], destino=mp4, limite=2 * 2**30)
+    # o que chegou tem que ser vídeo: página de erro ou arquivo qualquer não entra com registro de licença
+    sonda = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=codec_type",
+                            "-of", "csv=p=0", str(mp4)], capture_output=True, text=True)
+    if sonda.returncode != 0 or "video" not in sonda.stdout:
+        mp4.unlink(missing_ok=True)
+        sys.exit("o arquivo baixado não é um vídeo (o banco devolveu outra coisa): nada foi gravado; tente outra --escolha")
     reg = {"id": a.ident, "arquivo": mp4.name, "banco": busca["banco"], "termo": busca["termo"], "video_id": c["video_id"],
            "autor": c["autor"], "autor_url": c["autor_url"], "pagina": c["pagina"], "licenca": LICENCA,
            "largura": f.get("largura"), "altura": f.get("altura"), "duracao": c["duracao"],

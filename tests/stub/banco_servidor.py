@@ -51,6 +51,8 @@ class H(BaseHTTPRequestHandler):
         if u.path in ("/mini.jpg", "/clipe.mp4"):
             with open(u.path[1:], "rb") as f:
                 return self._resp(200, f.read(), "image/jpeg" if u.path.endswith(".jpg") else "video/mp4")
+        if u.path == "/erro.html":   # o banco devolve uma página no lugar do vídeo
+            return self._resp(200, b"<html>pagina de erro</html>", "text/html")
         self._resp(404, {"error": "not found"})
 
 

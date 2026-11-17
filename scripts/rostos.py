@@ -141,8 +141,14 @@ def conferir(a):
     out = pathlib.Path(a.out) if a.out and a.rostos else saida_padrao(a.conferir, ".rosto-coberto.json")
     out.write_text(json.dumps({"antes": str(a.video), "depois": str(a.conferir), "limiar": a.limiar, "area": a.area,
                                "intervalos": [[f["inicio"], f["fim"]] for f in faixas], "amostras": achados}, ensure_ascii=False, indent=1), encoding="utf-8")
+    com_rosto = sum(1 for am in amostras if am["rostos"])
+    if not com_rosto:
+        # sem caixa de rosto não há o que comparar: dizer "ok" aqui aprovaria um vídeo que ninguém conferiu
+        print(f"SEM ROSTO: nenhum rosto detectado em {len(amostras)} amostras; nada foi conferido (isto não é aprovação: "
+              f"confira a folha de contato) -> {out}")
+        return
     if not faixas:
-        print(f"ok: nada cobre o rosto em {len(amostras)} amostras -> {out}")
+        print(f"ok: nada cobre o rosto em {com_rosto} amostras com rosto (de {len(amostras)}) -> {out}")
         return
     print(f"ROSTO COBERTO em {len(faixas)} intervalo(s) -> {out}")
     for f in faixas:

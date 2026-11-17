@@ -15,7 +15,7 @@ Uso: ler_tela.py IMAGEM|VIDEO [--t 12.4] [--out ARQ.ocr.json] [--backend rapidoc
   --regex   expressão regular sobre o texto de cada linha (todas as ocorrências). Ex.: e-mails, CPFs.
   estilos   caixa: moldura em volta · marca: marca-texto translúcido que entra da esquerda para a direita ·
             sublinhado: traço embaixo · tarja: retângulo opaco (privacidade), sem animação.
-  intervalo padrão: de --t até --t + 3 s; a tarja, sem --inicio/--fim, cobre o vídeo inteiro.
+  intervalo padrão: de --t até --t + 3 s; a tarja, sem --fim, vai até o fim do vídeo (desde --inicio, ou o vídeo inteiro).
 
 A caixa vale para o quadro lido: em gravação de tela com rolagem, use um intervalo em que a tela está parada
 (ou rode de novo em outro --t). Sai com código 1 quando --achar/--regex não encontra nada, listando o que leu.
@@ -317,8 +317,9 @@ def main():
         cor_hex = a.cor or ("#000000" if a.estilo == "tarja" else marca_cli.escolhe(None, m.cores["acento"], "#FFD54F", m))
         if eh_imagem:
             ini, fim = 0.0, 10.0
-        elif a.estilo == "tarja" and a.inicio is None and a.fim is None:
-            ini, fim = 0.0, duracao(src) + 1
+        elif a.estilo == "tarja" and a.fim is None:
+            # tarja é privacidade: sem --fim ela vai até o fim do vídeo (com --inicio, a partir dele), nunca 3 s
+            ini, fim = (a.inicio or 0.0), duracao(src) + 1
         else:
             ini = a.t if a.inicio is None else a.inicio
             fim = ini + 3.0 if a.fim is None else a.fim

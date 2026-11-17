@@ -88,8 +88,26 @@ assert "Autora 3: https://banco.exemplo/video/103/" in c and "Pexels" in c, c
 PY
 W=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of csv=p=0 banco/ondas.folha.jpg)
 [[ "$W" == 960 ]] || { echo "folha de escolha com largura $W (esperado 960: 2 miniaturas de 480)"; exit 1; }
+# id com barra não sai da pasta --out; termo com barra vira nome de arquivo válido
+python3 "$S/banco_video.py" buscar "ondas do mar" --id ../../fora >/dev/null
+test -f banco/fora.busca.json && test ! -e ../fora.busca.json && test ! -e fora.busca.json
+python3 "$S/banco_video.py" buscar "preto/branco" >/dev/null && test -f banco/preto-branco.busca.json
+# .busca.json adulterado: outro esquema é recusado; resposta que não é vídeo não vira .mp4 com registro de licença
+python3 - "$PORTA" <<'PYBANCO'
+import json, sys
+b = json.load(open("banco/ondas.busca.json"))
+for nome, link in (("arq", "file:///etc/hostname"), ("pag", f"http://127.0.0.1:{sys.argv[1]}/erro.html")):
+    b["candidatos"][0]["arquivos"] = [{"largura": 1920, "altura": 1080, "fps": 30, "link": link}]
+    json.dump(dict(b, id=nome), open(f"banco/{nome}.busca.json", "w"))
+PYBANCO
+if python3 "$S/banco_video.py" baixar arq --escolha 1 2>err.txt; then echo "file:// devia ser recusado"; exit 1; fi
+grep -q "só baixa de https" err.txt && test ! -e banco/arq.mp4 && test ! -e banco/arq.json
+if python3 "$S/banco_video.py" baixar pag --escolha 1 2>err.txt; then echo "página no lugar do vídeo devia falhar"; exit 1; fi
+grep -q "não é um vídeo" err.txt && test ! -e banco/pag.mp4 && test ! -e banco/pag.json
+if compgen -G "banco/*.baixando" >/dev/null; then echo "sobrou download pela metade"; exit 1; fi
 unset PEXELS_API_KEY
 pass "banco_video.py: desligado sem chave; busca filtrada, folha, download com registro e crédito, sem sobrescrever (banco falso)"
+pass "banco_video.py: id não sai da pasta; esquema que não é http(s) e resposta que não é vídeo são recusados sem deixar arquivo"
 
 # ---------------------------------------------------------------- nucleo/quadros: instante de cada amostra
 ffmpeg -v error -y -f lavfi -i "color=c=black:s=64x64:r=30:d=4,geq=lum='16+N*1.5':cb=128:cr=128" -c:v libx264 -qp 0 -pix_fmt yuv420p indice.mp4
@@ -178,13 +196,17 @@ assert a.count("Dialogue: 0,") == 90 and "\\p1" in a                          # 
 PY
 N=$(ffprobe -v error -count_frames -select_streams v:0 -show_entries stream=nb_read_frames -of csv=p=0 move_rastro.mp4)
 [[ "$N" == 90 ]] || { echo "queima mudou o número de quadros: $N"; exit 1; }
+"${CV[@]}" -c "
+import sys; sys.path.insert(0, '$S'); import rastrear
+m = rastrear._media_angulo([178, 179, 180, -179, -178]); assert abs(abs(m) - 180) < 0.5, m
+assert abs(rastrear._media_angulo([10, 20, 30]) - 20) < 1e-6"   # a média da rotação não dá a volta em ±180°
 pass "rastrear.py: segue o objeto com erro < 6 px em 90 quadros; etiqueta e seta em ASS, um evento por quadro"
 
 # região lisa não tem o que seguir; corte de cena encerra o rastro com código 2
 ffmpeg -v error -y -f lavfi -i "color=c=blue:s=640x360:r=30:d=1" -c:v libx264 -pix_fmt yuv420p liso.mp4
 if "${CV[@]}" "$S/rastrear.py" liso.mp4 --caixa 0.4,0.4,0.2,0.2 --out r 2>err.txt; then echo "região lisa devia falhar"; exit 1; fi
 grep -q "sem textura" err.txt
-ffmpeg -v error -y -i move.mp4 -f lavfi -i "testsrc2=s=1280x720:r=30:d=1" -filter_complex "[0:v]trim=0:1,setpts=PTS-STARTPTS[a];[a][1:v]concat=n=2:v=1[v]" \
+ffmpeg -v error -y -i move.mp4 -f lavfi -i "testsrc2=s=1280x720:r=30:d=1" -filter_complex "[0:v]trim=0:1,setpts=PTS-STARTPTS[a];[a][1:v]concat=n=2:v=1,fps=30[v]" \
   -map "[v]" -c:v libx264 -crf 18 -pix_fmt yuv420p corte.mp4
 set +e; "${CV[@]}" "$S/rastrear.py" corte.mp4 --caixa 0.15625,0.4167,0.15625,0.1944 --id corte --out r >/dev/null 2>err.txt; RC=$?; set -e
 [[ $RC == 2 ]] && grep -q "PERDIDO em 1\.0.*corte de cena" err.txt || { echo "corte de cena: rc=$RC"; cat err.txt; exit 1; }
@@ -231,6 +253,10 @@ ffmpeg -v error -y -i pessoa.mp4 -t 2 -c copy curto.mp4
 if "${CV[@]}" "$S/rostos.py" pessoa.mp4 --conferir curto.mp4 --rostos pessoa.rostos.json 2>err.txt; then echo "durações diferentes deviam falhar"; exit 1; fi
 grep -q "MESMA etapa" err.txt
 VE_ROSTO=fixo VE_TESTE_ROSTO="" "${CV[@]}" "$S/rostos.py" pessoa.mp4 --out vazio.rostos.json | grep -q "rosto em 0/8"
+# sem rosto detectado não há o que conferir: a saída não pode ser "ok" (a /prova leria como aprovação)
+"${CV[@]}" "$S/rostos.py" pessoa.mp4 --conferir pessoa_cima.mp4 --rostos vazio.rostos.json > semrosto.txt
+grep -q "SEM ROSTO" semrosto.txt
+if grep -q "^ok" semrosto.txt; then echo "conferência sem rosto saiu como ok"; exit 1; fi
 # passo que não cai em centésimo e início fora do grid de quadros: toda amostra coberta é achada, sem erro de arredondamento
 VE_ROSTO=fixo VE_TESTE_ROSTO="0.35,0.20,0.30,0.22" "${CV[@]}" "$S/rostos.py" pessoa.mp4 --passo 0.125 --inicio 0.3335 --out fino.rostos.json >/dev/null
 set +e; "${CV[@]}" "$S/rostos.py" pessoa.mp4 --conferir pessoa_cima.mp4 --rostos fino.rostos.json --out fino.coberto.json > fino.txt; RC=$?; set -e
@@ -284,6 +310,11 @@ assert [a["texto"] for a in d["achados"]] == ["ana@exemplo.com", "bia@exemplo.co
 ev = [ln for ln in open("priv.destaque.ass", encoding="utf-8").read().splitlines() if ln.startswith("Dialogue:")]
 assert len(ev) == 2 and all(",0:00:00.00,0:00:05.00," in e and "\\1c&H00000000&" in e and "\\t(" not in e for e in ev), ev   # vídeo inteiro, opaca, sem animação
 PY
+# tarja com --inicio e sem --fim vai até o fim do vídeo (os 3 s do destaque fariam o dado reaparecer)
+"${LER[@]}" tela.mp4 --regex '[\w.+-]+@[\w-]+\.[\w.]+' --estilo tarja --inicio 1 --out priv2.ocr.json >/dev/null
+python3 -c '
+ev = [ln for ln in open("priv2.destaque.ass", encoding="utf-8").read().splitlines() if ln.startswith("Dialogue:")]
+assert len(ev) == 2 and all(",0:00:01.00,0:00:05.00," in e for e in ev), ev'
 ffmpeg -v error -y -ss 3.5 -i tela_tarja.mp4 -frames:v 1 -vf "crop=180:20:240:224,scale=1:1" -f rawvideo -pix_fmt rgb24 tarja.rgb
 python3 -c 'd = open("tarja.rgb","rb").read(); assert max(d) < 30, tuple(d)'
 set +e; "${LER[@]}" tela.mp4 --achar "não existe" --out nada.ocr.json 2>err.txt >/dev/null; RC=$?; set -e

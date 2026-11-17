@@ -37,6 +37,7 @@ import io
 import mimetypes
 import os
 import pathlib
+import shutil
 import subprocess
 import sys
 import tarfile
@@ -100,7 +101,9 @@ def _dentro(base: pathlib.Path, rel: str):
     return p if p.is_file() and base.resolve() in p.parents else None
 
 
-def rotear(page, pasta_cena: pathlib.Path, rede: bool, avisos: list):
+def rotear(ctx, pasta_cena: pathlib.Path, rede: bool, avisos: list):
+    """Roteia no CONTEXTO, não na página: janela aberta pela cena (`window.open`) passa pelo mesmo bloqueio. Sem
+    --rede, WebSocket é fechado na hora (não passa por `route`) e o Chrome sobe sem resolver nomes (ver `abrir`)."""
     def trata(route):
         url = route.request.url
         if not url.startswith(ORIGEM + "/"):
@@ -121,19 +124,34 @@ def rotear(page, pasta_cena: pathlib.Path, rede: bool, avisos: list):
             return route.fulfill(status=404, body="não encontrado")
         tipo = "text/javascript" if arq.suffix in (".js", ".mjs") else (mimetypes.guess_type(arq.name)[0] or "application/octet-stream")
         route.fulfill(status=200, body=arq.read_bytes(), headers={"content-type": tipo, "cache-control": "no-store"})
-    page.route("**/*", trata)
+    ctx.route("**/*", trata)
+    if not rede:
+        def fecha(ws):
+            avisos.append(ws.url)
+            ws.close()
+        if hasattr(ctx, "route_web_socket"):   # Playwright >= 1.48
+            ctx.route_web_socket("**/*", fecha)
 
 
-def abrir(p, w, h, escala):
+def abrir(p, w, h, escala, rede=False):
     args = ["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist",
             "--hide-scrollbars", "--force-color-profile=srgb", "--font-render-hinting=none"]
+    if not rede:
+        # segunda tranca do "sem internet": nenhum nome resolve, nem para o que escapa do roteamento (a origem
+        # da cena é atendida pelo roteamento antes de qualquer consulta de nome)
+        args += ["--host-resolver-rules=MAP * ~NOTFOUND", "--force-webrtc-ip-handling-policy=disable_non_proxied_udp"]
     exe = os.environ.get("VE_CHROME")
-    tentativas = [{"executable_path": exe}] if exe else [{"channel": "chrome"}, {}]
+    if exe:
+        tentativas = [{"executable_path": exe}]
+    else:   # Chrome instalado, depois um Chromium do sistema (o doctor.sh aceita os dois), depois o do Playwright
+        do_sistema = [shutil.which(n) for n in ("chromium", "chromium-browser")]
+        tentativas = [{"channel": "chrome"}] + [{"executable_path": x} for x in do_sistema if x] + [{}]
     erro = None
     for kw in tentativas:
         try:
             b = p.chromium.launch(headless=True, args=args, **kw)
-            return b, b.new_page(viewport={"width": w, "height": h}, device_scale_factor=escala)
+            ctx = b.new_context(viewport={"width": w, "height": h}, device_scale_factor=escala)
+            return b, ctx, ctx.new_page()
         except Exception as e:   # navegador ausente: tenta o próximo
             erro = e
     raise SystemExit(f"não achei um Chrome para renderizar ({str(erro).splitlines()[0]}).\n"
@@ -169,6 +187,8 @@ def main():
         assert w > 0 and h > 0 and w % 2 == 0 and h % 2 == 0
     except (ValueError, AssertionError):
         sys.exit("--tamanho LARGURAxALTURA, com números pares (ex.: 1920x1080, 1080x1920)")
+    if a.fps <= 0 or a.escala <= 0:
+        sys.exit("--fps e --escala precisam ser maiores que zero")
     ext = saida.suffix.lower()
     if a.quadro is None and ext not in (".mp4", ".mov"):
         sys.exit("saída .mp4 (opaco) ou .mov (ProRes 4444; com --alpha, transparente)")
@@ -179,19 +199,21 @@ def main():
     except ImportError:
         sys.exit("faltam dependências: uv run --with playwright python cena_web.py ...")
 
-    avisos, erros = [], []
+    # `erros` (exceção da cena) interrompe o render; `console` (console.error, recurso que não carregou) só avisa
+    # no fim, junto com a URL em `avisos`: uma imagem bloqueada não pode derrubar o vídeo sem dizer qual foi
+    avisos, erros, console = [], [], []
     with sync_playwright() as p:
-        nav, page = abrir(p, w, h, a.escala)
+        nav, ctx, page = abrir(p, w, h, a.escala, a.rede)
         page.on("pageerror", lambda e: erros.append(str(e)))
-        page.on("console", lambda m: erros.append(m.text) if m.type == "error" else None)
-        rotear(page, cena.parent, a.rede, avisos)
+        page.on("console", lambda m: console.append(m.text) if m.type == "error" else None)
+        rotear(ctx, cena.parent, a.rede, avisos)
         page.goto(f"{ORIGEM}/{urllib.request.pathname2url(cena.name)}", wait_until="load")
         espera = float(os.environ.get("VE_ESPERA_CENA", "20"))
         try:
             page.wait_for_function("typeof window.veQuadro === 'function'", timeout=espera * 1000)
         except Exception:
             nav.close()
-            det = "\n  ".join(dict.fromkeys(erros + [f"não carregou: {u}" for u in avisos]))
+            det = "\n  ".join(dict.fromkeys(erros + console + [f"não carregou: {u}" for u in avisos]))
             sys.exit(f"a cena não definiu window.veQuadro(t) em {espera:g} s." + (f"\n  {det}" if det else ""))
         page.evaluate("document.fonts ? document.fonts.ready.then(() => 0) : 0")
         dur = a.dur if a.dur is not None else page.evaluate("window.veDuracao || 0")
@@ -223,6 +245,7 @@ def main():
             ff = subprocess.Popen(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-f", "image2pipe", "-framerate", f"{a.fps:g}",
                                    "-c:v", "png", "-i", "-", "-vf", f"scale={W2 - W2 % 2}:{H2 - H2 % 2}:flags=lanczos", "-r", f"{a.fps:g}",
                                    *cod, str(saida)], stdin=subprocess.PIPE)
+            falha = None
             try:
                 for i in range(n):
                     ff.stdin.write(desenha(i / a.fps))
@@ -230,20 +253,23 @@ def main():
                         raise RuntimeError(erros[0])
                     if (i + 1) % 60 == 0:
                         print(f"  {i + 1}/{n} quadros", flush=True)
+            except BrokenPipeError:   # o ffmpeg morreu no meio (codificador indisponível): o código de saída explica
+                pass
             except Exception as e:
+                falha = f"erro na cena no quadro {i} (t = {i / a.fps:.3f}s): {e}"
+            try:
                 ff.stdin.close()
-                ff.wait()
-                nav.close()
-                sys.exit(f"erro na cena no quadro {i} (t = {i / a.fps:.3f}s): {e}")
-            ff.stdin.close()
+            except OSError:
+                pass
             rc = ff.wait()
             nav.close()
-            if rc != 0:
-                sys.exit(f"ffmpeg falhou ao codificar (código {rc})")
+            if falha or rc != 0:
+                saida.unlink(missing_ok=True)   # não deixa um vídeo pela metade no caminho da entrega
+                sys.exit(falha or f"ffmpeg falhou ao codificar (código {rc}); confira VE_ENCODER e a mensagem acima")
             print(f"ok -> {saida} ({n} quadros, {n / a.fps:.2f}s, {W2}x{H2}{', com alpha' if a.alpha else ''})")
     for u in dict.fromkeys(avisos):
         print(f"AVISO: recurso não entregue: {u}" + ("" if u.startswith(ORIGEM) else "  (rede bloqueada; use --rede se for de propósito)"), file=sys.stderr)
-    for e in dict.fromkeys(erros):
+    for e in dict.fromkeys(erros + console):
         print(f"AVISO (console da página): {e}", file=sys.stderr)
 
 

@@ -130,8 +130,15 @@ def suavizar(qs, janela):
         cantos = [[_media(viz, lambda v, k=k: v["cantos"][k][0]), _media(viz, lambda v, k=k: v["cantos"][k][1])]
                   for k in range(4)]
         out.append(dict(q, cx=_media(viz, lambda v: v["cx"]), cy=_media(viz, lambda v: v["cy"]),
-                        escala=_media(viz, lambda v: v["escala"]), rot=_media(viz, lambda v: v["rot"]), cantos=cantos))
+                        escala=_media(viz, lambda v: v["escala"]), rot=_media_angulo([v["rot"] for v in viz]), cantos=cantos))
     return out
+
+
+def _media_angulo(graus):
+    """Média circular em graus: a aritmética de 179 e -179 daria 0 e a etiqueta daria uma volta na virada de ±180."""
+    s = sum(math.sin(math.radians(g)) for g in graus)
+    c = sum(math.cos(math.radians(g)) for g in graus)
+    return math.degrees(math.atan2(s, c)) if (abs(s) > 1e-9 or abs(c) > 1e-9) else graus[len(graus) // 2]
 
 
 def eventos_ass(qs, W, H, fps, a, cor_txt):

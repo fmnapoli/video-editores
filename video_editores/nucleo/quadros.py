@@ -5,9 +5,32 @@ proporção, com altura par: detecção e rastreamento não precisam da resoluç
 fração do quadro (0–1), que vale para qualquer resolução.
 """
 import subprocess
+import sys
 
 from .ffmpeg import fps as _fps
 from .ffmpeg import probe_dimensoes
+
+
+_AVISADOS = set()
+
+
+def _avisa_taxa_variavel(path, taxa):
+    """`ler` calcula o instante de cada quadro pela taxa nominal. Em gravação de taxa variável (celular, captura de
+    tela) a média difere da nominal e os instantes saem errados sem erro nenhum: avisa uma vez por arquivo."""
+    if str(path) in _AVISADOS:
+        return
+    _AVISADOS.add(str(path))
+    out = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=avg_frame_rate",
+                          "-of", "csv=p=0", str(path)], capture_output=True, text=True).stdout.strip().split(",")[0]
+    try:
+        num, _, den = out.partition("/")
+        media = float(num) / float(den or 1)
+    except (ValueError, ZeroDivisionError):
+        return
+    if media > 0 and abs(media - taxa) / taxa > 0.02:
+        print(f"AVISO: {path} parece ter taxa de quadros variável (nominal {taxa:g} fps, média {media:.3f} fps): os "
+              "instantes medidos podem sair deslocados. Converta antes para taxa constante "
+              f"(ffmpeg -i ENTRADA -vf fps={taxa:g} ...).", file=sys.stderr)
 
 
 def tamanho(path, largura=None):
@@ -33,6 +56,7 @@ def ler(path, largura=None, passo=None, inicio=0.0, fim=None, cinza=False):
     import numpy as np
     w, h = tamanho(path, largura)
     taxa = _fps(path)
+    _avisa_taxa_variavel(path, taxa)
     inicio = max(0.0, inicio)
     # Tolerância de 2 ms no início: em entrega montada por blocos os tempos podem ficar uma fração de milissegundo
     # antes da grade (673,0993 em vez de 673,1) e um -ss no instante exato pularia justamente o quadro pedido.
