@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.15.1 — 2026-11-25
+Correção: a grafia fonética do glossário vazava para a legenda quando um termo vira várias palavras faladas.
+- **`/video-animado`**: o `montar_cenas.py` recuperava a grafia original casando as palavras do edge-tts com os tokens da narração um a um, numa janela de 3; termo que vira várias palavras ("PDV" → "pê dê vê", "pdv.dmp" → "pê dê vê ponto dê ême pê") desalinhava a cena inteira e a legenda saía com "pê dê vê" e "esquêma". Achado ao montar um vídeo de 16 cenas com glossário de siglas.
+- **`pronuncia.alinhar` / `pronuncia.com_grafia`** (`skills/video-docs/scripts/pronuncia.py`): cada token da narração (ou termo do glossário com espaço, como "pull request") vira um grupo com as palavras faladas que gera; as palavras da voz são casadas com elas de uma vez (difflib) e cada grupo volta como um token, com o tempo da primeira à última palavra. Palavra que a voz juntou ou trocou fica com o token do trecho; token que a voz engoliu continua na legenda, colado no anterior.
+- O `build.py` do `/video-docs` usa o mesmo alinhamento no `palavras.transcript.json` da legenda palavra a palavra (antes era outra heurística por janela, sem termo com espaço).
+- O `montar_cenas.py` passa a gravar `trabalho/<slug>/montagem/palavras.transcript.json` (grafia original, tempo no vídeo final), entrada direta do `legenda_palavra.py`.
+- Testes: `tests/grafia_legenda.py` (no `smoke.sh`): 1 → N, N → 1, termo repetido na mesma cena, palavra juntada e engolida pela voz, e o caminho do `/video-docs`; o teste do `/video-animado` no `smoke.sh` ganhou uma sigla de várias palavras faladas.
+
 ## 0.15.0 — 2026-11-17
 Ver, ler e conferir, e cena em HTML com Three.js (ADR-19): o agente passa a enxergar o próprio material e ganha um caminho para 3D e layout em CSS. Nada do que existia muda de comportamento; quem não usa as operações novas não baixa nada.
 - **Papéis `rosto` e `ocr`** em `video_editores.modelos` (`VE_ROSTO`, `VE_OCR`, `get_rosto`, `get_ocr`). `rosto` → **`yunet`** (OpenCV `FaceDetectorYN`, modelo MIT de 230 KB baixado uma vez para o cache e conferido por sha256; `VE_YUNET_MODELO` para máquina sem rede). `ocr` → **`rapidocr`** (modelos PP-OCR em ONNX, Apache-2.0; lê português com acento e devolve a caixa de cada palavra).

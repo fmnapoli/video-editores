@@ -10,7 +10,7 @@ Os scripts em scripts/ e skills/*/scripts/ continuam funcionando sozinhos; o pac
 """
 from pathlib import Path
 
-__version__ = "0.15.0"
+__version__ = "0.15.1"
 
 _PKG = Path(__file__).resolve().parent
 

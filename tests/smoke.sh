@@ -81,6 +81,8 @@ g = {"log": "lógui", ".bak": "ponto béqui", "deploy": "diplói"}
 assert pronuncia.apply("Um dia de log no arquivo .log e no .bak. Deploy feito.", g) == \
     "Um dia de lógui no arquivo .log e no ponto béqui. diplói feito.", pronuncia.apply("Um dia de log no arquivo .log e no .bak. Deploy feito.", g)
 PY
+python3 "$ROOT/tests/grafia_legenda.py" >/dev/null
+pass "grafia original na legenda: termo do glossário de 1 -> N e N -> 1 palavras faladas, repetido na cena"
 pass "legenda_palavra.py: páginas por janela/pausa/nº de palavras, órfã equilibrada, destaque por palavra, correções, karaokê, caixa e espaço largo; glossário não troca extensão de arquivo"
 
 bash "$S/proof.sh" out_lettering.mp4 8 >/dev/null
@@ -187,9 +189,9 @@ pass "lettering_ass.py: estilos cartao e capa"
 VA="$ROOT/skills/video-animado/scripts"
 mkdir -p va && cd va
 cat > cenas.json <<'JSON'
-{"slug":"va","glossary":{"operator":"operêitor"},"cenas":[
+{"slug":"va","glossary":{"operator":"operêitor","PDV":"pê dê vê"},"cenas":[
  {"id":"S1","classe":"S1","titulo":"Um","narracao":"O operator monta tudo na ordem certa. Em menos de três minutos, o ambiente está pronto."},
- {"id":"S2","classe":"S2","titulo":"Dois","narracao":"Se uma peça cai, ele recria sozinho."},
+ {"id":"S2","classe":"S2","titulo":"Dois","narracao":"Se uma peça do PDV cai, ele recria sozinho."},
  {"id":"V1","classe":"V1","titulo":"","duracao":1.5},
  {"id":"X1","video":"ex/x.mp4","audio":"ex/x.wav","volume":0.5}]}
 JSON
@@ -209,6 +211,10 @@ done
 python3 "$VA/montar_cenas.py" cenas.json mp4 --tts tts --saida out/va.mp4 --legenda leg/va.srt --roteiro rot/va.md > montar.log
 test -s out/va.mp4 && test -s leg/va.srt && test -s rot/va.md
 grep -q "O operator monta tudo na ordem certa." leg/va.srt && ! grep -q "operêitor" leg/va.srt
+grep -q "Se uma peça do PDV cai" leg/va.srt && ! grep -q "pê dê vê" leg/va.srt     # sigla que vira 3 palavras faladas
+python3 -c "
+import json; ws=[w['word'] for s in json.load(open('trabalho/va/montagem/palavras.transcript.json'))['segments'] for w in s['words']]
+assert 'PDV' in ws and 'pê' not in ws and ws[0] == 'O', ws"
 A=$(ffprobe -v error -select_streams a:0 -show_entries stream=sample_rate -of csv=p=0 out/va.mp4); [[ "$A" == "48000" ]]
 python3 - <<'PY'
 import json, subprocess
