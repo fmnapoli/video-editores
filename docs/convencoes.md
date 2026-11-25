@@ -21,10 +21,10 @@ Rode os comandos a partir da raiz do projeto. Os scripts de transcrição gravam
 ## Ordem recomendada
 ```
 /editar recebe o pedido e monta a ordem. Padrão:
-/referencia (opcional) → /destaques (vídeo longo) → /tomada → /corte → /ganchos → /tela-dividida, /banco (opcional), /animacao, /cena-web, /3d, /tela-verde, /texto-atras, /rastrear, /ler-tela
+/referencia (opcional) → /destaques (vídeo longo) → /tomada → /corte → /camera → /ganchos → /tela-dividida, /banco (opcional), /animacao, /cena-web, /3d, /tela-verde, /texto-atras, /rastrear, /ler-tela
 → /checklist → /lettering → /legenda → /trilha → /efeitos → /prova
 ```
-Legenda depois dos efeitos visuais (fica por cima). Áudio por último (cortes mudam o tempo).
+Câmera (`/camera`) logo depois dos cortes e antes de todo texto queimado (senão o texto ganha zoom junto). Legenda depois dos efeitos visuais (fica por cima). Áudio por último (cortes mudam o tempo).
 
 ## Formatos
 | Destino | Resolução | Loudness | Observação |

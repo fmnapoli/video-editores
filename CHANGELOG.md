@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.16.0 — 2026-11-25
+Câmera sobre o corte e efeitos sonoros por evento (ADR-20), a partir da avaliação de um fluxo de edição de vídeo falado para YouTube.
+- **Skill `/camera`** (com ela são 27) e **`scripts/camera.py`** (operação `camera`): alterna plano aberto e fechado a cada corte, para o jump cut virar troca de enquadramento; aproximação lenta em cada plano; punch na palavra de ênfase (sobe em dois quadros e assenta freando); plano fechado enquadrado pelo rosto (`rostos.py`), com os olhos a 38% da altura, e `--seguir` para acompanhar a pessoa. O quadro de cada corte é calculado do `.takes.json` do `/tomada` e do JSON v1 do auto-editor, encadeados na ordem das etapas. Dois passos: planejar (`.camera.json`, `cam01`…, só biblioteca padrão) e `--aplicar` (OpenCV). Avisa quando os arquivos de corte não são os do vídeo, quando um punch cai sobre um corte e quando a ampliação passa de 135%.
+- **`/efeitos`** passa a usar **`scripts/efeitos.py`** (operação `efeitos`): eventos vindos do `.camera.json`, do `textos.json` e de uma lista própria; o **pico** do whoosh, do impacto e do riser cai no evento (antes era o começo do som, e o pico chegava ~0,2 s depois do corte); nível de cada efeito calculado do loudness da voz do vídeo, com teto de −3 dBFS; intervalo mínimo entre sons automáticos; pasta de sons própria por categoria, alternando arquivos sem repetir o mesmo em 20 s; plano `.sfx.json` revisável por número antes de mixar. Sons sintetizados novos: `clique`, `impacto`, `riser`. Só biblioteca padrão + ffmpeg.
+- **Correção — `render_spans.sh`** (`/tomada`, `/destaques`): no ffmpeg 7 a saída ia para 25 fps qualquer que fosse a taxa da entrada (o filtro `concat` não declara taxa), e um vídeo de 30 fps perdia 1 quadro em cada 6. Agora mantém a taxa da entrada.
+- **`/editar`**: pedido de zoom nos cortes e pipeline de Reels com `/camera` depois do `/corte`. **`/corte`** lembra de gerar o `--export v1` quando o vídeo segue para a câmera.
+- Docs: skills, scripts, convenções (ordem das etapas), pedidos prontos, glossário (jump cut, punch-in), tutorial, arquitetura e README.
+- Testes: `smoke.sh` (plano de câmera, eventos, alinhamento do pico medido no áudio mixado, taxa de quadros do `render_spans.sh`) e `visao.sh` (corte planejado × corte real quadro a quadro em 30 e 29,97 fps e com duas etapas encadeadas; render da câmera com OpenCV).
+- Limites: os níveis dos efeitos são ponto de partida calculado, sem validação de ouvido; a câmera foi validada em vídeo sintético, não em gravação real; não há zoom casado com animação nem speed ramp.
+
 ## 0.15.1 — 2026-11-25
 Correção: a grafia fonética do glossário vazava para a legenda quando um termo vira várias palavras faladas.
 - **`/video-animado`**: o `montar_cenas.py` recuperava a grafia original casando as palavras do edge-tts com os tokens da narração um a um, numa janela de 3; termo que vira várias palavras ("PDV" → "pê dê vê", "pdv.dmp" → "pê dê vê ponto dê ême pê") desalinhava a cena inteira e a legenda saía com "pê dê vê" e "esquêma". Achado ao montar um vídeo de 16 cenas com glossário de siglas.

@@ -106,6 +106,65 @@ echo '{"keep":[[0,1],[2,3]]}' > k.json && bash "$S/render_spans.sh" mudo.mp4 k.j
 echo '{"keep":[]}' > k0.json && ! bash "$S/render_spans.sh" mudo.mp4 k0.json x.mp4 >/dev/null 2>&1
 pass "render_spans.sh: sem áudio funciona, keep vazio aborta"
 
+# render_spans.sh mantém a taxa de quadros (o concat sem `fps` gravava 25 fps no ffmpeg 7)
+test "$(ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of csv=p=0 out_tomada.mp4 | tr -d ',')" == "30/1"
+test "$(ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of csv=p=0 mudo_out.mp4 | tr -d ',')" == "30/1"
+pass "render_spans.sh mantém a taxa de quadros da entrada"
+
+# camera.py (plano: só biblioteca padrão). Cortes do in.takes.json no vídeo montado: quadros 63 e 128.
+echo '[{"t":1.0,"forca":0.08,"texto":"plugin"},{"t":2.1}]' > punches.json
+python3 "$S/camera.py" out_tomada.mp4 --cortes in.takes.json --punches punches.json > cam.txt
+grep -q "p02 em 2.10s cai a menos de 0,3 s do corte" cam.txt && ! grep -q "soma" cam.txt
+python3 - "$S" <<'PY'
+import json, sys
+sys.path.insert(0, sys.argv[1])
+import camera
+d = json.load(open("out_tomada.camera.json"))
+assert [round(p["inicio"] * 30) for p in d["planos"]] == [0, 63, 128], d["planos"]
+assert [p["plano"] for p in d["planos"]] == ["aberto", "fechado", "aberto"] and d["planos"][1]["escala"] == 1.18
+assert [(e["tipo"], e["forca"]) for e in d["eventos"]] == [("punch", "forte"), ("corte", "leve"), ("punch", "media"), ("corte", "leve")], d["eventos"]
+assert camera.camera_em(d, 0.0) == (1.0, 0.0, 0.0)
+z, x0, y0 = camera.camera_em(d, 63 / 30)                      # primeiro quadro do plano fechado, com o resto do punch p02
+assert abs(z - 1.18) < 0.02 and abs(x0 + 0.5 / z - 0.5) < 1e-6 and 0 <= y0 <= 1 - 1 / z, (z, x0, y0)
+assert camera.camera_em(d, 62 / 30)[0] < 1.03                 # o quadro anterior ainda é do plano aberto
+zp = camera.camera_em(d, 1.0 + camera.ATAQUE_PUNCH)[0]        # topo do punch p01: +8% sobre o plano aberto
+assert 1.08 < zp < 1.10 and camera.camera_em(d, 1.6)[0] < 1.02, zp
+# duas etapas: um v1 do auto-editor que tira os quadros 40–55 e 100–110 da saída da tomada
+json.dump({"chunks": [[0, 40, 1], [40, 55, 99999], [55, 100, 1], [100, 110, 99999], [110, 193, 1]]}, open("c.v1.json", "w"))
+m = [camera.mapa("in.takes.json", 30.0, True), camera.mapa("c.v1.json", 30.0, True)]
+assert camera.cortes_em_quadros(m, 168) == [40, 48, 85, 103], camera.cortes_em_quadros(m, 168)
+PY
+! python3 "$S/camera.py" out_tomada.mp4 2>/dev/null && ! python3 "$S/camera.py" out_tomada.mp4 --cortes in.transcript.json 2>/dev/null
+pass "camera.py: quadro de cada corte (uma e duas etapas), planos alternados, punch, eventos e avisos"
+
+# efeitos.py: o pico de cada som cai no evento (medido no áudio mixado, sobre base muda)
+ffmpeg -v error -y -i out_tomada.mp4 -f lavfi -i "anullsrc=r=48000:cl=stereo" -map 0:v -map 1:a -shortest -c:v copy -c:a aac cam_mudo.mp4
+echo '[{"t":5.6,"som":"riser","forca":"leve"},{"t":5.9,"som":"nada"},{"t":99,"som":"pop"}]' > sons.json
+python3 "$S/efeitos.py" cam_mudo.mp4 --eventos out_tomada.camera.json --eventos textos.json --eventos sons.json --out fx.sfx.json > fx.txt
+python3 "$S/efeitos.py" cam_mudo.mp4 --aplicar fx.sfx.json fx.mp4 >/dev/null
+ffmpeg -v error -y -i fx.mp4 -ac 1 -ar 48000 -c:a pcm_s16le fx.wav
+python3 - <<'PY'
+import array, json, wave
+d = json.load(open("fx.sfx.json"))
+it = {(x["som"], x["t"]): x for x in d["itens"]}
+assert d["voz_medida"] is False and d["voz_lufs"] == -16.0, d["voz_lufs"]
+assert sorted(p["motivo"].split(" ")[0] for p in d["pulados"]) == ["a", "fora", "som"], d["pulados"]   # intervalo, fora do vídeo, som inexistente
+w = wave.open("fx.wav"); a = array.array("h"); a.frombytes(w.readframes(w.getnframes()))
+env = [sum(map(abs, a[i:i + 480])) for i in range(0, len(a), 480)]
+def pico(t, antes=0.15, depois=0.15):
+    i0, i1 = int((t - antes) * 100), int((t + depois) * 100)
+    return (i0 + env[i0:i1].index(max(env[i0:i1])) + 0.5) / 100
+for som, t in (("impacto", 1.0), ("whoosh", round(128 / 30, 3)), ("riser", 5.6)):
+    assert (som, t) in it, (som, t, list(it))
+    assert abs(pico(t) - t) <= 0.02, (som, t, pico(t))
+assert it[("whoosh", round(128 / 30, 3))]["inicio"] < 128 / 30 - 0.2          # o whoosh começa antes do corte
+assert max(env[int(2.75 * 100):int(2.98 * 100)]) < 0.05 * max(env[300:310]) and pico(3.0, 0.0, 0.05) < 3.03   # o pop começa no evento
+PY
+test "$(ffprobe -v error -count_packets -select_streams v:0 -show_entries stream=nb_read_packets -of csv=p=0 fx.mp4 | tr -d ',')" == \
+     "$(ffprobe -v error -count_packets -select_streams v:0 -show_entries stream=nb_read_packets -of csv=p=0 cam_mudo.mp4 | tr -d ',')"
+! python3 "$S/efeitos.py" cam_mudo.mp4 2>/dev/null
+pass "efeitos.py: pico do whoosh, do impacto e do riser no evento; pop começa nele; eventos sem som com motivo; vídeo copiado"
+
 # rotação de celular: lettering deve usar 1080x1920 exibido
 ffmpeg -v error -y -f lavfi -i "testsrc2=size=1920x1080:rate=30:duration=1" -c:v libx264 -pix_fmt yuv420p -display_rotation 90 rot.mp4 2>/dev/null \
   || ffmpeg -v error -y -f lavfi -i "testsrc2=size=1920x1080:rate=30:duration=1" -c:v libx264 -pix_fmt yuv420p -metadata:s:v rotate=90 rot.mp4

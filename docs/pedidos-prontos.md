@@ -23,7 +23,8 @@ Copie, cole no Claude Code e troque o que estiver entre `< >`. Cada pedido acion
 | "Coloca uma trilha calma e abaixa quando eu falo" | música com ducking, -14 LUFS | trilha |
 | "Whoosh nas trocas de plano e pop nos textos" | efeitos sincronizados | efeitos |
 | "Edita igual esse reels: `<link>`" | copia ritmo, legenda e estrutura | referencia → pipeline |
-| "Edição completa pra Reels" | tomada → corte → ganchos → lettering → legenda → trilha → efeitos → prova | editar |
+| "Disfarça os cortes com zoom e dá um punch quando eu falo 'de graça'" | troca de plano a cada corte, punch na palavra | camera |
+| "Edição completa pra Reels" | tomada → corte → camera → ganchos → lettering → legenda → trilha → efeitos → prova | editar |
 
 ## Aula gravada
 

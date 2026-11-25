@@ -26,7 +26,7 @@ Siga `${CLAUDE_PLUGIN_ROOT}/docs/convencoes.md` (pastas, nomes de saída, loudne
    Para saber onde cada instante do original caiu no corte (legenda, animação sincronizada), gere também `--export v1 --output <slug>_corte.v1.json` e use `skills/videoaula/scripts/remap_tempos.py`: não precisa retranscrever.
 4. Compare durações (`ffprobe -v error -show_entries format=duration -of csv=p=0`) e informe: original → final, % removido.
 5. Se removeu mais de 45%, avise: pode ter cortado fala. Ofereça refazer com threshold menor ou margem maior.
-6. Sugira `/prova` para revisar o resultado.
+6. Sugira `/prova` para revisar o resultado. Se o vídeo for seguir para o `/camera`, gere já o `--export v1` do passo 3: é dele que a câmera tira o quadro de cada corte.
 
 ## Regras
 - Nunca sobrescreva o original; saída sempre `trabalho/<slug>/<slug>_corte.mp4`. `--no-open` é obrigatório (sem ele o auto-editor abre um player).

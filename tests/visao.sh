@@ -351,6 +351,70 @@ PY
 pass "ler_tela.py: acha sem acento nem caixa, regex de e-mail, marca-texto no lugar, tarja opaca no vídeo inteiro, print, trecho de dentro de uma palavra, lote por janela de tempo"
 
 # ---------------------------------------------------------------- catálogo e registro
+# ---------------------------------------------------------------- câmera (ADR-20): corte planejado × corte real, e render
+# brilho = índice do quadro × 0,6: dá para ler de volta de que quadro da entrada veio cada quadro da saída
+cat > cortes_reais.py <<'PY'
+import json, sys
+from video_editores.nucleo import quadros
+nome = sys.argv[1]
+v = [float(q.mean()) for _, _, q in quadros.ler(nome + ".mp4", cinza=True)]
+reais = [i + 1 for i in range(len(v) - 1) if abs(v[i + 1] - v[i]) > 4]
+d = json.load(open(nome + ".camera.json"))
+n, den = d["taxa"].split("/")
+plano = [round(p["inicio"] * float(n) / float(den)) for p in d["planos"]][1:]
+assert reais == plano and len(v) == d["quadros"] and not d["avisos"], (nome, reais, plano, len(v), d["quadros"], d["avisos"])
+PY
+echo '{"keep":[[0.0,2.08],[2.92,5.137],[5.92,8.08],[8.92,11.08]]}' > cam.takes.json
+for TAXA in 30 30000/1001; do
+  N="${TAXA//\//_}"
+  ffmpeg -v error -y -f lavfi -i "color=c=black:size=320x180:rate=$TAXA:duration=12,format=gray,geq=lum='N*0.6'" \
+    -f lavfi -i "anullsrc=r=44100:cl=mono" -shortest -c:v libx264 -crf 10 -pix_fmt yuv420p -c:a aac "idx$N.mp4"
+  bash "$S/render_spans.sh" "idx$N.mp4" cam.takes.json "tom$N.mp4" >/dev/null
+  python3 "$S/camera.py" "tom$N.mp4" --cortes cam.takes.json --min-plano 0.1 >/dev/null
+  "${CV[@]}" cortes_reais.py "tom$N"
+done
+# segunda etapa: tira os quadros 40–55 da saída da tomada (o v1 do auto-editor diria o mesmo que este keep)
+echo '{"chunks":[[0,40,1],[40,55,99999],[55,400,1]]}' > cad.v1.json
+echo '{"keep":[[0,1.3333],[1.8333,99]]}' > cad.keep.json
+bash "$S/render_spans.sh" tom30.mp4 cad.keep.json cad.mp4 >/dev/null
+python3 "$S/camera.py" cad.mp4 --cortes cam.takes.json --cortes cad.v1.json --min-plano 0.1 > cad.txt || true
+grep -q "soma" cad.txt     # o v1 falso declara 400 quadros: o aviso de arquivo de corte que não bate tem de aparecer
+python3 - <<'PY'
+import json
+d = json.load(open("cad.camera.json")); d["avisos"] = []; json.dump(d, open("cad.camera.json", "w"))
+PY
+"${CV[@]}" cortes_reais.py cad
+pass "camera.py: troca de plano no quadro exato do corte (30 e 29,97 fps, com áudio; duas etapas encadeadas)"
+
+ffmpeg -v error -y -f lavfi -i "color=c=0x204060:size=640x360:rate=30:duration=6" -f lavfi -i "sine=f=300:d=6" -shortest \
+  -vf "drawbox=x=300:y=100:w=80:h=100:color=white:t=fill" -c:v libx264 -crf 14 -pix_fmt yuv420p -c:a aac gente.mp4
+python3 - <<'PY'
+import json
+q = [{"t": i * 0.5, "rostos": [{"x": 300 / 640, "y": 100 / 360, "w": 80 / 640, "h": 100 / 360, "conf": 0.9}]} for i in range(12)]
+json.dump({"passo": 0.5, "quadros": q}, open("gente.rostos.json", "w"))
+PY
+python3 "$S/camera.py" gente.mp4 --cortes-em 3 --rostos gente.rostos.json --deriva 0 --fechado 1.25 >/dev/null
+"${CV[@]}" "$S/camera.py" gente.mp4 --aplicar gente.camera.json gente_camera.mp4 >/dev/null
+"${CV[@]}" - <<'PY'
+import numpy as np
+from video_editores.nucleo import quadros
+from video_editores.nucleo.ffmpeg import fps, probe_dimensoes
+assert probe_dimensoes("gente_camera.mp4") == (640, 360) and fps("gente_camera.mp4") == 30
+assert len(list(quadros.ler("gente_camera.mp4", largura=64))) == 180
+def caixa(t):
+    ys, xs = np.nonzero(quadros.em("gente_camera.mp4", t, cinza=True) > 200)
+    return xs.min(), xs.max() + 1, ys.min(), ys.max() + 1
+a, f = caixa(2.9), caixa(3.0)
+assert abs((a[1] - a[0]) - 80) <= 2 and abs(a[0] - 300) <= 2, a                       # plano aberto: intocado
+assert abs((f[1] - f[0]) - 100) <= 3 and abs((f[3] - f[2]) - 125) <= 3, f             # fechado a 125%
+assert abs((f[0] + f[1]) / 2 - 320) <= 3, f                                           # rosto no centro horizontal
+olhos = f[2] + 0.4 * (f[3] - f[2])
+assert abs(olhos / 360 - 0.38) < 0.02, olhos / 360                                    # olhos a 38% da altura
+PY
+test -n "$(ffprobe -v error -select_streams a -show_entries stream=codec_name -of csv=p=0 gente_camera.mp4)"
+if "${CV[@]}" "$S/camera.py" gente.mp4 --aplicar gente.camera.json gente.mp4 2>/dev/null; then echo "saída igual à entrada devia falhar"; exit 1; fi
+pass "camera.py --aplicar: plano fechado na escala pedida, rosto centrado, olhos a 38%, plano aberto intocado antes do corte, áudio mantido"
+
 python3 - <<'PY'
 from video_editores import modelos
 from video_editores.nucleo import catalogo
@@ -359,11 +423,13 @@ assert l["rosto"]["escolhido"] == "yunet" and l["ocr"]["escolhido"] == "rapidocr
 assert modelos.deps("rosto", "yunet", dev="cpu") == ["opencv-python-headless", "numpy"]
 assert modelos.deps("ocr", "rapidocr", dev="cpu") == ["rapidocr", "onnxruntime"]
 assert modelos.deps("ocr", "rapidocr", dev="cuda") == ["rapidocr", "onnxruntime-gpu"]
-for op in ("rostos", "rastrear", "ler-tela", "conferir-fala", "banco-video"):
+for op in ("rostos", "rastrear", "ler-tela", "conferir-fala", "banco-video", "camera", "efeitos"):
     assert catalogo.operacao(op).caminho.is_file(), op
 assert catalogo.comando("conferir-fala", ["a", "b"])[0].endswith(("python", "python3")) or "python" in catalogo.comando("conferir-fala", ["a", "b"])[0]
 c = catalogo.comando("ler-tela", ["x.png"], device="cpu")
 assert c[:3] == ["uv", "run", "--quiet"] and "rapidocr" in c and "-I" in c, c
+assert "opencv-python-headless" in catalogo.comando("camera", ["x.mp4"], device="cpu")
+assert "uv" not in catalogo.comando("efeitos", ["x.mp4"])[0]
 PY
 pass "papéis rosto e ocr no registro; cinco operações novas no catálogo"
 
