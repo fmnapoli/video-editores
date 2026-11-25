@@ -8,7 +8,8 @@ Câmera sobre o corte e efeitos sonoros por evento (ADR-20), a partir da avalia�
 - **`/editar`**: pedido de zoom nos cortes e pipeline de Reels com `/camera` depois do `/corte`. **`/corte`** lembra de gerar o `--export v1` quando o vídeo segue para a câmera.
 - Docs: skills, scripts, convenções (ordem das etapas), pedidos prontos, glossário (jump cut, punch-in), tutorial, arquitetura e README.
 - Testes: `smoke.sh` (plano de câmera, eventos, alinhamento do pico medido no áudio mixado, taxa de quadros do `render_spans.sh`) e `visao.sh` (corte planejado × corte real quadro a quadro em 30 e 29,97 fps e com duas etapas encadeadas; render da câmera com OpenCV).
-- Limites: os níveis dos efeitos são ponto de partida calculado, sem validação de ouvido; a câmera foi validada em vídeo sintético, não em gravação real; não há zoom casado com animação nem speed ramp.
+- Validação em gravação real (90 s de aula, 30 fps, pelo encadeamento `takes.py` → `render_spans.sh` → auto-editor): 26 de 29 cortes planejados coincidem com o maior salto de imagem da vizinhança, e os outros 3 são cortes em que a tela quase não muda; render a ~1× o tempo real em 1080p. O teste calibrou os níveis dos efeitos (a primeira conta deixava o whoosh 19 dB abaixo dos picos da voz) e gerou o aviso de rosto no canto do quadro.
+- Limites: os níveis dos efeitos são calculados, sem validação de ouvido; falta validar o enquadramento numa gravação de pessoa em quadro cheio; não há zoom casado com animação nem speed ramp.
 
 ## 0.15.1 — 2026-11-25
 Correção: a grafia fonética do glossário vazava para a legenda quando um termo vira várias palavras faladas.

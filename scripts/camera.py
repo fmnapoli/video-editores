@@ -181,6 +181,10 @@ def planejar(a):
     geral = [round(statistics.median(f[1] for f in fs), 4), round(statistics.median(f[2] for f in fs), 4)] if fs else [0.5, 0.4]
     if a.rostos and not fs:
         avisos.append("o .rostos.json não tem rosto: os planos fechados usam o centro do quadro")
+    elif fs and (abs(geral[0] - 0.5) > 0.25 or geral[1] > 0.6):
+        avisos.append(f"o rosto fica no canto do quadro (x {geral[0]:.2f}, olhos em y {geral[1]:.2f}): parece gravação de tela "
+                      "com webcam, e o plano fechado vai cortar o conteúdo. A câmera é para pessoa em quadro cheio; aqui use "
+                      "--fechado 1 (só aproximação lenta e punch) ou não aplique")
 
     planos, eventos = [], []
     for i in range(len(bordas) - 1):
@@ -317,6 +321,9 @@ def main():
     ap.add_argument("--out", default=None, help="caminho do .camera.json")
     ap.add_argument("--aplicar", default=None, metavar="ARQ.camera.json")
     a = ap.parse_args()
+    for arq in [a.video, a.rostos, a.punches, a.aplicar, *a.cortes]:
+        if arq and not pathlib.Path(arq).is_file():
+            sys.exit(f"arquivo não encontrado: {arq}")
     if a.aplicar:
         if not a.saida:
             sys.exit("--aplicar pede o vídeo de saída: camera.py VIDEO --aplicar ARQ.camera.json SAIDA.mp4")

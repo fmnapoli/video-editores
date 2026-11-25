@@ -61,8 +61,10 @@ SINTESE = {
 }
 # Pico do som no evento (whoosh, impacto, riser que termina nele) ou começo do som no evento (pop, clique, ding).
 ALINHAR = {"whoosh": "pico", "impacto": "pico", "riser": "pico", "pop": "inicio", "clique": "inicio", "ding": "inicio"}
-# Pico do efeito em relação ao loudness integrado da voz (dB). Ponto de partida: ajuste por --ganho ou por item.
-NIVEL = {"whoosh": 3.0, "impacto": 6.0, "riser": 2.0, "pop": 2.0, "clique": 0.0, "ding": 2.0}
+# Pico do efeito em relação ao loudness integrado da voz (dB). Os picos da fala ficam ~18 dB acima do integrado
+# (medido numa aula real: -26,4 LUFS, pico -8,1 dBTP), então +9 deixa o whoosh ~9 dB abaixo dos picos da voz.
+# Ponto de partida calculado, não mixagem: ajuste por --ganho ou por item.
+NIVEL = {"whoosh": 9.0, "impacto": 12.0, "riser": 8.0, "pop": 8.0, "clique": 6.0, "ding": 8.0}
 FORCA = {"leve": -4.0, "media": 0.0, "forte": 3.0}
 DE_TIPO = {"corte": "whoosh", "punch": "impacto", "texto": "pop"}
 AUDIO_EXT = {".wav", ".mp3", ".flac", ".ogg", ".m4a", ".aiff", ".aif"}
@@ -267,6 +269,9 @@ def main():
     ap.add_argument("--out", default=None, help="caminho do .sfx.json")
     ap.add_argument("--aplicar", default=None, metavar="ARQ.sfx.json")
     a = ap.parse_args()
+    for arq in [a.video, a.aplicar, *a.eventos]:
+        if arq and not pathlib.Path(arq).is_file():
+            sys.exit(f"arquivo não encontrado: {arq}")
     if a.aplicar:
         if not a.saida:
             sys.exit("--aplicar pede o vídeo de saída: efeitos.py VIDEO --aplicar ARQ.sfx.json SAIDA.mp4")

@@ -19,9 +19,10 @@ Script: `${CLAUDE_PLUGIN_ROOT}/scripts/camera.py`. Planeja (só biblioteca padr�
      auto-editor "ENTRADA_DO_CORTE.mp4" --edit audio:threshold=0.04 --margin 0.15s --no-open --export v1 --output "trabalho/<slug>/<slug>_corte.v1.json"
      ```
    O vídeo de entrada da câmera é a saída da **última** etapa (`<slug>_corte.mp4`).
-2. Localize o rosto no vídeo cortado (para o plano fechado enquadrar a pessoa, não o centro do quadro):
+2. Localize o rosto no vídeo cortado (para o plano fechado enquadrar a pessoa, não o centro do quadro). Passe `--out`: sem ele o `rostos.py` grava em `trabalho/<nome do vídeo>/`, outra pasta:
    ```bash
-   uv run --with opencv-python-headless --with numpy python "${CLAUDE_PLUGIN_ROOT}/scripts/rostos.py" trabalho/<slug>/<slug>_corte.mp4
+   uv run --with opencv-python-headless --with numpy python "${CLAUDE_PLUGIN_ROOT}/scripts/rostos.py" trabalho/<slug>/<slug>_corte.mp4 \
+     --out trabalho/<slug>/<slug>_corte.rostos.json
    ```
 3. Punches (opcional). Escolha pela transcrição do vídeo **cortado** as palavras de ápice, no máximo uma a cada ~20 s, e grave `trabalho/<slug>/punches.json` com o instante em que a palavra começa:
    ```json
@@ -58,6 +59,7 @@ Script: `${CLAUDE_PLUGIN_ROOT}/scripts/camera.py`. Planeja (só biblioteca padr�
 | `--cortes-em T,T` | — | instantes dos cortes direto no tempo do vídeo, quando não há arquivo de corte |
 
 ## Regras
+- É para **pessoa falando em quadro cheio**. Em gravação de tela com webcam no canto, o plano fechado vai atrás do rosto e corta o conteúdo: o script avisa; não aplique (ou use `--fechado 1`, que deixa só a aproximação lenta e os punches).
 - A troca de plano cai no **quadro exato** do corte, calculado dos arquivos de corte. Se o script avisar que a soma dos quadros não bate com o vídeo, os arquivos não são os desse vídeo: não aplique.
 - Todo corte muda de plano; por isso jump cut vira troca de enquadramento. Não "corrija" dois planos iguais em sequência pondo punch em cima do corte.
 - Punch é ênfase, não enfeite: poucos, nas palavras que carregam a ideia. Sob tela cheia (B-roll, animação) a câmera não aparece: não gaste punch ali.
