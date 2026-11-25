@@ -14,8 +14,11 @@ Uso:
 - Áudio final: ganho estático até `--loudness` e limiter de pico real (`--tp`), medido antes e depois
   (video_editores/nucleo/audio.py); nunca loudnorm linear, que estourou o pico em montagens por blocos.
 - A legenda vem das fronteiras de palavra do edge-tts (sem pontuação e com a grafia do glossário);
-  a grafia original da narração é recuperada casando os tokens um a um. Blocos de até 2 linhas de
-  ~42 caracteres, frase a frase, sem linha órfã.
+  a grafia original da narração é recuperada por casamento global (pronuncia.alinhar), também quando um
+  termo vira várias palavras faladas ("PDV" -> "pê dê vê"). Blocos de até 2 linhas de ~42 caracteres,
+  frase a frase, sem linha órfã.
+- `trabalho/<slug>/montagem/palavras.transcript.json`: as mesmas palavras, com a grafia original e o tempo
+  no vídeo final, entrada direta do `scripts/legenda_palavra.py` (legenda palavra a palavra).
 - Saída: libx264 crf 18, aac 192k a 48 kHz, `.srt` em pasta separada do `.mp4`.
 """
 import argparse
@@ -25,7 +28,6 @@ import pathlib
 import re
 import subprocess
 import sys
-import unicodedata
 from concurrent.futures import ThreadPoolExecutor
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -67,29 +69,10 @@ def srt_time(t):
     return f"{h:02}:{m:02}:{s:02},{ms:03}"
 
 
-def _chave(t):
-    t = unicodedata.normalize("NFKD", t.lower())
-    return "".join(ch for ch in t if ch.isalnum())
-
-
 def com_grafia_original(words, narracao, gloss):
-    """Troca a palavra falada (sem pontuação, com glossário) pelo token original da narração."""
-    orig = narracao.split()
-    fal = pronuncia.apply(narracao, gloss).split()
-    if len(fal) != len(orig):
-        fal = orig
-    i, out = 0, []
-    for w in words:
-        k = _chave(w["w"])
-        j = i
-        while j < len(fal) and j < i + 3 and not _chave(fal[j]).startswith(k[:3] or k):
-            j += 1
-        if j < len(fal) and j < i + 3:
-            out.append({**w, "w": orig[j]})
-            i = j + 1
-        else:
-            out.append(w)
-    return out
+    """Troca as palavras faladas (sem pontuação, com glossário) pelos tokens originais da narração: um item por
+    token, com o tempo da primeira à última palavra que ele gerou ("PDV" falado "pê dê vê" volta como "PDV")."""
+    return [{"t": a, "d": round(b - a, 3), "w": txt} for a, b, txt in pronuncia.com_grafia(words, narracao, gloss)]
 
 
 def _flui(palavras, largura):
@@ -234,7 +217,7 @@ def main():
     enc = ffm.codec_video(crf=16, preset="veryfast")   # bloco intermediário; a codificação final é a de baixo
 
     # 1) duração de cada bloco (narração, no grid de quadros) e legenda nos tempos finais
-    plano, srt, por_cena, n, t0 = [], [], {}, 1, 0.0
+    plano, srt, por_cena, segs, n, t0 = [], [], {}, [], 1, 0.0
     for c in cenas:
         cid = c["id"]
         mp4 = os.path.abspath(c["video"] if c.get("video") else os.path.join(a.pasta, f"{cid}.mp4"))
@@ -244,7 +227,11 @@ def main():
         d = _dur_bloco(cid, duracao(mp4), info["total"], a.fps)
         if not info.get("mudo"):
             words = json.load(open(os.path.join(tts_dir, f"{cid}.words.json"), encoding="utf-8"))
-            bl = blocos(com_grafia_original(words, c.get("tts") or c["narracao"], gloss))
+            ws = com_grafia_original(words, c.get("tts") or c["narracao"], gloss)
+            off = t0 + info["lead"]
+            segs.append({"words": [{"start": round(off + w["t"], 3), "end": round(off + w["t"] + w["d"], 3), "word": w["w"]}
+                                   for w in ws]})
+            bl = blocos(ws)
             por_cena[cid] = [linhas for _, _, linhas in bl]
             for i, (ini, fim, linhas) in enumerate(bl):
                 ia = t0 + info["lead"] + ini
@@ -270,6 +257,8 @@ def main():
         with open(arq, "w", encoding="utf-8") as f:
             f.write(srt_txt)
     srt_local = os.path.join(trab, "legenda.srt")
+    with open(os.path.join(trab, "palavras.transcript.json"), "w", encoding="utf-8") as f:
+        json.dump({"segments": segs}, f, ensure_ascii=False)
 
     # 3) concat (vídeo copiado, áudio contínuo), normalização e codificação final
     video = os.path.join(trab, "_video.mp4"); narr = os.path.join(trab, "narracao.wav"); norm = os.path.join(trab, "narracao_norm.wav")

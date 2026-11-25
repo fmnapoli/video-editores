@@ -93,7 +93,7 @@
 | legenda cobre o rodapé da animação | com 2 linhas em 1080p a faixa vai até y = -2,3 (unidades do Manim); confira com `folha_cenas.py --fracao 0.9` |
 | áudio final a 96 ou 192 kHz | o `loudnorm` sobe a taxa; o `montar_cenas.py` já força `-ar 48000` (faça o mesmo em filtros próprios) |
 | cena termina antes da narração ou o mp4 sai 1 quadro curto | o Manim grava int(s·fps) quadros num `wait` e len(arange(0, rt, 1/fps)) num `play`; contando por segundos, 20 passos derivam 0,3 s. O `cena_base.py` arredonda cada passo ao quadro e conta igual ao renderer; o `montar_cenas.py` completa o que faltar clonando o último quadro (`tpad`) até a duração da narração |
-| grafia fonética do glossário vaza para a legenda | as fronteiras de palavra do edge-tts trazem a palavra **falada** e sem pontuação; o `montar_cenas.py` recupera o token original da narração (casamento 1 a 1); em pipeline próprio, faça o mesmo |
+| grafia fonética do glossário vaza para a legenda | as fronteiras de palavra do edge-tts trazem a palavra **falada** e sem pontuação; o `montar_cenas.py` e o `build.py` recuperam o token original da narração por `pronuncia.alinhar` (casamento global: termo que vira N palavras faladas, ou N que viram uma, não desliza a cena); até a 0.15.0 o casamento era 1 a 1 e vazava com "PDV" → "pê dê vê". Em pipeline próprio, use `pronuncia.com_grafia` |
 
 ## `/partitura`
 

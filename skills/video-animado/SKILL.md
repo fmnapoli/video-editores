@@ -51,7 +51,8 @@ Scripts desta skill em `${CLAUDE_PLUGIN_ROOT}/skills/video-animado/scripts/`; mo
 
 - Narração antes de animar: o tempo da cena vem do áudio, nunca o contrário; `fit`/aceleração não existem aqui.
 - Marque os instantes por fração da fala (`q()`), não por segundo: o texto muda no gate e os tempos se ajustam sozinhos.
-- Texto na tela e legenda com a grafia normal; pronúncia só no glossário. Depois de montar, confira o `.srt`: nenhuma grafia fonética pode vazar para a legenda.
+- Texto na tela e legenda com a grafia normal; pronúncia só no glossário. O `montar_cenas.py` devolve a grafia original também quando o termo vira várias palavras faladas ("PDV" → "pê dê vê") ou o contrário. Depois de montar, confira o `.srt`: nenhuma grafia fonética pode vazar para a legenda.
+- Legenda palavra a palavra (estilo reels): a montagem grava `trabalho/<slug>/montagem/palavras.transcript.json` com a grafia original e o tempo no vídeo final; passe-o ao `scripts/legenda_palavra.py` sobre o `.mp4` montado com `--sem-legenda` (ou sobre o `_video.mp4` da montagem), em vez de alinhar de novo à mão.
 - Transição = fade do conteúdo sobre o fundo fixo. Nunca `fade=out` para preto, nunca cartela preta entre atos.
 - Logo oficial sem redesenhar, posição fixa (canto superior esquerdo); centralizado só na vinheta final. Produtos de terceiros só como texto. Sem fotos, salvo pedido.
 - Números na narração ("menos de 3 minutos", "15 indicadores") vêm de medição real do sistema ou do vídeo técnico anterior, com a fonte anotada no roteiro.

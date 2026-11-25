@@ -36,7 +36,7 @@ Saídas extras: <work>/palavras.transcript.json (palavras com a grafia da legend
 /legenda reels-palavra) e "avisos" no relatório (destaque fora do quadro ou sobre a legenda, "at" num corte).
 Scene duration = max(footage, narration + lead + tail); shortfall becomes a freeze of the last frame.
 """
-import asyncio, hashlib, json, math, os, re, shutil, subprocess, sys, time, unicodedata
+import asyncio, hashlib, json, math, os, re, shutil, subprocess, sys, time
 
 import pathlib  # noqa: E402
 
@@ -480,29 +480,8 @@ def write_roteiro(spec, scenes, total, out_dir):
 
 def com_pontuacao(words, narracao, gloss):
     """O edge-tts devolve as palavras FALADAS (glossário aplicado, sem pontuação); devolve [(ini, fim, token)]
-    com os tokens da legenda. Um termo do glossário pode virar várias palavras faladas."""
-    def chave(x):
-        x = unicodedata.normalize("NFKD", x.lower())
-        return "".join(ch for ch in x if ch.isalnum())
-
-    orig = narracao.split()
-    flat = [(chave(sp), oi) for oi, tok in enumerate(orig) for sp in pronuncia.apply(tok, gloss).split()]
-    flat = [f for f in flat if f[0]]
-    span, pos, cur = {}, 0, 0
-    for t0, d, w in words:
-        k = chave(w)
-        j = pos
-        while k and j < len(flat) and j < pos + 4 and not (flat[j][0].startswith(k[:3]) or k.startswith(flat[j][0][:3])):
-            j += 1
-        if k and j < len(flat) and j < pos + 4:
-            cur, pos = flat[j][1], j + 1
-        span[cur] = (span[cur][0], max(span[cur][1], t0 + d)) if cur in span else (t0, t0 + d)
-    out, fim = [], 0.0
-    for oi, tok in enumerate(orig):
-        a, b = span.get(oi, (fim, fim + 0.01))
-        out.append((a, b, tok))
-        fim = b
-    return out
+    com os tokens da legenda. Um termo do glossário pode virar várias palavras faladas (pronuncia.alinhar)."""
+    return pronuncia.com_grafia(words, narracao, gloss, palavra=lambda w: w[2], intervalo=lambda w: (w[0], w[0] + w[1]))
 
 
 def valida(spec, scenes):
