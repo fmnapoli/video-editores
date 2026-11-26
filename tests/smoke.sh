@@ -111,6 +111,25 @@ test "$(ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -
 test "$(ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of csv=p=0 mudo_out.mp4 | tr -d ',')" == "30/1"
 pass "render_spans.sh mantém a taxa de quadros da entrada"
 
+# render_spans.sh não descasa som e imagem: um clarão e um bipe no mesmo instante da entrada (2,5 s) continuam
+# juntos na saída, com trechos que começam fora da borda do quadro (o som entrava até 1 quadro atrasado).
+ffmpeg -hide_banner -loglevel error -y -f lavfi -i "color=black:s=64x64:r=30000/1001:d=4" -f lavfi -i "sine=frequency=1000:sample_rate=48000:duration=4" \
+  -vf "drawbox=c=white:t=fill:enable='gte(t,2.5)'" -af "volume=enable='lt(t,2.5)':volume=0" -c:v libx264 -crf 12 -c:a aac sinc.mp4
+echo '{"keep":[[0.01,1.0],[1.31,1.9],[2.02,3.5]]}' > sinc.json && bash "$S/render_spans.sh" sinc.mp4 sinc.json sinc_out.mp4 >/dev/null
+python3 - <<'PY'
+import array, subprocess
+def onde(video):
+    v = subprocess.run(["ffmpeg", "-v", "error", "-i", video, "-vf", "scale=4:4,format=gray", "-f", "rawvideo", "-"], capture_output=True, check=True).stdout
+    a = array.array("h", subprocess.run(["ffmpeg", "-v", "error", "-i", video, "-ac", "1", "-ar", "48000", "-f", "s16le", "-"], capture_output=True, check=True).stdout)
+    claro = next(i for i in range(len(v) // 16) if v[i * 16] > 128) * 1001 / 30000
+    bipe = next(i for i, x in enumerate(a) if abs(x) > 3000) / 48000
+    return claro, bipe
+c0, b0 = onde("sinc.mp4")
+c1, b1 = onde("sinc_out.mp4")
+assert abs((b1 - c1) - (b0 - c0)) < 0.008, (c0, b0, c1, b1)
+PY
+pass "render_spans.sh mantém som e imagem juntos depois de cada corte"
+
 # camera.py (plano: só biblioteca padrão). Cortes do in.takes.json no vídeo montado: quadros 63 e 128.
 echo '[{"t":1.0,"forca":0.08,"texto":"plugin"},{"t":2.1}]' > punches.json
 python3 "$S/camera.py" out_tomada.mp4 --cortes in.takes.json --punches punches.json > cam.txt
@@ -131,7 +150,7 @@ zp = camera.camera_em(d, 1.0 + camera.ATAQUE_PUNCH)[0]        # topo do punch p0
 assert 1.08 < zp < 1.10 and camera.camera_em(d, 1.6)[0] < 1.02, zp
 # duas etapas: um v1 do auto-editor que tira os quadros 40–55 e 100–110 da saída da tomada
 json.dump({"chunks": [[0, 40, 1], [40, 55, 99999], [55, 100, 1], [100, 110, 99999], [110, 193, 1]]}, open("c.v1.json", "w"))
-m = [camera.mapa("in.takes.json", 30.0, True), camera.mapa("c.v1.json", 30.0, True)]
+m = [camera.mapa("in.takes.json", 30.0), camera.mapa("c.v1.json", 30.0)]
 assert camera.cortes_em_quadros(m, 168) == [40, 48, 85, 103], camera.cortes_em_quadros(m, 168)
 PY
 ! python3 "$S/camera.py" out_tomada.mp4 2>/dev/null && ! python3 "$S/camera.py" out_tomada.mp4 --cortes in.transcript.json 2>/dev/null

@@ -57,22 +57,14 @@ def sonda(video):
     return st["r_frame_rate"], float(n) / float(d), int(st["nb_read_packets"])
 
 
-def tem_audio(video):
-    out = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "a", "-show_entries", "stream=index", "-of", "csv=p=0",
-                          str(video)], capture_output=True, text=True).stdout
-    return out.strip() != ""
-
-
-# ---------------------------------------------------------------- de onde vieram os cortes
-def mapa(arquivo, fps, com_audio):
+def mapa(arquivo, fps):
     """Trechos mantidos por uma etapa, como [a, b, o]: os quadros [a, b) da ENTRADA dela começam no quadro o da saída."""
     doc = json.loads(pathlib.Path(arquivo).read_text(encoding="utf-8"))
     if isinstance(doc, dict) and "chunks" in doc:        # auto-editor --export v1: quadros, speed 1 = mantido
         brutos = [[int(c[0]), int(c[1]), None] for c in doc["chunks"] if c[2] == 1]
     elif isinstance(doc, dict) and "keep" in doc:        # takes.py / highlights.py: segundos
-        # render_spans.sh corta com trim=s:e (3 casas): fica o quadro n com s <= n/fps < e
-        brutos = [[math.ceil(round(s, 3) * fps - 1e-6), math.ceil(round(e, 3) * fps - 1e-6), round(e, 3) - round(s, 3)]
-                  for s, e in doc["keep"]]
+        # render_spans.sh corta imagem e som na borda do quadro: fica o quadro n com s <= n/fps < e
+        brutos = [[math.ceil(round(s, 3) * fps - 1e-6), math.ceil(round(e, 3) * fps - 1e-6), 0] for s, e in doc["keep"]]
     else:
         sys.exit(f"{arquivo}: não é um .takes.json (keep) nem um JSON v1 do auto-editor (chunks)")
     juntos = []
@@ -83,17 +75,11 @@ def mapa(arquivo, fps, com_audio):
             juntos[-1][1] = max(juntos[-1][1], b)
         else:
             juntos.append([a, b, d])
-    # Onde cada trecho começa na saída. No v1 é a soma dos quadros. No render_spans.sh cada trecho ocupa, na linha
-    # do tempo do concat, o maior entre o vídeo (quadros inteiros) e o áudio (e - s): com áudio, o trecho seguinte
-    # começa em e - s, não no fim do último quadro, e o `fps` arredonda para o quadro mais próximo.
-    out, acc_q, acc_s = [], 0, 0.0
-    for a, b, d in juntos:
-        if d is None:
-            out.append([a, b, acc_q])
-            acc_q += b - a
-        else:
-            out.append([a, b, round(acc_s * fps)])
-            acc_s += max((b - a) / fps, d if com_audio else 0.0)
+    # Onde cada trecho começa na saída: a soma dos quadros dos trechos anteriores, nas duas origens.
+    out, acc = [], 0
+    for a, b, _ in juntos:
+        out.append([a, b, acc])
+        acc += b - a
     return out
 
 
@@ -155,7 +141,7 @@ def planejar(a):
         cortes = sorted({round(float(x) * fps) for x in a.cortes_em.split(",") if x.strip()})
         cortes = [c for c in cortes if 0 < c < total]
     else:
-        mapas = [mapa(c, fps, tem_audio(a.video)) for c in a.cortes]
+        mapas = [mapa(c, fps) for c in a.cortes]
         esperado = mapas[-1][-1][2] + mapas[-1][-1][1] - mapas[-1][-1][0]
         if abs(esperado - total) > 2:
             avisos.append(f"o último arquivo de cortes soma {esperado} quadros e o vídeo tem {total}: confira se VIDEO é a "
