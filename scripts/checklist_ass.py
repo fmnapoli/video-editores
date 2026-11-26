@@ -104,9 +104,10 @@ def main():
 
     start = a.start if a.start is not None else max(0.0, timed[0]["t"] - 0.4)
     end = a.end if a.end is not None else (dur or timed[-1]["t"] + 5)
-    fs = int(H * 0.034)
-    pad = int(W * 0.04)
-    box_w = int(W * 0.62)
+    fs = int(H * (0.044 if W > H else 0.034))     # em horizontal a altura é menor: letra maior para ler
+    pad = int(min(W, H) * 0.04)
+    # a moldura acompanha o item mais longo (até 62% da largura): em 16:9 uma moldura fixa de 62% cobria o rosto
+    box_w = min(int(W * 0.62), int(max(len(it["text"]) for it in timed) * fs * 0.5 + fs + 16 + 2 * pad))
     line_h = int(fs * 1.7)
     box_h = pad + line_h * len(timed) + pad // 2
     top = int(H * 0.16)
