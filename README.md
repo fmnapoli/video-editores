@@ -1,6 +1,6 @@
 # video-editores
 
-Plugin do Claude Code que transforma a IA na sua editora de vídeo: **26 skills** open source, rodando no seu computador, sem SaaS e sem vendor lock-in. Você manda a gravação e pede em português; o `/editar` monta o plano, para nos pontos de aprovação e entrega o vídeo com um relatório do que fez.
+Plugin do Claude Code que transforma a IA na sua editora de vídeo: **27 skills** open source, rodando no seu computador, sem SaaS e sem vendor lock-in. Você manda a gravação e pede em português; o `/editar` monta o plano, para nos pontos de aprovação e entrega o vídeo com um relatório do que fez.
 
 | Skill | O que faz | Ferramenta |
 |---|---|---|
@@ -9,6 +9,7 @@ Plugin do Claude Code que transforma a IA na sua editora de vídeo: **26 skills*
 | `/checklist` | Itens com moldura que entram no instante em que são falados | `checklist_ass.py` |
 | `/tela-dividida` | Reação, antes/depois, 16:9 → 9:16 e 1:1 | ffmpeg vstack/crop |
 | `/corte` | Corta silêncio e tempo morto | auto-editor |
+| `/camera` | Zoom sobre o corte: troca de plano a cada corte (esconde o jump cut), aproximação lenta, punch na ênfase, plano fechado no rosto | OpenCV + `camera.py` |
 | `/tomada` | Detecta tomadas repetidas e fica com a melhor | faster-whisper + `takes.py` |
 | `/legenda` | Legenda automática (SRT ou queimada; reels, clássico ou palavra destacada) | faster-whisper + libass |
 | `/referencia` | Extrai o "DNA" de edição de um vídeo de referência | yt-dlp + PySceneDetect |
@@ -21,7 +22,7 @@ Plugin do Claude Code que transforma a IA na sua editora de vídeo: **26 skills*
 | `/rastrear` | Etiqueta que anda junto com um objeto do vídeo (tracking) | OpenCV, fluxo óptico (`rastrear.py`) |
 | `/ler-tela` | Lê o texto da tela (OCR) e põe destaque ou tarja no lugar certo | RapidOCR (`ler_tela.py`) |
 | `/trilha` | Música de fundo com ducking e loudness | ffmpeg sidechaincompress |
-| `/efeitos` | Sound design sincronizado com cortes | ffmpeg (sons sintetizados) |
+| `/efeitos` | Sound design por evento: pico do som no corte, nível relativo à voz | ffmpeg + `efeitos.py` (sons sintetizados ou pasta própria) |
 | `/ganchos` | 5 ganchos para os 3 primeiros segundos | Claude + transcrição |
 | `/prova` | Folha de contato, preview e QA; confere texto sobre o rosto e fala contra o roteiro | ffmpeg, YuNet/OpenCV (`rostos.py`), `conferir_fala.py` |
 | `/banco` | **Opcional**: B-roll de banco de vídeo, com folha de escolha e créditos (único skill que usa serviço externo; exige chave própria e gratuita) | API do Pexels (`banco_video.py`) |
@@ -77,7 +78,7 @@ Sem decorar comando. Exemplos (mais em [docs/pedidos-prontos.md](docs/pedidos-pr
 Pipeline padrão de Reels que o `/editar` executa:
 
 ```
-/tomada → /corte → /ganchos → /lettering → /legenda → /trilha → /efeitos → /prova
+/tomada → /corte → /camera → /ganchos → /lettering → /legenda → /trilha → /efeitos → /prova
 ```
 
 Passo a passo completo: [docs/tutorial.md](docs/tutorial.md).

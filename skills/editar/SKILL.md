@@ -17,6 +17,7 @@ Se faltar algo que muda o resultado (ex.: música sim ou não), pergunte **uma**
 | Se o usuário disser… | Skills, nesta ordem |
 |---|---|
 | corta pausas / tomadas / "limpa" | tomada → corte |
+| zoom nos cortes / "disfarça os cortes" / punch-in / câmera mais dinâmica | camera (depois de tomada e corte, antes de qualquer texto) |
 | legenda / "palavra por palavra" / "palavra destacada, igual TikTok" | legenda (estilo reels ou reels-palavra) |
 | gancho / "abre forte" | ganchos → lettering (titulo, pop) |
 | frase atrás de mim / palavra de impacto | texto-atras |
@@ -35,7 +36,7 @@ Se faltar algo que muda o resultado (ex.: música sim ou não), pergunte **uma**
 | música / trilha / "onde não falo põe música" | trilha |
 | efeitos sonoros / whoosh | efeitos |
 | igual esse vídeo | referencia primeiro |
-| "edição completa" (Reels) | tomada → corte → ganchos → lettering → legenda → trilha → efeitos → prova |
+| "edição completa" (Reels) | tomada → corte → camera → ganchos → lettering → legenda → trilha → efeitos (com o `.camera.json`) → prova |
 | "edição completa" (YouTube longo) | destaques → corte → lettering → legenda → trilha → prova |
 | "refaz a aula" / "cenário novo + diagramas animados" / "mais profissional, com capítulos" (aula gravada com quadro e IDE) | videoaula |
 | "mostra a partitura do que ele toca" / "exemplo tocado" / "notação com R e L" (bateria) | partitura (depois video-animado ou videoaula para montar) |
@@ -45,7 +46,7 @@ Se faltar algo que muda o resultado (ex.: música sim ou não), pergunte **uma**
 `originais/` (bruto intocado), `trabalho/<slug>/`, `saida/`, `legendas/`. Slug = nome curto do arquivo, sem espaço.
 
 ## 3. Execute com os gates
-Rode cada skill da lista. **Pare e mostre** antes de: descartar tomadas, queimar legenda (texto revisado), render longo (3D, texto-atrás, IA), tarjar dado sensível, usar vídeo de banco e entregar. Em vídeo com pessoa e texto na tela, a `/prova` roda a conferência de texto sobre o rosto (`rostos.py --conferir`). Entre etapas, uma linha de progresso em linguagem simples, no padrão do relatório abaixo.
+Rode cada skill da lista. **Pare e mostre** antes de: descartar tomadas, queimar legenda (texto revisado), aplicar a câmera (lista de planos), render longo (3D, texto-atrás, IA), tarjar dado sensível, usar vídeo de banco e entregar. Em vídeo com pessoa e texto na tela, a `/prova` roda a conferência de texto sobre o rosto (`rostos.py --conferir`). Entre etapas, uma linha de progresso em linguagem simples, no padrão do relatório abaixo.
 
 ## 4. Relatório de edição (sempre, ao final)
 ```

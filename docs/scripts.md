@@ -36,6 +36,7 @@ No stdout, a lista de descartes para revisão. Só usa a biblioteca padrão.
 ```bash
 bash scripts/render_spans.sh ENTRADA.mp4 TRECHOS.json SAIDA.mp4
 ```
+A saída mantém a taxa de quadros da entrada (filtro `fps` depois do `concat`; sem ele o ffmpeg 7 gravava 25 fps).
 Lê `keep` (lista de `[início, fim]` em segundos), recorta vídeo e áudio, aplica micro-fade de 20 ms no áudio (evita clique) e concatena **na ordem da lista**. Vídeo sem faixa de áudio (gravação de tela) também funciona; `keep` vazio aborta com mensagem. Por isso também serve para reordenar trechos, como trazer o gancho para o início.
 
 ## lettering_ass.py
@@ -187,6 +188,24 @@ uv run --with playwright python scripts/cena_web.py CENA.html --quadro T SAIDA.p
 uv run --with playwright python scripts/cena_web.py --libs
 ```
 Contrato da cena: `window.veQuadro = (t) => {...}` (obrigatório; pode devolver `Promise`, e só `Promise` de verdade é esperada: a timeline do GSAP tem `.then()` e travaria o render) e `window.veDuracao` (ou `--dur`). A página é servida de `http://cena.local/` por interceptação de requisição, sem abrir porta: arquivos ao lado do `.html` e as bibliotecas em `/_ve/three/` e `/_ve/gsap/`, baixadas do registro do npm na versão fixada, conferidas por sha256 e guardadas em `~/.cache/video-editores/web/`. Qualquer outra origem é bloqueada e vira `AVISO` no fim (`--rede` libera). Erro de JavaScript na cena encerra o render dizendo o quadro. `.mov` sai em ProRes 4444 (`yuva444p` com `--alpha`); `.mp4` usa `VE_ENCODER`. WebGL roda por software (SwiftShader). `VE_ESPERA_CENA` muda os 20 s de espera pelo `veQuadro`.
+
+## camera.py
+Câmera sobre o vídeo cortado, em dois passos. Planejar usa só a biblioteca padrão; aplicar usa OpenCV.
+```bash
+python3 scripts/camera.py VIDEO --cortes ARQ [--cortes ARQ2 ...] [--rostos ARQ.rostos.json] [--punches ARQ.json] \
+  [--fechado 1.18] [--deriva 0.03] [--olhos 0.38] [--min-plano 0.8] [--comeca aberto|fechado] [--seguir] [--out ARQ.camera.json]
+python3 scripts/camera.py VIDEO --cortes-em 3.2,7.9,12.4 [...]
+uv run --with opencv-python-headless --with numpy python scripts/camera.py VIDEO --aplicar ARQ.camera.json SAIDA.mp4
+```
+`--cortes` aceita o `.takes.json` (trechos `keep`, como o `render_spans.sh` os monta) e o JSON `--export v1` do auto-editor, na ordem em que as etapas rodaram; `VIDEO` é a saída da última. `<nome>.camera.json`: `planos[]` (`id`, `inicio`, `fim`, `plano`, `escala`, `deriva`, `foco` = `[x, y dos olhos]` em fração do quadro, `trilha` com `--seguir`), `punches[]` (`id`, `t`, `forca`, `dur`), `eventos[]` (`t`, `tipo` `corte`|`punch`, `forca`) para o `efeitos.py` e `avisos[]`. Avisa quando a soma dos quadros dos arquivos de corte não bate com o vídeo, quando um trecho é curto demais para trocar de plano, quando um punch cai em cima de um corte e quando a ampliação passa de 135%. `--punches`: `[{"t": 12.3, "forca": 0.06, "dur": 0.3, "texto": "…"}]`, no tempo de `VIDEO`.
+
+## efeitos.py
+Efeitos sonoros por evento, em dois passos. Só biblioteca padrão + ffmpeg.
+```bash
+python3 scripts/efeitos.py VIDEO --eventos ARQ [--eventos ARQ2 ...] [--sons PASTA] [--intervalo 2.0] [--ganho 0] [--out ARQ.sfx.json]
+python3 scripts/efeitos.py VIDEO --aplicar ARQ.sfx.json SAIDA.mp4
+```
+`--eventos`: `.camera.json` (`corte` → whoosh, `punch` → impacto), `textos.json` do lettering (`start` → pop) ou lista `[{"t", "som", "forca", "ganho", "alinhar", "arquivo"}]`. `<nome>.sfx.json`: `voz_lufs`, `itens[]` (`id`, `t`, `som`, `arquivo`, `alinhar`, `inicio` = onde o som começa no vídeo, `corte` = quanto do começo do arquivo é pulado, `ganho_db`; `"tira": true` exclui da mixagem) e `pulados[]` com o motivo. Sons sintetizados em `sfx/` ao lado do plano: whoosh, pop, clique, ding, impacto, riser. Nível: pico do efeito = loudness da voz + ajuste da categoria + `forca` + `ganho`, com teto de −3 dBFS; sem fala mensurável, assume −16 LUFS e avisa.
 
 ## rostos.py
 Onde está o rosto, e se algum texto passou por cima dele (papel `rosto`, padrão YuNet/OpenCV; o modelo de 230 KB é baixado uma vez para `~/.cache/video-editores/modelos/` e conferido por sha256; `VE_YUNET_MODELO` aponta um arquivo local).

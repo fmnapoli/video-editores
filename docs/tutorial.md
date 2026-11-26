@@ -55,7 +55,7 @@ Ele reaproveita a transcrição, **mostra as correções** de termos técnicos (
 
 > "Coloca a trilha musica.mp3 com ducking, e whoosh nas trocas de plano."
 
-A música abaixa sozinha quando você fala (sidechain). O loudness final fica em -14 LUFS, o alvo das redes. Os whooshes são sintetizados pelo ffmpeg, sem baixar nada.
+A música abaixa sozinha quando você fala (sidechain). O loudness final fica em -14 LUFS, o alvo das redes. Os whooshes são sintetizados pelo ffmpeg, sem baixar nada, e o pico de cada um cai no quadro da troca de plano. Se você pediu zoom nos cortes (`/camera`), o som entra só onde o plano muda.
 
 ## 7. Revisão — `/prova`
 

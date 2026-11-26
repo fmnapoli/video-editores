@@ -11,6 +11,7 @@ Invocação: `/video-editores:<nome>`, ou em linguagem natural (o Claude escolhe
 | checklist | vídeo + itens | `.ass`, `_checklist.mp4` | lista de itens | 10–20 s |
 | tela-dividida | 2 vídeos ou 1 | `_split.mp4` / vertical | prova | 20–60 s |
 | corte | vídeo | `_corte.mp4` | não (avisa se cortar > 45%) | 10–30 s |
+| camera | vídeo cortado + arquivos de corte (+ `.rostos.json`, + punches) | `.camera.json`, `_camera.mp4` | **sim**: lista de planos e punches | ~1× tempo real em 1080p |
 | tomada | vídeo | `.transcript.json`, `.takes.json`, `_tomada.mp4` | **sim**: lista de descartes | 1–2 min |
 | legenda | vídeo (+ transcrição) | `.srt`, `.words.srt`, `_legenda.mp4` | **sim**: texto revisado | 1–2 min |
 | referencia | link ou vídeo | `referencia.md`, cenas CSV, folha de contato | pergunta se aplica | 1–3 min |
@@ -20,7 +21,7 @@ Invocação: `/video-editores:<nome>`, ou em linguagem natural (o Claude escolhe
 | tela-verde | vídeo + fundo | `_fundo.mp4` | prova | 10 s (chroma) / minutos (IA) |
 | 3d | descrição | PNGs, `.mov` ProRes 4444 | **sim**: frame de teste | 1–10 min |
 | trilha | vídeo + música | `_trilha.mp4` | escolha da música | 10–20 s |
-| efeitos | vídeo | `_efeitos.mp4` | **sim**: lista de instantes | 10–30 s |
+| efeitos | vídeo + eventos (`.camera.json`, `textos.json`, lista) | `.sfx.json`, `_efeitos.mp4` | **sim**: lista de efeitos | 10–30 s |
 | ganchos | transcrição | 5 opções + recomendação | escolha | instantâneo |
 | prova | vídeo (+ etapa anterior, + roteiro) | `.proof.jpg`, `.preview.mp4`, `.proof.txt`, `.rosto-coberto.json`, `.fala.md` | entrega ao usuário | 10–20 s (+ transcrição, se conferir a fala) |
 | cena-web | descrição da cena (HTML) | `.mp4`, ou `.mov` ProRes 4444 com alpha | **sim**: quadros de teste | ~6 s por segundo de cena em 1080p |
@@ -107,8 +108,11 @@ Blender headless (`blender -b -P cena.py -a`). Sempre renderize um frame de test
 ## /trilha
 `sidechaincompress` abaixa a música durante a fala. Alvo: -14 LUFS (redes) ou -16 (docs). Fontes de música livres: FMA (CC0/CC-BY), Pixabay Music, YouTube Audio Library. Os pesos do MusicGen são **não comerciais**.
 
+## /camera
+`camera.py` calcula o quadro exato de cada corte a partir do `.takes.json` do `/tomada` e do JSON v1 do auto-editor (encadeados na ordem das etapas) e alterna plano aberto (100%) e fechado (`--fechado`, padrão 118%) a cada corte: o jump cut vira troca de enquadramento. Por baixo corre uma aproximação lenta (`--deriva`), e os punches (`--punches`) sobem em dois quadros e assentam freando. Com o `.rostos.json` do `rostos.py`, o plano fechado é enquadrado pelo rosto, com os olhos a 38% da altura (`--olhos`); `--seguir` acompanha a pessoa. O plano (`.camera.json`, `cam01`…) é revisável por número antes de aplicar. Vem antes de qualquer texto queimado. A saída tem a resolução da entrada; acima de 135% de ampliação o script avisa. Cada troca de plano e cada punch vira um evento para o `/efeitos`.
+
 ## /efeitos
-Instantes vindos de: trocas de plano (PySceneDetect), `start` dos letterings, revelações. Máximo de um efeito a cada 2–3 s. Os sons base (whoosh, pop, ding) são sintetizados pelo ffmpeg, sem baixar arquivos.
+`efeitos.py` recebe eventos (o `.camera.json`, o `textos.json` do `/lettering` e uma lista própria) e monta o plano `sfx01`…: mede em cada som o instante do pico da envoltória e põe **o pico** no evento (whoosh, impacto, riser) ou o começo (pop, clique, ding); o nível de cada efeito sai do loudness da voz do próprio vídeo, com teto em −3 dBFS; sons automáticos do mesmo tipo respeitam `--intervalo` (2 s). Sons sintetizados pelo ffmpeg, ou a pasta do usuário por categoria (`--sons`), alternando arquivos sem repetir o mesmo em 20 s. Corte sem troca de plano não ganha som. O plano é revisável por número antes da mixagem; o vídeo é copiado sem recodificar.
 
 ## /ganchos
 5 padrões: resultado primeiro, erro comum, contraste, pergunta específica, prova visual. No máximo ~12 palavras (≈ 3 s). O vídeo precisa cumprir a promessa do gancho.

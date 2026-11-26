@@ -10,6 +10,8 @@ Para quem não edita e quer saber pedir. Cada termo com o que significa e a skil
 | **Renderizar** | Transformar a descrição da cena (código) no arquivo de vídeo | Manim, Blender, Chrome sem janela (`/cena-web`) e ffmpeg, conforme a skill |
 | **Transcrição** | O texto da fala com o instante de cada palavra; é por ela que o corte cai entre palavras | `/tomada`, `/legenda`, `/destaques` (`transcribe.py`) |
 | **EDL** (lista de cortes) | A lista de trechos que ficam, com início e fim; o vídeo é montado a partir dela | `/tomada` (`.takes.json`), `/corte` (`--export`), `/videoaula` |
+| **Jump cut** | O salto que aparece quando se tira um pedaço do meio de uma fala gravada no mesmo enquadramento | `/camera` troca o plano em cada corte para o salto virar mudança de enquadramento |
+| **Punch-in** | Zoom curto e rápido numa palavra, para dar ênfase | `/camera` (`--punches`) |
 | **Recorte** (matte) | Separar a pessoa do fundo, sem tela verde | `/texto-atras`, `/tela-verde`, `/videoaula` |
 | **Rastreamento** (tracking) | Calcular, quadro a quadro, onde um objeto está, para um texto andar junto com ele | `/rastrear` |
 | **OCR** | Ler o texto que está numa imagem e saber onde cada palavra fica | `/ler-tela` |
