@@ -5,7 +5,7 @@ set -euo pipefail
 # shellcheck source=tests/_plataforma.sh
 . "$(dirname "$0")/_plataforma.sh"
 ROOT="$(caminho "$(cd "$(dirname "$0")/.." && pwd)")"
-T="$(tmpdir)"; trap 'rm -rf "$T"' EXIT
+T="$(tmpdir)"; trap 'rm -rf "$T" || true' EXIT
 cd "$T"
 pass() { printf '  \033[32m✔\033[0m %s\n' "$1"; }
 export PYTHONPATH="$ROOT"
@@ -223,7 +223,7 @@ sobe_stub() {  # sobe_stub NOME [args]: servidor falso numa porta livre; URL em 
   [[ -s "$d/porta" ]] || { echo "servidor ComfyUI falso ($d) não subiu:"; cat "$d/log"; exit 1; }
   URL="http://127.0.0.1:$(cat "$d/porta")"
 }
-trap 'kill "${STUB_PIDS[@]}" 2>/dev/null || true; rm -rf "$T"' EXIT
+trap 'kill "${STUB_PIDS[@]}" 2>/dev/null && wait "${STUB_PIDS[@]}" 2>/dev/null || true; rm -rf "$T" || true' EXIT
 export VE_COMFYUI_POLL=0.05
 sobe_stub ok
 VE_COMFYUI_URL=$URL python3 -m video_editores.cli gerar-imagem --conferir > conferir.json

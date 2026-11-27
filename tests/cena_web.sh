@@ -6,7 +6,7 @@ set -euo pipefail
 # shellcheck source=tests/_plataforma.sh
 . "$(dirname "$0")/_plataforma.sh"
 ROOT="$(caminho "$(cd "$(dirname "$0")/.." && pwd)")"
-T="$(tmpdir)"; trap 'rm -rf "$T"' EXIT
+T="$(tmpdir)"; trap 'rm -rf "$T" || true' EXIT
 cd "$T"
 pass() { printf '  \033[32m✔\033[0m %s\n' "$1"; }
 WEB=(uv run --quiet --with playwright python "$ROOT/scripts/cena_web.py")

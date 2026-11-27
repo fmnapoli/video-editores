@@ -6,7 +6,7 @@ set -euo pipefail
 . "$(dirname "$0")/_plataforma.sh"
 ROOT="$(caminho "$(cd "$(dirname "$0")/.." && pwd)")"
 P="$ROOT/skills/partitura/scripts"
-T="$(tmpdir)"; trap 'rm -rf "$T"' EXIT
+T="$(tmpdir)"; trap 'rm -rf "$T" || true' EXIT
 cd "$T"
 pass() { printf '  \033[32m✔\033[0m %s\n' "$1"; }
 PART=(uv run --quiet --with verovio --with resvg-py --with pillow python -I "$P/partitura.py")

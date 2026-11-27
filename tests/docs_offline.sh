@@ -5,7 +5,7 @@ set -euo pipefail
 # shellcheck source=tests/_plataforma.sh
 . "$(dirname "$0")/_plataforma.sh"
 ROOT="$(caminho "$(cd "$(dirname "$0")/.." && pwd)")"
-T="$(tmpdir)"; trap 'rm -rf "$T"' EXIT
+T="$(tmpdir)"; trap 'rm -rf "$T" || true' EXIT
 cp -r "$ROOT/exemplos/video-docs/." "$T/"
 cd "$T"
 bash ./gerar-bruto.sh >/dev/null

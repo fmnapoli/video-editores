@@ -11,7 +11,7 @@ ROOT="$(caminho "$(cd "$(dirname "$0")/.." && pwd)")"
 S="$ROOT/scripts"
 T="$(tmpdir)"
 STUB_PID=""
-trap '[[ -n "$STUB_PID" ]] && kill "$STUB_PID" 2>/dev/null || true; rm -rf "$T"' EXIT
+trap '[[ -n "$STUB_PID" ]] && kill "$STUB_PID" 2>/dev/null && wait "$STUB_PID" 2>/dev/null || true; rm -rf "$T" || true' EXIT
 cd "$T"
 pass() { printf '  \033[32m✔\033[0m %s\n' "$1"; }
 export PYTHONPATH="$ROOT/tests/stub:$ROOT"

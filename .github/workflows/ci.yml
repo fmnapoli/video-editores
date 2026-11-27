@@ -72,14 +72,21 @@ jobs:
           BIN="$(cygpath -w "$(dirname "$(find "$RUNNER_TEMP/ffmpeg" -name ffmpeg.exe | head -1)")")"
           echo "$BIN" >> "$GITHUB_PATH"
           "$BIN/ffmpeg.exe" -hide_banner -filters | grep -E ' (ass|subtitles) '
-      - name: fonte DejaVu
+      - name: fonte DejaVu (instalação por usuário, como o "Instalar" do Explorer; sem Chocolatey)
+        shell: pwsh
         run: |
-          # o feed do Chocolatey responde 503/504 de vez em quando: tenta de novo antes de desistir
-          for n in 1 2 3 4; do
-            choco install -y --no-progress dejavufonts && break
-            echo "choco falhou (tentativa $n)"; sleep 30
-          done
-          ls "$WINDIR/Fonts" | grep -i dejavusans-bold
+          $zip = "$env:RUNNER_TEMP\dejavu.zip"
+          Invoke-WebRequest "https://github.com/dejavu-fonts/dejavu-fonts/releases/download/version_2_37/dejavu-fonts-ttf-2.37.zip" -OutFile $zip
+          Expand-Archive $zip "$env:RUNNER_TEMP\dejavu"
+          $dest = "$env:LOCALAPPDATA\Microsoft\Windows\Fonts"
+          $chave = "HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Fonts"
+          New-Item -ItemType Directory -Force $dest | Out-Null
+          if (-not (Test-Path $chave)) { New-Item -Force $chave | Out-Null }
+          $nomes = @{ "DejaVuSans.ttf" = "DejaVu Sans (TrueType)"; "DejaVuSans-Bold.ttf" = "DejaVu Sans Bold (TrueType)" }
+          foreach ($f in $nomes.Keys) {
+            Copy-Item (Get-ChildItem "$env:RUNNER_TEMP\dejavu" -Recurse -Filter $f).FullName $dest
+            New-ItemProperty -Path $chave -Name $nomes[$f] -Value "$dest\$f" -PropertyType String -Force | Out-Null
+          }
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
