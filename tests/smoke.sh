@@ -218,6 +218,63 @@ python3 -c "import json; k=json.load(open('hl.highlights.json'))['keep']; assert
 python3 "$S/highlights.py" hl.transcript.json --reels 2 --reel-len 4 --min-block 2 --out r.json >/dev/null
 python3 -c "import json; k=json.load(open('r.json'))['keep']; assert len(k)==2 and all(abs((e-s)-4)<0.05 for s,e in k), k"
 pass "highlights.py: corte por alvo e modo reels"
+
+# backbone.py: arco em 7 etapas. Fala sintética com as sete, com o método gravado antes da causa
+python3 - <<'PY'
+import json
+segs = []
+def seg(t0, text):
+    segs.append({"start": t0, "end": round(t0 + len(text.split()) * 0.35, 2), "text": text})
+seg(0.5, "O problema é que todo vídeo longo perde gente no meio, e isso frustra quem grava.")
+seg(8.0, "Você já gravou uma aula inteira e viu a retenção cair pela metade, comigo foi igual.")
+seg(16.0, "Primeiro passo, corte as pausas. Segundo, legenda. Em seguida, um gancho no começo.")
+seg(24.0, "Isso acontece porque a pesquisa mostra que a atenção cai depois de oito segundos.")
+seg(32.0, "A solução é editar pensando no arco, e funciona porque cada trecho responde uma pergunta.")
+seg(40.0, "Um aluno fez isso e o resultado foi dobrar o alcance, você consegue também.")
+seg(48.0, "Resumindo, então é isso, compartilhe e até a próxima.")
+json.dump({"duration": 54, "segments": segs}, open("arco.transcript.json", "w", encoding="utf-8"), ensure_ascii=False)
+PY
+python3 "$S/backbone.py" blocos arco.transcript.json >/dev/null
+set +e; python3 "$S/backbone.py" relatorio arco.backbone.json 2>/dev/null; RC=$?; set -e
+[[ $RC == 2 ]] || { echo "plano com etapa vazia devia sair com 2 (saiu $RC)"; exit 1; }
+python3 - "$S" <<'PY'
+import json, subprocess, sys
+S = sys.argv[1]
+def roda(*a):
+    return subprocess.run([sys.executable, f"{S}/backbone.py", *a], capture_output=True, text=True, encoding="utf-8")
+p = json.load(open("arco.backbone.json", encoding="utf-8"))
+ordem = ["desafio", "identificacao", "metodo", "causa", "solucao", "motivacao", "conclusao"]
+assert [b["sugestao"] for b in p["blocos"]] == ordem, [b["sugestao"] for b in p["blocos"]]   # a heurística acerta o caso claro
+assert all(b["etapa"] is None for b in p["blocos"]) and len(p["etapas"]) == 7
+for b, e in zip(p["blocos"], ordem):
+    b["etapa"] = e
+json.dump(p, open("arco.backbone.json", "w", encoding="utf-8"), ensure_ascii=False)
+r = json.loads(roda("relatorio", "arco.backbone.json", "--json").stdout)
+assert r["ausentes"] == [] and r["inversoes"] == [["metodo", "causa"], ["metodo", "solucao"]], r
+md = open("arco.backbone.md", encoding="utf-8").read()
+assert "Método aparece antes de Causa" in md and "| Conclusão | sim | 1 |" in md
+# corte: uma de cada etapa; ordem da gravação por padrão, ordem do arco (com aviso de inversão) sob --reordenar
+assert roda("montar", "arco.backbone.json", "--target", "40").returncode == 0
+k = json.load(open("arco.backbone.keep.json", encoding="utf-8"))
+assert len(k["keep"]) == 7 and k["ordem"] == "gravacao" and k["invertidos"] == [] and k["keep"] == sorted(k["keep"]), k
+x = roda("montar", "arco.backbone.json", "--target", "40", "--reordenar", "--out", "arco.r.json")
+kr = json.load(open("arco.r.json", encoding="utf-8"))
+assert [b["etapa"] for b in kr["blocos"]] == ["desafio", "identificacao", "causa", "solucao", "metodo", "motivacao", "conclusao"]
+assert kr["invertidos"] == [[5, 3]] and "foi gravado antes" in x.stderr, (kr["invertidos"], x.stderr)
+# etapa que falta e bloco fora do arco aparecem no relatório; etapa desconhecida é recusada
+p["blocos"][3]["etapa"] = "fora"; p["blocos"][6]["etapa"] = "fora"
+json.dump(p, open("falta.backbone.json", "w", encoding="utf-8"), ensure_ascii=False)
+r = json.loads(roda("relatorio", "falta.backbone.json", "--json").stdout)
+assert r["ausentes"] == ["causa", "conclusao"] and r["duracao_fora"] > 5, r
+assert "**Etapas ausentes:** Causa, Conclusão" in open("falta.backbone.md", encoding="utf-8").read()
+assert roda("montar", "falta.backbone.json", "--target", "40").returncode == 0
+kf = json.load(open("falta.backbone.keep.json", encoding="utf-8"))
+assert len(kf["keep"]) == 5 and all(b["etapa"] not in ("causa", "conclusao", "fora") for b in kf["blocos"]), kf
+p["blocos"][0]["etapa"] = "abertura"
+json.dump(p, open("ruim.backbone.json", "w", encoding="utf-8"), ensure_ascii=False)
+assert roda("relatorio", "ruim.backbone.json").returncode != 0
+PY
+pass "backbone.py: sugestão por etapa, plano vazio recusado, relatório (ausentes, inversões), corte por etapa na ordem da gravação e do arco"
 python3 "$S/checklist_ass.py" in.mp4 itens.json hl.transcript.json --burn out_check.mp4 2>erros.txt >/dev/null
 grep -q "Sem gatilho" erros.txt && grep -c "Dialogue" itens.ass | grep -q "^5$" && test -s out_check.mp4
 pass "checklist_ass.py: 2 itens no tempo da fala, 1 sem gatilho avisado"

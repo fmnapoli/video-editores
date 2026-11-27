@@ -86,6 +86,14 @@ python3 scripts/highlights.py VIDEO.transcript.json --reels 3 --reel-len 45
 ```
 Saídas: `<nome>.highlights.json` (`keep` para o `render_spans.sh`, mais `blocks` com pontuação) e `<nome>.highlights.md` (tabela legível; trechos escolhidos em negrito). Heurística determinística; a decisão final é do Claude com o usuário.
 
+## backbone.py
+```bash
+python3 scripts/backbone.py blocos VIDEO.transcript.json [--gap 1.2] [--min-block 3] [--max-block 45] [--keywords "a,b"] [--out ARQ]
+python3 scripts/backbone.py relatorio ARQ.backbone.json [--json] [--usar-sugestao]
+python3 scripts/backbone.py montar ARQ.backbone.json --target 90 [--reordenar] [--pesos "metodo=0.4,causa=0.1"] [--pad 0.15] [--out ARQ]
+```
+Arco narrativo em sete etapas (`desafio`, `identificacao`, `causa`, `solucao`, `metodo`, `motivacao`, `conclusao`; estrutura "Backbone", de Letícia Pacheco). `blocos` grava `<nome>.backbone.json`: cada bloco com `sugestao` e `confianca` (palavras-marcadoras e posição no vídeo), `pontos` (a pontuação do `highlights.py`) e `etapa` vazia, para quem lê preencher com uma chave ou `fora`. `relatorio` grava `<nome>.backbone.md` (etapas ausentes, duração e fração por etapa, inversões de ordem, etapa com mais de 50% ou menos de 3% do arco); `--json` imprime o resumo. `montar` grava `<nome>.backbone.keep.json` para o `render_spans.sh`: o melhor bloco de cada etapa entra sempre, os demais enquanto couberem na fração do alvo daquela etapa (pesos padrão: método 28%, causa e solução 15%, desafio e identificação 12%, motivação 10%, conclusão 8%), e o que uma etapa não usa passa para a seguinte. Plano com `etapa` vazia é recusado com código 2, a menos de `--usar-sugestao`.
+
 ## checklist_ass.py
 ```bash
 python3 scripts/checklist_ass.py VIDEO itens.json VIDEO.transcript.json [--side left|right] [--start S] [--end S] [--font F] [--accent "#FF6B35"] [--burn SAIDA.mp4]

@@ -5,7 +5,7 @@ Plugin do Claude Code que transforma a IA na sua editora de vídeo: **27 skills*
 | Skill | O que faz | Ferramenta |
 |---|---|---|
 | **`/editar`** | Pedido livre → plano → execução com gates → relatório de edição | orquestra os demais |
-| `/destaques` | Melhores momentos de vídeo longo (aula 2 h → 10 min; N reels) | faster-whisper + `highlights.py` |
+| `/destaques` | Melhores momentos de vídeo longo (aula 2 h → 10 min; N reels) e arco narrativo em 7 etapas (o que falta, corte com começo, meio e fim) | faster-whisper + `highlights.py`, `backbone.py` |
 | `/checklist` | Itens com moldura que entram no instante em que são falados | `checklist_ass.py` |
 | `/tela-dividida` | Reação, antes/depois, 16:9 → 9:16 e 1:1 | ffmpeg vstack/crop |
 | `/corte` | Corta silêncio e tempo morto | auto-editor |
