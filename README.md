@@ -41,7 +41,7 @@ Por baixo das skills há um núcleo que funciona **sem o Claude**: a CLI `video-
 ## Instalação rápida
 
 ```bash
-# dependências base (detalhes e macOS/Windows em docs/instalacao.md)
+# dependências base no Ubuntu (macOS e Windows nativo pelo Git Bash: docs/instalacao.md)
 sudo apt install ffmpeg fonts-dejavu-core
 curl -LsSf https://astral.sh/uv/install.sh | sh
 uv tool install auto-editor && uv tool install yt-dlp && uv tool install scenedetect
@@ -118,7 +118,7 @@ make lint           # shellcheck + ruff
 make docs-example   # exemplo do video-docs (precisa de internet para o edge-tts)
 ```
 
-CI em `.github/workflows/ci.yml` roda lint, smoke e o teste offline do video-docs em Linux e macOS a cada push.
+CI em `.github/workflows/ci.yml` roda lint, smoke e o teste offline do video-docs em Linux, macOS e Windows (Git Bash) a cada push.
 
 ## Licença
 

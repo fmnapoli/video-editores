@@ -9,6 +9,11 @@
 | skills não aparecem no `/` | plugin não instalado ou Claude Code não reiniciado | `claude plugin list`; reinstale e reinicie |
 | `${CLAUDE_PLUGIN_ROOT}` vazio | skills copiados sem o plugin | `export CLAUDE_PLUGIN_ROOT=~/src/video-editores` |
 | `uv: command not found` | uv não instalado | `curl -LsSf https://astral.sh/uv/install.sh \| sh` e abra outro terminal |
+| Windows: `python3: command not found`, ou abre a Microsoft Store | o instalador do python.org só cria `python` | `cp "$(command -v python)" "$(dirname "$(command -v python)")/python3.exe"` |
+| Windows: `$'\r': command not found` ao rodar um `.sh` | o repositório foi clonado com fim de linha CRLF (antes da 0.17.0, ou com `.gitattributes` ignorado) | atualize o plugin para a 0.17.0 ou mais nova (o `.gitattributes` força LF) e clone de novo |
+| Windows: acentos trocados (`Ã§`, `Ã£`) em legenda, roteiro ou JSON | Python em cp1252 | `setx PYTHONUTF8 1` e reabra o terminal |
+| Windows: `Unable to parse option value` ou `No such file` em `subtitles=`/`ass=` escrito à mão | os dois-pontos de `C:` dentro do filtro | caminho relativo, ou `subtitles='C\:/Users/eu/video.srt'` |
+| Windows: `bash não encontrado` pela CLI ou pelo servidor MCP | o Git for Windows não está instalado (o `bash.exe` de `System32` é do WSL e é ignorado) | instale o Git for Windows, ou aponte `VE_BASH` para o `bash.exe` dele |
 
 ## Integração com outros agentes (`integrar`)
 

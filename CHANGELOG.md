@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.17.0 — 2026-11-27
+Windows nativo pelo Git Bash (ADR-21). Até aqui o plugin só rodava no Windows dentro do WSL2. Nada muda em Linux e macOS.
+- **Roda no Git Bash**, o shell em que o Claude Code executa os comandos no Windows, com Python e ffmpeg nativos. PowerShell e cmd sozinhos continuam fora: os scripts são bash. Instalação em `docs/instalacao.md` (seção "Windows nativo").
+- **`scripts/_py.sh`**: os `.sh` do produto (`proof.sh`, `render_spans.sh`, `finalizar.sh`, `matte_workers.sh`) passam a resolver `python3` ou `python` (o instalador do python.org só cria o segundo, e `python3` pode ser o atalho da Microsoft Store, que não roda nada) e a tirar o `\r` da saída de Python e ffprobe capturada em `$(...)`.
+- **`video_editores/nucleo/fontes.py`**: um lugar só para achar o TTF de uma fonte instalada. Usa o fontconfig quando existe; no Windows, o registro de fontes (máquina e usuário); por último, o nome do arquivo nas pastas de fontes. `build.py`, `validar_marca.py` e `tocar.py` passam a usá-lo; `partitura.py`, `identidade.py` e `publicar_aula.py` ganharam os caminhos do Windows.
+- **Caminho em filtro do ffmpeg**: as três cópias de `ffesc` (`lettering_ass.py`, `checklist_ass.py`, `build.py`) e o escape do `marca_cli.fontsdir` saíram; fica o do núcleo (`nucleo/ass.py`), que no Windows grava `C:/...` com barra normal.
+- **Tarefas em segundo plano** (`--fundo`, servidor MCP): o invólucro que grava o código de saída era `bash -c` e virou Python, porque o servidor MCP pode subir fora do Git Bash. No Windows o cancelamento é `taskkill /T` e a checagem de vida deixou de usar `os.kill(pid, 0)`, que lá entrega um Ctrl+C em vez de só testar.
+- **`catalogo.bash()`**: no Windows a CLI procura o `bash.exe` do Git for Windows e ignora o de `System32`, que é o lançador do WSL. `VE_BASH` aponta outro.
+- **Codificação**: `PYTHONUTF8=1` nos scripts `.sh` e nas operações lançadas pela CLI; os scripts em modo isolado (`python -I`, que ignora a variável) rodam com `-X utf8`. Sem isso o Python do Windows lia e escrevia em cp1252.
+- **Correção — `cena_web.py`**: a cena respondia 404 no Windows (a URL virava `\cena.html`).
+- **Correção — `extrair_marca.py`** (`/marca`): o `marca.json` gravado no Windows saía com `fontes\Arquivo.ttf`; agora é sempre barra normal, e o arquivo vale em qualquer sistema.
+- **`doctor.sh`**: no Windows indica os comandos do `winget`, confere se `python3` roda de verdade (e dá o comando do atalho), cobra `PYTHONUTF8=1` e checa a fonte pelo registro.
+- **`.gitattributes`**: fim de linha LF em qualquer sistema. Com o `core.autocrlf=true` padrão do Git for Windows os `.sh` chegavam com CRLF e o bash não os executava.
+- **CI**: job `windows-latest` com as seis suítes (smoke, núcleo, video-docs offline, partitura, visão, cena-web), todas passando. `tests/_plataforma.sh` concentra o que muda nos testes (caminho `C:/...`, `\r`, separador do `PYTHONPATH`).
+- Limites: validado no runner do GitHub (Windows Server, Python 3.12, ffmpeg do gyan.dev), não numa máquina de uso diário nem dentro do Claude Code no Windows. Manim, Blender e GPU não são testados lá. As skills ainda escrevem `python3` nos comandos: no Windows depende do atalho que o doctor indica.
+
 ## 0.16.0 — 2026-11-25
 Câmera sobre o corte e efeitos sonoros por evento (ADR-20), a partir da avaliação de um fluxo de edição de vídeo falado para YouTube.
 - **Skill `/camera`** (com ela são 27) e **`scripts/camera.py`** (operação `camera`): alterna plano aberto e fechado a cada corte, para o jump cut virar troca de enquadramento; aproximação lenta em cada plano; punch na palavra de ênfase (sobe em dois quadros e assenta freando); plano fechado enquadrado pelo rosto (`rostos.py`), com os olhos a 38% da altura, e `--seguir` para acompanhar a pessoa. O quadro de cada corte é calculado do `.takes.json` do `/tomada` e do JSON v1 do auto-editor, encadeados na ordem das etapas. Dois passos: planejar (`.camera.json`, `cam01`…, só biblioteca padrão) e `--aplicar` (OpenCV). Avisa quando os arquivos de corte não são os do vídeo, quando um punch cai sobre um corte e quando a ampliação passa de 135%.
