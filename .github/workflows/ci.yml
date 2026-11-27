@@ -63,14 +63,23 @@ jobs:
       PYTHONUTF8: "1"
     steps:
       - uses: actions/checkout@v4
-      - name: ffmpeg (build com libass) e fonte DejaVu
+      - name: ffmpeg (build do gyan.dev, com libass; a mesma do `winget install Gyan.FFmpeg`)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download --repo GyanD/codexffmpeg --pattern '*-essentials_build.zip' --output "$RUNNER_TEMP/ffmpeg.zip"
+          unzip -q "$RUNNER_TEMP/ffmpeg.zip" -d "$RUNNER_TEMP/ffmpeg"
+          BIN="$(cygpath -w "$(dirname "$(find "$RUNNER_TEMP/ffmpeg" -name ffmpeg.exe | head -1)")")"
+          echo "$BIN" >> "$GITHUB_PATH"
+          "$BIN/ffmpeg.exe" -hide_banner -filters | grep -E ' (ass|subtitles) '
+      - name: fonte DejaVu
         run: |
           # o feed do Chocolatey responde 503/504 de vez em quando: tenta de novo antes de desistir
           for n in 1 2 3 4; do
-            choco install -y --no-progress ffmpeg dejavufonts && command -v ffmpeg && break
+            choco install -y --no-progress dejavufonts && break
             echo "choco falhou (tentativa $n)"; sleep 30
           done
-          ffmpeg -hide_banner -filters | grep -E ' (ass|subtitles) '
+          ls "$WINDIR/Fonts" | grep -i dejavusans-bold
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
