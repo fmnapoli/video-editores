@@ -39,7 +39,7 @@ def _raiz_pacote(arquivo):
 
 
 sys.path.insert(0, os.environ.get("VE_PKG_DIR") or _raiz_pacote(__file__))
-from video_editores.nucleo import audio  # noqa: E402
+from video_editores.nucleo import audio, fontes  # noqa: E402
 from video_editores.nucleo import ffmpeg as ffm  # noqa: E402
 
 SR, W, H = 48000, 1920, 1080
@@ -72,7 +72,7 @@ def fonte_padrao(peso="700"):
               "/Library/Fonts/Arial Bold.ttf", "/System/Library/Fonts/Supplemental/Arial Bold.ttf"):
         if os.path.exists(c):
             return c
-    return None
+    return fontes.arquivo("DejaVu Sans", "bold") or fontes.arquivo("Arial", "bold")   # Windows e instalações fora do padrão
 
 
 def fonte(caminho, tamanho):

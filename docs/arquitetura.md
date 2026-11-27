@@ -125,6 +125,12 @@ Quatro camadas (0.5.0):
 - **Não adotado da referência:** HyperFrames (segue o ADR-19), entrega por XML para o Premiere e serviço pago de efeitos sonoros (fora do "sem SaaS"); a skill geradora de skills (o plugin entrega as skills prontas). Ficam para versões futuras: mapa de motion antes de animar, estado por vídeo com caderno de aprendizados e perfil de gosto, e medição de curvas de movimento no `/referencia`.
 - **Consequência:** 27 skills. A câmera recodifica o vídeo uma vez a mais e vem antes de todo texto queimado. Os níveis dos efeitos são calculados (calibrados contra os picos de voz de uma gravação real), não validados de ouvido. Achado no caminho: o `render_spans.sh` gravava 25 fps no ffmpeg 7 a partir de qualquer taxa (corrigido).
 
+### ADR-21 — Windows nativo pelo Git Bash (0.17.0)
+- **Contexto:** o plugin só rodava no Windows dentro do WSL2. Os scripts são bash e contavam com `python3`, fontconfig e caminhos POSIX.
+- **Decisão:** suportar o Git Bash, que é o shell em que o Claude Code executa comandos no Windows, com Python e ffmpeg nativos. Os scripts continuam em bash; o que dependia de plataforma foi concentrado em poucos pontos: `scripts/_py.sh` (interpretador e `\r`), `nucleo/fontes.py` (fontconfig, registro do Windows ou nome do arquivo), `nucleo/ass.ffesc` (um escape só, com barra normal no Windows), `catalogo.bash()` (o bash do Git, não o lançador do WSL) e `tarefas.py` (invólucro em Python, `taskkill`). Codificação por `PYTHONUTF8=1` e `-X utf8`, não por `encoding=` em cada `open`.
+- **Não adotado:** portar os `.sh` para Python e rodar em PowerShell/cmd (atenderia outros agentes no Windows, mas mexeria em todas as skills); trocar `python3` por `uv run python` nas skills (310 ocorrências e uma partida mais lenta por comando).
+- **Consequência:** job `windows-latest` no CI com as seis suítes. No Windows o usuário faz dois ajustes uma vez (atalho `python3` e `PYTHONUTF8=1`), que o `doctor.sh` cobra. Manim, Blender e GPU ficam sem teste lá.
+
 ## Fluxo de dados
 
 ```
@@ -164,7 +170,7 @@ padroes.json ─ partitura.py (MusicXML → Verovio → resvg) ─→ partituras
 - `render_spans.sh` mantém a taxa de quadros; `camera.py` acha o quadro de cada corte (uma e duas etapas), alterna os planos e avisa punch sobre corte; `efeitos.py` põe o pico de cada som no evento (medido no áudio mixado);
 - sintaxe de todos os scripts, frontmatter dos 27 skills e manifestos JSON.
 
-`tests/docs_offline.sh` roda o montador do `video-docs` de ponta a ponta com um stub do edge-tts (`tests/stub/edge_tts.py`), então o maior script do repositório também é coberto no CI, em Linux e macOS.
+`tests/docs_offline.sh` roda o montador do `video-docs` de ponta a ponta com um stub do edge-tts (`tests/stub/edge_tts.py`), então o maior script do repositório também é coberto no CI, em Linux, macOS e Windows.
 
 `tests/partitura.sh` roda a `/partitura` de ponta a ponta com os pacotes reais via uv (Verovio + resvg para a notação; numpy + scipy para a síntese): tamanhos dos cartões, notas e tempos com posição, acentos e manulação, erros de grade, e o exemplo tocado com vídeo e wav da mesma duração no grid de quadros, AAC a 48 kHz, pico real ≤ −1,5 dBTP e síntese determinística.
 

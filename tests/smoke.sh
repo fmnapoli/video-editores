@@ -2,9 +2,11 @@
 # Teste de fumaça: gera um vídeo sintético e roda os scripts que não dependem de modelos de IA.
 # Uso: tests/smoke.sh        (só precisa de ffmpeg e python3)
 set -euo pipefail
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck source=tests/_plataforma.sh
+. "$(dirname "$0")/_plataforma.sh"
+ROOT="$(caminho "$(cd "$(dirname "$0")/.." && pwd)")"
 S="$ROOT/scripts"
-T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
+T="$(tmpdir)"; trap 'rm -rf "$T" || true' EXIT
 cd "$T"
 pass() { printf '  \033[32m✔\033[0m %s\n' "$1"; }
 
@@ -222,7 +224,7 @@ pass "checklist_ass.py: 2 itens no tempo da fala, 1 sem gatilho avisado"
 
 # identidade do projeto (ADR-17): com marca/marca.json, lettering, checklist e legenda por palavra usam fonte e cores
 # da marca; argumento explícito vence; --marca nao volta ao padrão do script
-FD=$(dirname "$(fc-match -f '%{file}' 'DejaVu Sans:bold' 2>/dev/null || echo /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf)")
+FD=$(caminho "$(pasta_da_fonte "DejaVu Sans" bold)")
 mkdir -p marca && cat > marca/marca.json <<JSON
 {"nome": "Teste", "cores": {"fundo": "#0B2545", "acento": "#2DD4BF", "texto": "#F8FAFC"},
  "fonte": {"familia": "Marca Sans", "arquivos": {"bold": "$FD/DejaVuSans-Bold.ttf"}},

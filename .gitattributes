@@ -1,0 +1,7 @@
+# Fim de linha LF em qualquer sistema. No Windows o Git vem com core.autocrlf=true e entregaria os .sh com
+# CRLF, que o bash não executa ("$'\r': command not found").
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.mp4 binary
+*.ttf binary

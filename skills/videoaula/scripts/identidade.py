@@ -34,7 +34,8 @@ FD = os.path.expanduser(cfg.get("fonte_dir", "~/.local/share/fonts/inter"))
 
 def font(w, size):
     da_marca = None if "fonte_dir" in cfg else marca_aula.fonte_arquivo(MARCA, w)
-    for cand in (da_marca, f"{FD}/Inter-{w}.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"):
+    for cand in (da_marca, f"{FD}/Inter-{w}.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+                     os.path.join(os.environ.get("WINDIR", r"C:\Windows"), "Fonts", "DejaVuSans-Bold.ttf")):
         if cand and os.path.exists(cand): return ImageFont.truetype(cand, size)
     return ImageFont.load_default()
 

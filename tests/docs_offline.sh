@@ -2,8 +2,10 @@
 # Roda o montador do video-docs de ponta a ponta sem internet, com um stub do edge-tts.
 # Uso: tests/docs_offline.sh   (precisa de ffmpeg com libass, uv e fonte DejaVu Sans Bold)
 set -euo pipefail
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
+# shellcheck source=tests/_plataforma.sh
+. "$(dirname "$0")/_plataforma.sh"
+ROOT="$(caminho "$(cd "$(dirname "$0")/.." && pwd)")"
+T="$(tmpdir)"; trap 'rm -rf "$T" || true' EXIT
 cp -r "$ROOT/exemplos/video-docs/." "$T/"
 cd "$T"
 bash ./gerar-bruto.sh >/dev/null

@@ -24,6 +24,7 @@ def _raiz_pacote(arquivo):
 
 sys.path.insert(0, os.environ.get("VE_PKG_DIR") or _raiz_pacote(__file__))
 from video_editores.nucleo import marca as M  # noqa: E402
+from video_editores.nucleo.ass import ffesc  # noqa: E402
 
 
 def add_arg(ap):
@@ -46,8 +47,7 @@ def fontsdir(m):
     d = m.fontes_dir() if m.definida else None
     if not d:
         return ""
-    esc = d.replace("\\", "\\\\").replace("'", "\\'").replace(":", "\\:").replace(",", "\\,")
-    return f":fontsdir='{esc}'"
+    return f":fontsdir={ffesc(d)}"
 
 
 def force_style(m, tamanho=22, margem=60):

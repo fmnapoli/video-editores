@@ -4,12 +4,14 @@
 # Uso: proof.sh VIDEO.mp4 [N_FRAMES=12]
 set -euo pipefail
 IN="$1"; N="${2:-12}"
+# shellcheck source=scripts/_py.sh
+. "$(cd "$(dirname "$0")" && pwd)/_py.sh"   # VE_PY, py e sonda (python3 ou python; saída sem \r no Windows)
 BASE="${IN%.*}"
-DUR=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$IN")
-[[ "$DUR" =~ ^[0-9.]+$ ]] || DUR=$(ffprobe -v error -select_streams v:0 -show_entries stream=duration -of default=nw=1:nk=1 "$IN")
+DUR=$(sonda -v error -show_entries format=duration -of default=nw=1:nk=1 "$IN")
+[[ "$DUR" =~ ^[0-9.]+$ ]] || DUR=$(sonda -v error -select_streams v:0 -show_entries stream=duration -of default=nw=1:nk=1 "$IN")
 [[ "$DUR" =~ ^[0-9.]+$ && "$N" =~ ^[0-9]+$ && "$N" -gt 0 ]] || { echo "duração ($DUR) ou N ($N) inválidos" >&2; exit 2; }
 COLS=4; ROWS=$(( (N + COLS - 1) / COLS ))
-FPS=$(python3 -c 'import sys; print(f"{int(sys.argv[1])/float(sys.argv[2]):.5f}")' "$N" "$DUR")
+FPS=$(py -c 'import sys; print(f"{int(sys.argv[1])/float(sys.argv[2]):.5f}")' "$N" "$DUR")
 # -reinit_filter 0: vídeo montado por blocos muda de parâmetros (cor, SPS) nas emendas e o ffmpeg reiniciaria o
 # grafo ali, esvaziando o `tile`: a folha saía só com os quadros depois da última emenda.
 ffmpeg -hide_banner -loglevel error -y -reinit_filter 0 -i "$IN" \
@@ -18,16 +20,16 @@ ffmpeg -hide_banner -loglevel error -y -reinit_filter 0 -i "$IN" \
 ffmpeg -hide_banner -loglevel error -y -i "$IN" -vf "scale=-2:480" -c:v libx264 -preset veryfast -crf 30 \
   -c:a aac -b:a 96k -movflags +faststart "${BASE}.preview.mp4"
 {
-  ffprobe -v error -show_entries format=duration,size:stream=codec_name,width,height,r_frame_rate,sample_rate,channels \
+  sonda -v error -show_entries format=duration,size:stream=codec_name,width,height,r_frame_rate,sample_rate,channels \
     -of compact "$IN"
-  python3 -c 'import sys; n, d = int(sys.argv[1]), float(sys.argv[2]); print("quadros da folha (s):", ", ".join(f"{(i+0.5)*d/n:.1f}" for i in range(n)))' "$N" "$DUR"
+  py -c 'import sys; n, d = int(sys.argv[1]), float(sys.argv[2]); print("quadros da folha (s):", ", ".join(f"{(i+0.5)*d/n:.1f}" for i in range(n)))' "$N" "$DUR"
   ffmpeg -hide_banner -nostats -i "$IN" -af loudnorm=print_format=summary -f null - 2>&1 \
-    | grep -E "Input Integrated|Input True Peak" || true
+    | tr -d '\r' | grep -E "Input Integrated|Input True Peak" || true
 } > "${BASE}.proof.txt"
 # Gate de pico real: acima de PROVA_TP_MAX (padrão -1,0 dBTP) o vídeo distorce em alto-falante de celular e as
 # plataformas reprocessam o áudio. Sai com código 3 (PROVA_SEM_GATE=1 só avisa). Conserto: scripts/normalizar_audio.py.
 TP=$(grep "Input True Peak" "${BASE}.proof.txt" | awk '{print $(NF-1)}' || true)
-if [[ -n "$TP" ]] && python3 -c 'import sys; sys.exit(0 if float(sys.argv[1]) > float(sys.argv[2]) else 1)' "$TP" "${PROVA_TP_MAX:--1.0}"; then
+if [[ -n "$TP" ]] && "$VE_PY" -c 'import sys; sys.exit(0 if float(sys.argv[1]) > float(sys.argv[2]) else 1)' "$TP" "${PROVA_TP_MAX:--1.0}"; then
   echo "PICO ACIMA DO LIMITE: $TP dBTP > ${PROVA_TP_MAX:--1.0} dBTP (normalize com scripts/normalizar_audio.py)" | tee -a "${BASE}.proof.txt" >&2
   [[ "${PROVA_SEM_GATE:-}" == "1" ]] || exit 3
 fi

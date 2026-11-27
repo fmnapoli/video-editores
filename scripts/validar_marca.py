@@ -15,7 +15,6 @@ import argparse
 import json
 import os
 import pathlib
-import subprocess
 import sys
 
 
@@ -27,6 +26,7 @@ def _raiz_pacote(arquivo):
 
 
 sys.path.insert(0, os.environ.get("VE_PKG_DIR") or _raiz_pacote(__file__))
+from video_editores.nucleo import fontes  # noqa: E402
 from video_editores.nucleo import marca as M  # noqa: E402
 
 GLIFOS_PT = "áàâãéêíóôõúüçÁÀÂÃÉÊÍÓÔÕÚÜÇ"
@@ -37,13 +37,7 @@ def arquivo_da_fonte(m):
     arq = m.fonte_arquivo("bold")
     if arq:
         return arq, True
-    try:
-        out = subprocess.run(["fc-match", "-f", "%{file}|%{family}", f"{m.fonte}:bold"],
-                             capture_output=True, text=True, check=True).stdout.strip()
-        arq, fam = out.split("|", 1)
-        return arq, m.fonte.lower() in fam.lower()
-    except (OSError, subprocess.CalledProcessError, ValueError):
-        return None, False
+    return fontes.localizar(m.fonte, "bold")
 
 
 def valida(m):
@@ -202,8 +196,8 @@ def prancha(m, saida):
             + (f"  ·  SUBSTITUTA: {sub}" if sub else ""), font=fonte(18), fill=c["texto"])
     telas.append((t, "tipografia"))
 
-    rot = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 16) \
-        if os.path.exists("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf") else ImageFont.load_default()
+    dejavu = fontes.arquivo("DejaVu Sans", "bold")
+    rot = ImageFont.truetype(dejavu, 16) if dejavu else ImageFont.load_default()
     for n, (t, titulo) in enumerate(telas):
         x, y = G + (n % 2) * (CW + G), G + (n // 2) * (CH + G + 12)
         img.paste(t, (x, y + 20))

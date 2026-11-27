@@ -5,14 +5,16 @@
 # Os modelos de IA (rosto, OCR) entram por backends falsos de tests/stub/modelos_falsos.py: o que se testa aqui é
 # a lógica dos scripts (zona livre, conferência por diferença de pixels, busca de texto, formas ASS no lugar).
 set -euo pipefail
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck source=tests/_plataforma.sh
+. "$(dirname "$0")/_plataforma.sh"
+ROOT="$(caminho "$(cd "$(dirname "$0")/.." && pwd)")"
 S="$ROOT/scripts"
-T="$(mktemp -d)"
+T="$(tmpdir)"
 STUB_PID=""
-trap '[[ -n "$STUB_PID" ]] && kill "$STUB_PID" 2>/dev/null || true; rm -rf "$T"' EXIT
+trap '[[ -n "$STUB_PID" ]] && kill "$STUB_PID" 2>/dev/null && wait "$STUB_PID" 2>/dev/null || true; rm -rf "$T" || true' EXIT
 cd "$T"
 pass() { printf '  \033[32m✔\033[0m %s\n' "$1"; }
-export PYTHONPATH="$ROOT/tests/stub:$ROOT"
+export PYTHONPATH="$ROOT/tests/stub$SEP$ROOT"
 export VE_MODELOS_EXTRA="rosto:fixo=modelos_falsos:RostoFixo;ocr:fixo=modelos_falsos:OcrFixo"
 CV=(uv run --quiet --with opencv-python-headless --with numpy python)
 

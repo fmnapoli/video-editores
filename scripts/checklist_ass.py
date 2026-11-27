@@ -56,11 +56,6 @@ def fold(s):
     return "".join(c for c in unicodedata.normalize("NFD", s.lower()) if unicodedata.category(c) != "Mn")
 
 
-def ffesc(p):
-    return (p.replace("\\", "\\\\").replace("'", "\\'").replace(":", "\\:")
-             .replace(",", "\\,").replace("[", "\\[").replace("]", "\\]"))
-
-
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("video"); ap.add_argument("itens"); ap.add_argument("transcript")
@@ -143,7 +138,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     print(f"ass -> {out_ass} ({len(timed)} itens: " + ", ".join(f"{it['t']:.1f}s" for it in timed) + ")")
     if a.burn:
         subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", a.video, "-vf",
-                        f"ass=filename='{ffesc(out_ass)}'{marca_cli.fontsdir(m)}", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
+                        f"ass=filename={marca_cli.ffesc(out_ass)}{marca_cli.fontsdir(m)}", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
                         "-c:a", "copy", a.burn], check=True)
         print(f"ok -> {a.burn}")
 

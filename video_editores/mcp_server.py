@@ -153,7 +153,7 @@ def criar_servidor(raiz=None):
 
     @srv.tool()
     def tarefa_cancelar(id: str) -> dict[str, Any]:
-        """Interrompe uma tarefa em segundo plano (SIGTERM no grupo de processos)."""
+        """Interrompe uma tarefa em segundo plano (SIGTERM no grupo de processos; no Windows, taskkill na árvore)."""
         return tarefas.cancelar(id)
 
     @srv.tool()

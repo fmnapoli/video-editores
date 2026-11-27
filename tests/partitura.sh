@@ -2,9 +2,11 @@
 # Testa a skill /partitura: notação (Verovio + resvg, via uv) e exemplo tocado (síntese + animação + mux AAC).
 # Uso: tests/partitura.sh   (precisa de ffmpeg, python3 e uv; os pacotes chegam pelo uv run --with)
 set -euo pipefail
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck source=tests/_plataforma.sh
+. "$(dirname "$0")/_plataforma.sh"
+ROOT="$(caminho "$(cd "$(dirname "$0")/.." && pwd)")"
 P="$ROOT/skills/partitura/scripts"
-T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
+T="$(tmpdir)"; trap 'rm -rf "$T" || true' EXIT
 cd "$T"
 pass() { printf '  \033[32m✔\033[0m %s\n' "$1"; }
 PART=(uv run --quiet --with verovio --with resvg-py --with pillow python -I "$P/partitura.py")

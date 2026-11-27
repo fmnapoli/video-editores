@@ -53,3 +53,64 @@ jobs:
         run: bash tests/visao.sh
       - name: cena-web (cena HTML no Chrome sem janela do runner; pulado se não houver navegador)
         run: bash tests/cena_web.sh
+  windows:
+    # Windows nativo: os comandos rodam no Git Bash (é o que o Claude Code usa lá), com Python e ffmpeg nativos
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    env:
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - name: ffmpeg (build do gyan.dev, com libass; a mesma do `winget install Gyan.FFmpeg`)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download --repo GyanD/codexffmpeg --pattern '*-essentials_build.zip' --output "$RUNNER_TEMP/ffmpeg.zip"
+          unzip -q "$RUNNER_TEMP/ffmpeg.zip" -d "$RUNNER_TEMP/ffmpeg"
+          BIN="$(cygpath -w "$(dirname "$(find "$RUNNER_TEMP/ffmpeg" -name ffmpeg.exe | head -1)")")"
+          echo "$BIN" >> "$GITHUB_PATH"
+          "$BIN/ffmpeg.exe" -hide_banner -filters | grep -E ' (ass|subtitles) '
+      - name: fonte DejaVu (instalação por usuário, como o "Instalar" do Explorer; sem Chocolatey)
+        shell: pwsh
+        run: |
+          $zip = "$env:RUNNER_TEMP\dejavu.zip"
+          Invoke-WebRequest "https://github.com/dejavu-fonts/dejavu-fonts/releases/download/version_2_37/dejavu-fonts-ttf-2.37.zip" -OutFile $zip
+          Expand-Archive $zip "$env:RUNNER_TEMP\dejavu"
+          $dest = "$env:LOCALAPPDATA\Microsoft\Windows\Fonts"
+          $chave = "HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Fonts"
+          New-Item -ItemType Directory -Force $dest | Out-Null
+          if (-not (Test-Path $chave)) { New-Item -Force $chave | Out-Null }
+          $nomes = @{ "DejaVuSans.ttf" = "DejaVu Sans (TrueType)"; "DejaVuSans-Bold.ttf" = "DejaVu Sans Bold (TrueType)" }
+          foreach ($f in $nomes.Keys) {
+            Copy-Item (Get-ChildItem "$env:RUNNER_TEMP\dejavu" -Recurse -Filter $f).FullName $dest
+            New-ItemProperty -Path $chave -Name $nomes[$f] -Value "$dest\$f" -PropertyType String -Force | Out-Null
+          }
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v5
+      - name: python3 (o mesmo atalho que o doctor indica quando só existe `python`)
+        run: |
+          python3 -c '' 2>/dev/null || cp "$(command -v python)" "$(dirname "$(command -v python)")/python3.exe"
+          python3 --version
+      - name: doctor (informativo; as CLIs opcionais não estão instaladas no runner)
+        run: bash scripts/doctor.sh || true
+      - name: smoke
+        run: bash tests/smoke.sh
+      - name: núcleo (CLI, modelos, tarefas, MCP em processo)
+        if: ${{ !cancelled() }}   # cada suíte roda mesmo que a anterior falhe: o relatório mostra todas
+        run: bash tests/nucleo.sh
+      - name: video-docs offline (stub de edge-tts)
+        if: ${{ !cancelled() }}   # cada suíte roda mesmo que a anterior falhe: o relatório mostra todas
+        run: bash tests/docs_offline.sh
+      - name: partitura (Verovio + resvg + síntese, via uv)
+        if: ${{ !cancelled() }}   # cada suíte roda mesmo que a anterior falhe: o relatório mostra todas
+        run: bash tests/partitura.sh
+      - name: visão (rastreamento com OpenCV; rosto, OCR e banco com backends falsos)
+        if: ${{ !cancelled() }}   # cada suíte roda mesmo que a anterior falhe: o relatório mostra todas
+        run: bash tests/visao.sh
+      - name: cena-web (cena HTML no Chrome sem janela do runner; pulado se não houver navegador)
+        if: ${{ !cancelled() }}   # cada suíte roda mesmo que a anterior falhe: o relatório mostra todas
+        run: bash tests/cena_web.sh

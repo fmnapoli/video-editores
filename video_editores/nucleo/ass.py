@@ -1,5 +1,6 @@
 """ASS/libass para os scripts que desenham sobre o vídeo: tempo, cor, cabeçalho, formas vetoriais e queima.
 Texto e forma na tela são sempre ASS (nunca `drawtext`, que o ffmpeg estático não tem)."""
+import os
 import subprocess
 
 from .ffmpeg import codec_video
@@ -22,8 +23,12 @@ def cor(hexrgb: str, alpha: int = 0) -> str:
 def ffesc(p: str) -> str:
     """Escapa um caminho para ser o valor de uma opção de filtro do ffmpeg, SEM aspas em volta. São dois níveis:
     o da opção (\\ : ') e o do grafo de filtros (\\ ' , ; [ ]). Dentro de aspas simples o ffmpeg não aceita
-    apóstrofo escapado, então caminho com apóstrofo só funciona assim."""
+    apóstrofo escapado, então caminho com apóstrofo só funciona assim.
+    No Windows o caminho sai com barra normal (`C:/Users/...`): o ffmpeg aceita, e a barra invertida de
+    `C:\\Users` teria de atravessar os dois níveis de escape."""
     s = str(p)
+    if os.name == "nt":
+        s = s.replace("\\", "/")
     for ch in ("\\", ":", "'"):                       # nível 1: valor da opção
         s = s.replace(ch, "\\" + ch)
     for ch in ("\\", "'", ",", ";", "[", "]"):         # nível 2: descrição do grafo

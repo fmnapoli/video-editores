@@ -2,8 +2,10 @@
 # Testa o núcleo (pacote video_editores): registro de modelos, catálogo, CLI, tarefas e servidor MCP em processo.
 # Uso: tests/nucleo.sh   (ffmpeg, python3 e uv; o pacote mcp é baixado pelo uv)
 set -euo pipefail
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
+# shellcheck source=tests/_plataforma.sh
+. "$(dirname "$0")/_plataforma.sh"
+ROOT="$(caminho "$(cd "$(dirname "$0")/.." && pwd)")"
+T="$(tmpdir)"; trap 'rm -rf "$T" || true' EXIT
 cd "$T"
 pass() { printf '  \033[32m✔\033[0m %s\n' "$1"; }
 export PYTHONPATH="$ROOT"
@@ -57,7 +59,7 @@ assert M.carregar(base="vazio").definida is False and M.carregar().cores["acento
 json.dump({"nome": "Teste", "cores": {"fundo": "#0B2545", "acento": "#2DD4BF", "texto": "#FFFFFF"},
            "logo": {"png": "logo.png"}, "legenda": {"estilo": "palavra"}}, open("marca/marca.json", "w"))
 m = M.carregar()
-assert m.definida and m.nome == "Teste" and m.logo("png").endswith("marca/logo.png") and not m.problemas()
+assert m.definida and m.nome == "Teste" and m.logo("png").replace(os.sep, "/").endswith("marca/logo.png") and not m.problemas()
 assert m.cores["fundo2"] == "#0B2545" and m.cores["secundario"] == "#2DD4BF" and m.cores["texto2"] == "#FFFFFF", "opcional deriva da marca"
 assert m.fonte == "DejaVu Sans" and m.fontes_dir() is None and m.legenda["estilo"] == "palavra" and m.legenda["caixa"] is True
 assert M.ass("#2DD4BF") == "&H00BFD42D&" and M.ass("#0B2545", 0x14) == "&H1445250B&" and M.ffcor("#0B2545") == "0x0B2545"
@@ -101,7 +103,8 @@ os.makedirs("pacote/logos"); os.makedirs("pacote/fontes")
 png("pacote/logos/logo-branco.png", 600, 420, (255, 255, 255, 255))
 open("pacote/logos/logo.svg", "w").write('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10" fill="#2DD4BF"/><rect width="5" height="5" fill="#0B2545"/></svg>')
 json.dump({"cor": {"primaria": {"$value": "#0B2545"}, "destaque": {"value": "#2DD4BF"}, "texto": {"$value": "#FFFFFF"}}}, open("pacote/tokens.json", "w"))
-for base in ("/usr/share/fonts", "/Library/Fonts", os.path.expanduser("~/Library/Fonts"), "/opt/homebrew/share/fonts", "/usr/local/share/fonts"):
+from video_editores.nucleo import fontes
+for base in fontes.pastas():
     for raiz, _, arqs in os.walk(base):
         for a in arqs:
             if a in ("DejaVuSans.ttf", "DejaVuSans-Bold.ttf"):
@@ -185,13 +188,13 @@ PY
 pass "audio.normalizar: -14 LUFS com pico real <= -1,5 dBTP apesar dos cliques; quadros e fades"
 
 # TTS: o edge-tts falha de vez em quando sem motivo; o backend repete (stub simula as falhas)
-VE_TTS_ESPERA=0 VE_STUB_EDGE_FALHAS=2 PYTHONPATH="$ROOT:$ROOT/tests/stub" python3 - <<'PY' 2>err.txt
+VE_TTS_ESPERA=0 VE_STUB_EDGE_FALHAS=2 PYTHONPATH="$ROOT$SEP$ROOT/tests/stub" python3 - <<'PY' 2>err.txt
 from video_editores.modelos.tts_edge import EdgeTTS
 ws = EdgeTTS().sintetizar("um dois três", mp3="r.mp3")
 assert len(ws) == 3, ws
 PY
 grep -q "tentativa 2 falhou" err.txt && test -s r.mp3
-if VE_TTS_ESPERA=0 VE_STUB_EDGE_FALHAS=5 PYTHONPATH="$ROOT:$ROOT/tests/stub" python3 -c "
+if VE_TTS_ESPERA=0 VE_STUB_EDGE_FALHAS=5 PYTHONPATH="$ROOT$SEP$ROOT/tests/stub" python3 -c "
 from video_editores.modelos.tts_edge import EdgeTTS; EdgeTTS().sintetizar('a', mp3='r2.mp3')" 2>/dev/null; then echo "devia falhar"; exit 1; fi
 pass "tts_edge: repete 3 vezes em NoAudioReceived e desiste com erro claro"
 
@@ -204,7 +207,8 @@ for op in catalogo.OPERACOES.values():
     assert op.caminho.is_file(), op.script
 c = catalogo.comando("transcrever", ["x.mp4"])
 assert c[:4] == ["uv", "run", "--quiet", "--with"] and c[4] == "faster-whisper" and "-I" in c
-assert catalogo.comando("prova", ["x.mp4"])[0] == "bash"
+import os
+assert os.path.basename(catalogo.comando("prova", ["x.mp4"])[0]).lower() in ("bash", "bash.exe")   # no Windows, o caminho do bash do Git
 assert catalogo.comando("tomadas", ["x.json"])[0].endswith("python3") or "python" in catalogo.comando("tomadas", ["x.json"])[0]
 assert catalogo.comando("aula-recorte", [], device="cuda")[6] == "onnxruntime-gpu"
 PY
@@ -220,7 +224,7 @@ sobe_stub() {  # sobe_stub NOME [args]: servidor falso numa porta livre; URL em 
   [[ -s "$d/porta" ]] || { echo "servidor ComfyUI falso ($d) não subiu:"; cat "$d/log"; exit 1; }
   URL="http://127.0.0.1:$(cat "$d/porta")"
 }
-trap 'kill "${STUB_PIDS[@]}" 2>/dev/null || true; rm -rf "$T"' EXIT
+trap 'kill "${STUB_PIDS[@]}" 2>/dev/null && wait "${STUB_PIDS[@]}" 2>/dev/null || true; rm -rf "$T" || true' EXIT
 export VE_COMFYUI_POLL=0.05
 sobe_stub ok
 VE_COMFYUI_URL=$URL python3 -m video_editores.cli gerar-imagem --conferir > conferir.json
@@ -373,16 +377,16 @@ pass "integrar: --remover em projeto nunca integrado não cria arquivo de config
 # MCP global em ~/.zcode/cli/config.json — arquivo do app: nunca criado por nós, só editado quando já existe;
 # em projeto, sem MCP (só há o global)
 mkdir -p fakehome/.zcode/cli
-MOSTRA=$(HOME="$PWD/fakehome" python3 -m video_editores.cli integrar zcode --projeto integ --mostrar)  # escopo projeto: MCP só no usuário
+MOSTRA=$(HOME="$PWD/fakehome" USERPROFILE="$PWD/fakehome" python3 -m video_editores.cli integrar zcode --projeto integ --mostrar)  # escopo projeto: MCP só no usuário
 echo "$MOSTRA" | grep -q "MCP → (o ZCode só registra MCP global; rode com --usuario)"
-HOME="$PWD/fakehome" python3 -m video_editores.cli integrar zcode --usuario --projeto integ > zc.txt
+HOME="$PWD/fakehome" USERPROFILE="$PWD/fakehome" python3 -m video_editores.cli integrar zcode --usuario --projeto integ > zc.txt
 test ! -e fakehome/.zcode/cli/config.json   # sem config do app: não gravamos um pela metade numa máquina sem ZCode
 grep -q "nada gravado" zc.txt
 printf '{"mcp":null}' > fakehome/.zcode/cli/config.json   # o app deixa null num config recém-criado: tolerar
-HOME="$PWD/fakehome" python3 -m video_editores.cli integrar zcode --usuario --projeto integ >/dev/null
-HOME="$PWD/fakehome" python3 -m video_editores.cli integrar zcode --usuario --projeto integ >/dev/null   # idempotente
+HOME="$PWD/fakehome" USERPROFILE="$PWD/fakehome" python3 -m video_editores.cli integrar zcode --usuario --projeto integ >/dev/null
+HOME="$PWD/fakehome" USERPROFILE="$PWD/fakehome" python3 -m video_editores.cli integrar zcode --usuario --projeto integ >/dev/null   # idempotente
 printf '{"mcp":{"servers":{"outro":{"type":"stdio","command":"/bin/true","args":[],"enabled":true}}}}' > fakehome/.zcode/cli/config.json
-HOME="$PWD/fakehome" python3 -m video_editores.cli integrar zcode --usuario --projeto integ >/dev/null   # preserva terceiros
+HOME="$PWD/fakehome" USERPROFILE="$PWD/fakehome" python3 -m video_editores.cli integrar zcode --usuario --projeto integ >/dev/null   # preserva terceiros
 python3 - <<'PY'
 import json, pathlib
 h = pathlib.Path("fakehome")
@@ -397,11 +401,11 @@ v = cfg["mcp"]["servers"]["video-editores"]
 assert v["type"] == "stdio" and v["args"][-2] == "--raiz" and v["enabled"] is True, v
 assert "outro" in cfg["mcp"]["servers"], cfg   # servidor de terceiros preservado
 PY
-HOME="$PWD/fakehome" python3 -m video_editores.cli integrar zcode --usuario --remover >/dev/null
+HOME="$PWD/fakehome" USERPROFILE="$PWD/fakehome" python3 -m video_editores.cli integrar zcode --usuario --remover >/dev/null
 test ! -e fakehome/.zcode/skills/legenda && test ! -e fakehome/.zcode/skills/.video-editores.json
 python3 -c "import json; d = json.load(open('fakehome/.zcode/cli/config.json')); assert 'video-editores' not in d['mcp']['servers'] and 'outro' in d['mcp']['servers']"
 rm fakehome/.zcode/cli/config.json
-HOME="$PWD/fakehome" python3 -m video_editores.cli integrar zcode --usuario --remover > zc2.txt
+HOME="$PWD/fakehome" USERPROFILE="$PWD/fakehome" python3 -m video_editores.cli integrar zcode --usuario --remover > zc2.txt
 test ! -e fakehome/.zcode/cli/config.json   # remover sem config: sai cedo, não recria o arquivo do app
 grep -q "nada a remover" zc2.txt
 pass "integrar zcode: skills de usuário com cabeçalho próprio, MCP global (stdio) preservando terceiros e sem criar o config do app, idempotente e reversível"

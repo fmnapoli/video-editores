@@ -234,7 +234,7 @@ def do_pacote(pasta, r, out):
             continue
         for nome in sorted(arqs):
             p = os.path.join(raiz, nome)
-            rel = os.path.relpath(p, pasta)
+            rel = os.path.relpath(p, pasta).replace(os.sep, "/")
             ext = nome.lower().rsplit(".", 1)[-1] if "." in nome else ""
             if ext in ("ttf", "otf"):
                 achou = True
@@ -365,8 +365,8 @@ def main():
                 for x in arqs:
                     peso = "bold" if re.search(r"(?i)bold|black|heavy|semi", (x.get("uso") or "") + x["arquivo"]) else "regular"
                     if peso not in m["fonte"]["arquivos"]:
-                        dest = os.path.join("fontes", os.path.basename(x["arquivo"]))
-                        shutil.copyfile(x["arquivo"], os.path.join(a.out, dest))
+                        dest = "fontes/" + os.path.basename(x["arquivo"])   # barra normal: o marca.json vale em qualquer sistema
+                        shutil.copyfile(x["arquivo"], os.path.join(a.out, "fontes", os.path.basename(x["arquivo"])))
                         m["fonte"]["arquivos"][peso] = dest
         if r.d["origem"]["tipo"] == "pacote":
             svg, png = escolhe_logo(r)
@@ -387,7 +387,7 @@ def main():
         for lst, campo in ((r.d["logos"], "arquivo"), (r.d["fontes"], "arquivo")):
             for x in lst:
                 if x.get(campo, "").startswith(tmp):
-                    x[campo] = os.path.relpath(x[campo], tmp)
+                    x[campo] = os.path.relpath(x[campo], tmp).replace(os.sep, "/")
         shutil.rmtree(tmp, ignore_errors=True)
     rasc = os.path.join(a.out, "rascunho.json")
     json.dump(r.d, open(rasc, "w", encoding="utf-8"), ensure_ascii=False, indent=1)

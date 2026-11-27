@@ -55,13 +55,9 @@ def _raiz_pacote(arquivo):
 
 RAIZ = os.environ.get("VE_PKG_DIR") or _raiz_pacote(__file__)
 sys.path.insert(0, RAIZ)
+from video_editores.nucleo import fontes  # noqa: E402
 from video_editores.nucleo import marca as marca_mod  # noqa: E402
-
-
-def ffesc(p):
-    """Escapa um caminho para uso dentro de opções de filtro do ffmpeg."""
-    return (p.replace("\\", "\\\\").replace("'", "\\'").replace(":", "\\:")
-             .replace(",", "\\,").replace("[", "\\[").replace("]", "\\]"))
+from video_editores.nucleo.ass import ffesc  # noqa: E402
 
 
 W, H, FPS = 1280, 720, 30
@@ -71,7 +67,7 @@ TTS_LEAD, TTS_TAIL, TAIL_HOLD = 0.25, 0.35, 0.8
 FIT_CAP, FIT_SLACK, SLOW_MIN = 2.2, 1.2, 0.7
 VOICE = "pt-BR-ThalitaMultilingualNeural"  # pronuncia termos em inglês nativamente
 def _find_font():
-    """DejaVu Sans Bold em Linux, macOS ou Windows; por último, fontconfig."""
+    """DejaVu Sans Bold em Linux, macOS ou Windows; por último, fontconfig ou o registro de fontes do Windows."""
     cands = ["/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
              "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf",
              "/usr/share/fonts/TTF/DejaVuSans-Bold.ttf",
@@ -82,14 +78,7 @@ def _find_font():
     for c in cands:
         if os.path.exists(c):
             return c
-    try:
-        out = subprocess.run(["fc-match", "-f", "%{file}", "DejaVu Sans:bold"],
-                             capture_output=True, text=True, check=True).stdout.strip()
-        if out:
-            return out
-    except (OSError, subprocess.CalledProcessError):
-        pass
-    return cands[0]
+    return fontes.localizar("DejaVu Sans", "bold")[0] or cands[0]
 
 
 FONT = _find_font()
@@ -124,13 +113,8 @@ def aplica_marca(m):
     arq = m.fonte_arquivo("bold")
     if arq:
         FONT = arq
-    else:   # fonte do sistema: acha o arquivo pelo fontconfig, para medir o texto dos balões
-        try:
-            out = subprocess.run(["fc-match", "-f", "%{file}", f"{FONT_NAME}:bold"],
-                                 capture_output=True, text=True, check=True).stdout.strip()
-            FONT = out or FONT
-        except (OSError, subprocess.CalledProcessError):
-            pass
+    else:   # fonte do sistema: acha o arquivo (fontconfig ou registro do Windows), para medir o texto dos balões
+        FONT = fontes.localizar(FONT_NAME, "bold")[0] or FONT
 SAFE_TOP, SAFE_BOTTOM = 104, 630   # browser chrome / legend zone
 
 try:
@@ -783,8 +767,8 @@ def main(spec_path):
     fc.append("".join(labels) + f"concat=n={len(labels)}:v=1:a=0[vc]")
     # destaques/tarjas (ASS) primeiro, legenda por cima: tarja nunca esconde a legenda
     vlab = "vc"
-    fd = f":fontsdir='{ffesc(m.fontes_dir())}'" if m.fontes_dir() else ""   # fonte da marca fora do sistema
-    fc.append(f"[vc]ass=filename='{ffesc(ass_path)}'{fd}[va]"); vlab = "va"
+    fd = f":fontsdir={ffesc(m.fontes_dir())}" if m.fontes_dir() else ""   # fonte da marca fora do sistema
+    fc.append(f"[vc]ass=filename={ffesc(ass_path)}{fd}[va]"); vlab = "va"
     for q, (idx, _, bs) in enumerate(logos):
         bh = max(b[2] for b in bs)
         en = "+".join(f"between(t,{a:.3f},{b:.3f})" for a, b, _, _ in bs)
@@ -792,9 +776,9 @@ def main(spec_path):
         fc.append(f"[{vlab}][lg{q}]overlay={round(28 * OW / W)}:{round(bh / 2 * OH / H)}-h/2:enable='{en}'[vl{q}]")
         vlab = f"vl{q}"
     if leg_ass:
-        fc.append(f"[{vlab}]ass=filename='{ffesc(leg_ass)}'{fd}[vout]")
+        fc.append(f"[{vlab}]ass=filename={ffesc(leg_ass)}{fd}[vout]")
     else:
-        fc.append(f"[{vlab}]subtitles=filename='{ffesc(srt_path)}'{fd}:force_style='{legend_style()}'[vout]")
+        fc.append(f"[{vlab}]subtitles=filename={ffesc(srt_path)}{fd}:force_style='{legend_style()}'[vout]")
     al = []
     for q, (idx, sc) in enumerate(aud):
         ms = int((sc["t0"] + TTS_LEAD) * 1000)
