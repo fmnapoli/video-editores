@@ -197,5 +197,6 @@ def comando(nome: str, args, device=None, direto=False) -> list:
     pk = op.pacotes(device)
     if pk and not direto and shutil.which("uv"):
         withs = [x for pkg in pk for x in ("--with", pkg)]
-        return ["uv", "run", "--quiet", *withs, "python", "-I", p, *args]
+        # -X utf8: o modo isolado (-I) ignora PYTHONUTF8, e no Windows a saída e os arquivos iriam em cp1252
+        return ["uv", "run", "--quiet", *withs, "python", "-X", "utf8", "-I", p, *args]
     return [sys.executable, p, *args]

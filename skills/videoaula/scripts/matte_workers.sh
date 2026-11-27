@@ -39,7 +39,7 @@ worker() {
     read -r _ s e name <<< "$l"
     [[ -f "$MATTES/$name.done" ]] && continue
     # `< /dev/null` é obrigatório: sem ele o processo filho engole o resto da lista (stdin herdado)
-    uv run "${WITHS[@]}" python -I "$HERE/matte.py" \
+    uv run "${WITHS[@]}" python -X utf8 -I "$HERE/matte.py" \
       "$CUT" "$s" "$e" "$FUNDO" "$MATTES/$name" --threads "$THREADS" < /dev/null && touch "$MATTES/$name.done"
   done
   echo "trabalhador $w: fim"
