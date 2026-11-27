@@ -2,17 +2,17 @@
 
 Tudo roda local. O único serviço externo é o edge-tts, usado só pelo `/video-docs` para narração.
 
-**Windows:** os scripts são bash e usam `python3`, `fc-list` e `mktemp`. Use o **WSL2 com Ubuntu** e siga a coluna Ubuntu; no Windows nativo (PowerShell) o plugin não roda.
+**Windows:** roda nativo pelo **Git Bash**, que vem com o [Git for Windows](https://git-scm.com/download/win) e é o shell em que o Claude Code executa os comandos no Windows. Siga a coluna Windows e a seção [Windows nativo](#windows-nativo-git-bash). PowerShell e cmd sozinhos não servem: os scripts são bash. Quem prefere pode usar o WSL2 com Ubuntu e seguir a coluna Ubuntu.
 
 ## 1. Requisitos base (obrigatórios)
 
-| Item | Para quê | Ubuntu/Debian | macOS (Homebrew) | Windows (WSL2) |
+| Item | Para quê | Ubuntu/Debian | macOS (Homebrew) | Windows (Git Bash) |
 |---|---|---|---|---|
 | Claude Code | executar os skills | `npm i -g @anthropic-ai/claude-code` | idem | idem |
-| ffmpeg ≥ 6 com libass | tudo | `sudo apt install ffmpeg` | `brew install ffmpeg-full` (**não** `ffmpeg`, veja abaixo) | WSL2: `sudo apt install ffmpeg` |
+| ffmpeg ≥ 6 com libass | tudo | `sudo apt install ffmpeg` | `brew install ffmpeg-full` (**não** `ffmpeg`, veja abaixo) | `winget install Gyan.FFmpeg` |
 | Python ≥ 3.10 | scripts | `sudo apt install python3` | já vem / `brew install python` | `winget install Python.Python.3.12` |
 | uv | rodar scripts com dependências isoladas | `curl -LsSf https://astral.sh/uv/install.sh \| sh` | `brew install uv` | `winget install astral-sh.uv` |
-| Fonte DejaVu | textos ASS e `video-docs` | `sudo apt install fonts-dejavu-core` | `brew install --cask font-dejavu` | baixar em dejavu-fonts.github.io |
+| Fonte DejaVu | textos ASS e `video-docs` | `sudo apt install fonts-dejavu-core` | `brew install --cask font-dejavu` | `choco install dejavufonts`, ou instalar os TTF de dejavu-fonts.github.io |
 
 Confira se o ffmpeg tem libass (os filtros `ass` e `subtitles` precisam aparecer):
 
@@ -21,6 +21,27 @@ ffmpeg -hide_banner -filters | grep -E " (ass|subtitles) "
 ```
 
 Builds estáticos sem libass não servem. Builds sem `drawtext` servem: o plugin não usa `drawtext`.
+
+### Windows nativo (Git Bash)
+
+Depois de instalar os itens da tabela, feche e reabra o terminal (o `winget` só muda o PATH de terminais novos) e faça três ajustes, uma vez:
+
+```bash
+# 1. as skills chamam `python3`; o instalador do python.org só cria `python`
+python3 -c '' 2>/dev/null || cp "$(command -v python)" "$(dirname "$(command -v python)")/python3.exe"
+# 2. Python lendo e escrevendo em UTF-8 (o padrão do Windows é cp1252 e os acentos saem trocados)
+setx PYTHONUTF8 1
+# 3. confira: o doctor aponta o que faltar, com o comando de cada conserto
+bash scripts/doctor.sh
+```
+
+O que muda em relação a Linux e macOS:
+
+- **Caminho dentro de filtro do ffmpeg.** Os scripts do plugin já escapam o caminho (`C:/Users/...`, com barra normal). Num comando `ffmpeg -vf "subtitles=..."` escrito à mão, use caminho relativo, ou escape os dois-pontos da unidade: `subtitles='C\:/Users/eu/video.srt'`.
+- **Saída de `python` e `ffprobe` capturada em `$(...)`** vem com `\r` no fim da linha. Os scripts do plugin tiram; em comando próprio, acrescente `| tr -d '\r'`.
+- **Fontes.** Não há fontconfig: o plugin acha o arquivo da fonte pelo registro de fontes do Windows. `fc-list` não existe; para ver as famílias instaladas, abra Configurações > Personalização > Fontes.
+- **Servidor MCP e CLI fora do Git Bash.** A CLI `video-editores` procura o `bash.exe` do Git for Windows sozinha (e ignora o `bash.exe` do WSL em `System32`); `VE_BASH` aponta outro.
+- **Sem garantia nesta versão:** Manim (`/animacao`, `/video-animado`, cenas da `/videoaula`), Blender (`/3d`) e GPU. Instalam-se no Windows, mas não são testados lá.
 
 **macOS:** desde a versão 8, a fórmula `ffmpeg` do Homebrew é uma build enxuta, sem libass, freetype e fontconfig, então os filtros `ass` e `subtitles` não existem nela. Instale `ffmpeg-full`, que é keg-only (não entra no PATH sozinho), e coloque-o na frente:
 

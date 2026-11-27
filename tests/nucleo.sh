@@ -59,7 +59,7 @@ assert M.carregar(base="vazio").definida is False and M.carregar().cores["acento
 json.dump({"nome": "Teste", "cores": {"fundo": "#0B2545", "acento": "#2DD4BF", "texto": "#FFFFFF"},
            "logo": {"png": "logo.png"}, "legenda": {"estilo": "palavra"}}, open("marca/marca.json", "w"))
 m = M.carregar()
-assert m.definida and m.nome == "Teste" and m.logo("png").endswith("marca/logo.png") and not m.problemas()
+assert m.definida and m.nome == "Teste" and m.logo("png").replace(os.sep, "/").endswith("marca/logo.png") and not m.problemas()
 assert m.cores["fundo2"] == "#0B2545" and m.cores["secundario"] == "#2DD4BF" and m.cores["texto2"] == "#FFFFFF", "opcional deriva da marca"
 assert m.fonte == "DejaVu Sans" and m.fontes_dir() is None and m.legenda["estilo"] == "palavra" and m.legenda["caixa"] is True
 assert M.ass("#2DD4BF") == "&H00BFD42D&" and M.ass("#0B2545", 0x14) == "&H1445250B&" and M.ffcor("#0B2545") == "0x0B2545"

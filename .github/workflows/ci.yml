@@ -80,12 +80,17 @@ jobs:
       - name: smoke
         run: bash tests/smoke.sh
       - name: núcleo (CLI, modelos, tarefas, MCP em processo)
+        if: ${{ !cancelled() }}   # cada suíte roda mesmo que a anterior falhe: o relatório mostra todas
         run: bash tests/nucleo.sh
       - name: video-docs offline (stub de edge-tts)
+        if: ${{ !cancelled() }}   # cada suíte roda mesmo que a anterior falhe: o relatório mostra todas
         run: bash tests/docs_offline.sh
       - name: partitura (Verovio + resvg + síntese, via uv)
+        if: ${{ !cancelled() }}   # cada suíte roda mesmo que a anterior falhe: o relatório mostra todas
         run: bash tests/partitura.sh
       - name: visão (rastreamento com OpenCV; rosto, OCR e banco com backends falsos)
+        if: ${{ !cancelled() }}   # cada suíte roda mesmo que a anterior falhe: o relatório mostra todas
         run: bash tests/visao.sh
       - name: cena-web (cena HTML no Chrome sem janela do runner; pulado se não houver navegador)
+        if: ${{ !cancelled() }}   # cada suíte roda mesmo que a anterior falhe: o relatório mostra todas
         run: bash tests/cena_web.sh
