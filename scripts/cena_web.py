@@ -227,7 +227,16 @@ def main():
             page.evaluate("t => { const r = window.veQuadro(t); return r instanceof Promise ? r.then(() => 0) : 0; }", t)
             if a.espera_quadro:
                 page.evaluate(ESPERA)
-            return page.screenshot(type="png", omit_background=a.alpha)
+            # O Chrome sem janela às vezes recusa a captura de um quadro ("Unable to capture screenshot"; visto no
+            # Windows sem GPU, no primeiro quadro). O quadro já está desenhado e é função só de t: repetir a
+            # captura dá a mesma imagem. Qualquer outro erro, ou a terceira recusa, sobe.
+            for tentativa in range(3):
+                try:
+                    return page.screenshot(type="png", omit_background=a.alpha)
+                except Exception as e:
+                    if tentativa == 2 or "Unable to capture screenshot" not in str(e):
+                        raise
+                    page.wait_for_timeout(200)
 
         if a.quadro is not None:
             saida.write_bytes(desenha(a.quadro))

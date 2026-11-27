@@ -9,7 +9,7 @@ Windows nativo pelo Git Bash (ADR-21). Até aqui o plugin só rodava no Windows 
 - **Tarefas em segundo plano** (`--fundo`, servidor MCP): o invólucro que grava o código de saída era `bash -c` e virou Python, porque o servidor MCP pode subir fora do Git Bash. No Windows o cancelamento é `taskkill /T` e a checagem de vida deixou de usar `os.kill(pid, 0)`, que lá entrega um Ctrl+C em vez de só testar.
 - **`catalogo.bash()`**: no Windows a CLI procura o `bash.exe` do Git for Windows e ignora o de `System32`, que é o lançador do WSL. `VE_BASH` aponta outro.
 - **Codificação**: `PYTHONUTF8=1` nos scripts `.sh` e nas operações lançadas pela CLI; os scripts em modo isolado (`python -I`, que ignora a variável) rodam com `-X utf8`. Sem isso o Python do Windows lia e escrevia em cp1252.
-- **Correção — `cena_web.py`**: a cena respondia 404 no Windows (a URL virava `\cena.html`).
+- **Correção — `cena_web.py`**: a cena respondia 404 no Windows (a URL virava `\cena.html`). E a captura de um quadro é repetida até três vezes quando o Chrome sem janela a recusa (`Unable to capture screenshot`), o que aconteceu de forma intermitente no runner do Windows.
 - **Correção — `extrair_marca.py`** (`/marca`): o `marca.json` gravado no Windows saía com `fontes\Arquivo.ttf`; agora é sempre barra normal, e o arquivo vale em qualquer sistema.
 - **`doctor.sh`**: no Windows indica os comandos do `winget`, confere se `python3` roda de verdade (e dá o comando do atalho), cobra `PYTHONUTF8=1` e checa a fonte pelo registro.
 - **`.gitattributes`**: fim de linha LF em qualquer sistema. Com o `core.autocrlf=true` padrão do Git for Windows os `.sh` chegavam com CRLF e o bash não os executava.
