@@ -207,7 +207,8 @@ for op in catalogo.OPERACOES.values():
     assert op.caminho.is_file(), op.script
 c = catalogo.comando("transcrever", ["x.mp4"])
 assert c[:4] == ["uv", "run", "--quiet", "--with"] and c[4] == "faster-whisper" and "-I" in c
-assert catalogo.comando("prova", ["x.mp4"])[0] == "bash"
+import os
+assert os.path.basename(catalogo.comando("prova", ["x.mp4"])[0]).lower() in ("bash", "bash.exe")   # no Windows, o caminho do bash do Git
 assert catalogo.comando("tomadas", ["x.json"])[0].endswith("python3") or "python" in catalogo.comando("tomadas", ["x.json"])[0]
 assert catalogo.comando("aula-recorte", [], device="cuda")[6] == "onnxruntime-gpu"
 PY
