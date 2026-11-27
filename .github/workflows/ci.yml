@@ -65,7 +65,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: ffmpeg (build com libass) e fonte DejaVu
         run: |
-          choco install -y --no-progress ffmpeg dejavufonts
+          # o feed do Chocolatey responde 503/504 de vez em quando: tenta de novo antes de desistir
+          for n in 1 2 3 4; do
+            choco install -y --no-progress ffmpeg dejavufonts && command -v ffmpeg && break
+            echo "choco falhou (tentativa $n)"; sleep 30
+          done
           ffmpeg -hide_banner -filters | grep -E ' (ass|subtitles) '
       - uses: actions/setup-python@v5
         with:
