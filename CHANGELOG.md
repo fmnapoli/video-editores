@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.18.0 — 2026-11-27
+Arco narrativo em sete etapas no `/destaques` (ADR-22): o corte de um vídeo que ensina ou convence passa a ter começo, meio e fim, e o agente sabe dizer o que falta nele.
+- **`scripts/backbone.py`** (operação `backbone`): trabalha com as etapas desafio, identificação, causa, solução, método, motivação e conclusão. A estrutura ("Backbone") é de Letícia Pacheco (@leticiapachecovoz); as perguntas de cada etapa foram escritas aqui.
+  - `blocos` divide a transcrição e grava `<nome>.backbone.json`, com a etapa **sugerida** de cada bloco (palavras-marcadoras e posição no vídeo) e o campo `etapa` vazio.
+  - `relatorio` grava `<nome>.backbone.md`: etapas ausentes, tempo e fração de cada uma, ordem de aparição diferente da do arco, etapa com mais da metade ou quase nada do tempo.
+  - `montar` grava `<nome>.backbone.keep.json` para o `render_spans.sh`, com pelo menos um bloco de cada etapa presente e o alvo repartido por etapa (`--pesos`). Os trechos ficam na ordem da gravação; `--reordenar` segue o arco e avisa cada inversão.
+- **Quem decide a etapa é a leitura**, não o script: `relatorio` e `montar` recusam plano com `etapa` vazia (código 2). `--usar-sugestao` existe para teste, não para entrega.
+- **`/destaques`** ganha a seção "Com arco narrativo"; **`/ganchos`** parte dos blocos de etapa `desafio`; **`/editar`** reconhece "com começo, meio e fim", "formato Backbone" e "o que falta nesse vídeo".
+- Não se aplica a tutorial de tela, aula expositiva nem documentação. `blocos` avisa quando mais da metade dos blocos não tem marcador de etapa e indica o `highlights.py`.
+- Docs: skills, scripts, pedidos prontos, glossário, arquitetura e README.
+- Testes: `smoke.sh` (sugestão no caso claro, plano vazio recusado, etapas ausentes, inversões, ordem da gravação e do arco, aviso em fala sem marcador).
+- Validação em transcrição real: uma aula de programação de 20 min (58 blocos). A primeira versão dos marcadores jogava 38 blocos em "identificação" por causa de "a gente" e "por exemplo", e "operadores" contava como "dor". Os marcadores passaram a ser palavra inteira e só expressões raras fora da etapa; com isso a mesma aula dá 48 de 58 blocos sem marcador e o aviso de que não segue o arco, que é a resposta certa para aquele vídeo.
+- Limites: falta validar num vídeo que de fato siga o arco (reels ou aula de convencimento); a sugestão confunde vocabulário do assunto com marcador ("dados" numa aula de programação vira "causa"); bloco que mistura duas etapas fica com uma só; `/video-animado`, `/video-docs` e `/prova` ainda não usam o arco.
+
 ## 0.17.0 — 2026-11-27
 Windows nativo pelo Git Bash (ADR-21). Até aqui o plugin só rodava no Windows dentro do WSL2. Nada muda em Linux e macOS.
 - **Roda no Git Bash**, o shell em que o Claude Code executa os comandos no Windows, com Python e ffmpeg nativos. PowerShell e cmd sozinhos continuam fora: os scripts são bash. Instalação em `docs/instalacao.md` (seção "Windows nativo").

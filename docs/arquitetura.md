@@ -131,6 +131,12 @@ Quatro camadas (0.5.0):
 - **Não adotado:** portar os `.sh` para Python e rodar em PowerShell/cmd (atenderia outros agentes no Windows, mas mexeria em todas as skills); trocar `python3` por `uv run python` nas skills (310 ocorrências e uma partida mais lenta por comando).
 - **Consequência:** job `windows-latest` no CI com as seis suítes. No Windows o usuário faz dois ajustes uma vez (atalho `python3` e `PYTHONUTF8=1`), que o `doctor.sh` cobra. Manim, Blender e GPU ficam sem teste lá.
 
+### ADR-22 — Arco narrativo em sete etapas no `/destaques` (0.18.0)
+- **Contexto:** o `/destaques` escolhia trechos por pontuação (palavras-chave, números, ênfase). O corte saía com as partes fortes, mas sem garantia de arco: podia ter três trechos de método e nenhuma conclusão. Nenhuma skill sabia dizer o que falta num vídeo.
+- **Decisão:** adotar a estrutura "Backbone", de Letícia Pacheco (desafio, identificação, causa, solução, método, motivação, conclusão), como modo opcional do `/destaques`. `backbone.py` segue o padrão do ADR-20: script determinístico com plano revisável no meio (`.backbone.json`). A etapa de cada bloco é decidida por quem lê a fala; a heurística só sugere, e o script recusa plano não preenchido. A ordem padrão do corte é a da gravação.
+- **Não adotado:** classificar a etapa só por heurística (numa aula real errou dois terços dos blocos antes do ajuste); reordenar por padrão (fala deslocada cita o que ainda não foi dito); skill própria (o caso de uso é o do `/destaques`, e seriam 28 skills para uma variação de corte).
+- **Consequência:** continua em 27 skills. Vale para vídeo que ensina ou convence; em tutorial e aula expositiva o próprio script avisa que o arco não se aplica.
+
 ## Fluxo de dados
 
 ```

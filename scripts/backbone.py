@@ -33,28 +33,32 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from highlights import build_blocks, score_block  # noqa: E402
 
-# chave, nome, pergunta que o trecho responde, posição típica no vídeo (0 a 1), peso no corte, marcadores
+# chave, nome, pergunta que o trecho responde, posição típica no vídeo (0 a 1), peso no corte, marcadores.
+# Marcador é palavra ou expressão inteira; com * no fim vale como começo de palavra ("frustr*" pega "frustra" e
+# "frustrado"). Só entra o que é raro fora da etapa: "a gente", "por exemplo" e "então" aparecem em toda fala e,
+# numa aula real de 20 min, jogavam dois terços dos blocos numa etapa só.
 ETAPAS = [
     ("desafio", "Desafio", "Que problema é este, e por que ele incomoda?", 0.04, 0.12,
-     ["problema", "desafio", "dificuldade", "difícil", "dor", "sofre", "trava", "não consegue", "não sabe",
-      "cansado", "frustra", "erro comum", "perde tempo"]),
+     ["problema", "desafio", "dificuldade", "difícil", "sofre*", "trava*", "não consegue*", "não sabe*",
+      "cansad*", "frustr*", "erro comum", "perde tempo", "perdendo tempo", "dor de cabeça"]),
     ("identificacao", "Identificação", "Onde quem assiste se reconhece nisso?", 0.14, 0.12,
-     ["você já", "já aconteceu", "sabe quando", "comigo", "eu também", "eu já", "por exemplo", "imagina",
-      "todo mundo", "a gente", "quem nunca"]),
+     ["já aconteceu", "sabe quando", "comigo", "eu também", "você também", "quem nunca", "já passou por",
+      "se identific*", "talvez você", "aposto que você"]),
     ("causa", "Causa", "Por que isso acontece, e com que base se afirma?", 0.28, 0.15,
-     ["porque", "por que", "motivo", "causa", "acontece", "razão", "estudo", "pesquisa", "dados", "ciência",
-      "por cento", "comprov"]),
+     ["por que isso", "isso acontece", "o motivo", "a causa", "a razão", "estudo", "estudos", "pesquisa*", "dados",
+      "ciência", "por cento", "comprov*", "estatística*"]),
     ("solucao", "Solução", "O que resolve, e o que mostra que resolve?", 0.44, 0.15,
-     ["solução", "resolve", "resposta", "saída", "segredo", "funciona", "o que muda", "a diferença", "prova"]),
+     ["solução", "resolve*", "a saída", "o segredo", "funciona", "o que muda", "a diferença", "a resposta"]),
     ("metodo", "Método", "Quais são os passos, na ordem em que se faz?", 0.64, 0.28,
-     ["passo", "primeiro", "segundo", "terceiro", "depois", "em seguida", "por último", "como fazer", "comece",
-      "na prática", "etapa"]),
+     ["passo", "passos", "passo a passo", "primeiro", "segundo", "terceiro", "em seguida", "por último",
+      "como fazer", "na prática", "etapa", "etapas"]),
     ("motivacao", "Motivação", "Que resultado dá vontade de agir agora?", 0.84, 0.10,
-     ["resultado", "conseguiu", "consegui", "história", "caso", "cliente", "aluno", "você pode", "você consegue",
-      "vale a pena", "mudou", "hoje ele", "hoje ela"]),
+     ["conseguiu", "consegui", "minha história", "a história", "cliente*", "aluno", "aluna", "você consegue",
+      "vale a pena", "mudou", "transform*", "imagina você"]),
     ("conclusao", "Conclusão", "Com que frase e com que energia o vídeo termina?", 0.97, 0.08,
-     ["resumindo", "conclusão", "para fechar", "pra fechar", "então é isso", "por hoje", "agora é", "até a próxima",
-      "se inscreva", "compartilhe", "comenta", "me conta", "bora"]),
+     ["resumindo", "conclusão", "para fechar", "pra fechar", "então é isso", "por hoje", "até a próxima",
+      "se inscreva", "se inscreve", "compartilhe", "compartilha", "comenta aqui", "me conta", "próxima aula",
+      "próximo vídeo"]),
 ]
 CHAVES = [e[0] for e in ETAPAS]
 NOME = {e[0]: e[1] for e in ETAPAS}
@@ -65,16 +69,27 @@ def _norm(t):
     return re.sub(r"\s+", " ", t.lower())
 
 
+def _padrao(marca):
+    if marca.endswith("*"):
+        return re.compile(r"\b" + re.escape(marca[:-1]))
+    return re.compile(r"\b" + re.escape(marca) + r"\b")
+
+
+PADROES = {e[0]: [_padrao(m) for m in e[5]] for e in ETAPAS}
+
+
 def sugerir(texto, pos):
-    """(etapa, confiança 0-1). Marcadores pesam mais que a posição; sem marcador nenhum, vale só a posição."""
+    """(etapa, confiança 0-1). Marcadores pesam mais que a posição. Sem marcador nenhum a sugestão vem só da
+    posição no vídeo, e a confiança não passa de 0,3: é um chute para quem lê conferir primeiro."""
     t = _norm(texto)
-    notas = {}
-    for chave, _, _, centro, _, marcas in ETAPAS:
-        achados = sum(t.count(m) for m in marcas)
+    notas, com_marca = {}, False
+    for chave, _, _, centro, _, _ in ETAPAS:
+        achados = min(3, sum(len(p.findall(t)) for p in PADROES[chave]))   # teto: bloco longo não ganha por volume
+        com_marca = com_marca or achados > 0
         notas[chave] = 2.0 * achados + max(0.0, 1.0 - abs(pos - centro) / 0.25)
     ordem = sorted(notas, key=notas.get, reverse=True)
-    melhor, segundo = notas[ordem[0]], notas[ordem[1]]
-    return ordem[0], round(min(1.0, (melhor - segundo) / 2.0), 2)
+    conf = min(1.0, (notas[ordem[0]] - notas[ordem[1]]) / 2.0)
+    return ordem[0], round(conf if com_marca else min(conf, 0.3), 2)
 
 
 def cmd_blocos(a):
@@ -102,6 +117,11 @@ def cmd_blocos(a):
              "blocos": blocos}
     out.write_text(json.dumps(plano, ensure_ascii=False, indent=1), encoding="utf-8")
     print(f"{len(blocos)} blocos -> {out} (preencha \"etapa\" em cada um; \"sugestao\" é só o ponto de partida)")
+    fracos = sum(b["confianca"] <= 0.3 for b in blocos)
+    if fracos > len(blocos) / 2:
+        print(f"aviso: {fracos} de {len(blocos)} blocos sem marcador de etapa (sugestão só pela posição). "
+              "Pode ser tutorial ou aula expositiva, que não segue este arco: nesse caso prefira o highlights.py.",
+              file=sys.stderr)
 
 
 def carregar(arq, usar_sugestao):

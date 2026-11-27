@@ -274,7 +274,12 @@ p["blocos"][0]["etapa"] = "abertura"
 json.dump(p, open("ruim.backbone.json", "w", encoding="utf-8"), ensure_ascii=False)
 assert roda("relatorio", "ruim.backbone.json").returncode != 0
 PY
-pass "backbone.py: sugestão por etapa, plano vazio recusado, relatório (ausentes, inversões), corte por etapa na ordem da gravação e do arco"
+# fala sem marcador de etapa (tutorial): a sugestão vem só da posição, com confiança baixa, e o script avisa
+python3 -c 'import json; json.dump({"duration": 40, "segments": [{"start": i * 8.0, "end": i * 8.0 + 5, "text": "Aqui a gente clica no menu e escolhe a opção de exportar o arquivo."} for i in range(5)]}, open("tuto.transcript.json", "w", encoding="utf-8"))'
+python3 "$S/backbone.py" blocos tuto.transcript.json 2>aviso.txt >/dev/null
+grep -q "sem marcador de etapa" aviso.txt
+python3 -c 'import json; b = json.load(open("tuto.backbone.json", encoding="utf-8"))["blocos"]; assert len(b) == 5 and all(x["confianca"] <= 0.3 for x in b), b'
+pass "backbone.py: sugestão por etapa, plano vazio recusado, relatório (ausentes, inversões), corte por etapa na ordem da gravação e do arco; aviso em fala sem marcador"
 python3 "$S/checklist_ass.py" in.mp4 itens.json hl.transcript.json --burn out_check.mp4 2>erros.txt >/dev/null
 grep -q "Sem gatilho" erros.txt && grep -c "Dialogue" itens.ass | grep -q "^5$" && test -s out_check.mp4
 pass "checklist_ass.py: 2 itens no tempo da fala, 1 sem gatilho avisado"
