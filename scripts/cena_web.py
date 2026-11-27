@@ -41,6 +41,7 @@ import shutil
 import subprocess
 import sys
 import tarfile
+import urllib.parse
 import urllib.request
 
 
@@ -111,7 +112,8 @@ def rotear(ctx, pasta_cena: pathlib.Path, rede: bool, avisos: list):
                 return route.continue_()
             avisos.append(url)
             return route.abort()
-        caminho = urllib.request.url2pathname(url[len(ORIGEM):].split("?")[0].split("#")[0])
+        # unquote, não url2pathname: no Windows este devolve "\\cena.html", e o caminho aqui é sempre de URL (com /)
+        caminho = urllib.parse.unquote(url[len(ORIGEM):].split("?")[0].split("#")[0])
         arq = None
         if caminho.startswith("/_ve/"):
             nome, _, resto = caminho[len("/_ve/"):].partition("/")

@@ -8,11 +8,13 @@
 case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) VE_WIN=1 ;; *) VE_WIN=0 ;; esac
 if [ "$VE_WIN" = 1 ]; then
   export PYTHONUTF8=1
+  export SEP=";"   # separador de lista de caminhos (PYTHONPATH): com C:/..., o ":" do Unix não serve
   caminho() { cygpath -m "$1"; }
   # Processo em segundo plano cujo PID interessa: chame `command python3` (ou `exec python3`), não a função.
   python3() { command python3 "$@" | tr -d '\r'; return "${PIPESTATUS[0]}"; }
   ffprobe() { command ffprobe "$@" | tr -d '\r'; return "${PIPESTATUS[0]}"; }
 else
+  export SEP=":"
   caminho() { printf '%s\n' "$1"; }
 fi
 tmpdir() { caminho "$(mktemp -d)"; }

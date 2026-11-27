@@ -188,13 +188,13 @@ PY
 pass "audio.normalizar: -14 LUFS com pico real <= -1,5 dBTP apesar dos cliques; quadros e fades"
 
 # TTS: o edge-tts falha de vez em quando sem motivo; o backend repete (stub simula as falhas)
-VE_TTS_ESPERA=0 VE_STUB_EDGE_FALHAS=2 PYTHONPATH="$ROOT:$ROOT/tests/stub" python3 - <<'PY' 2>err.txt
+VE_TTS_ESPERA=0 VE_STUB_EDGE_FALHAS=2 PYTHONPATH="$ROOT$SEP$ROOT/tests/stub" python3 - <<'PY' 2>err.txt
 from video_editores.modelos.tts_edge import EdgeTTS
 ws = EdgeTTS().sintetizar("um dois três", mp3="r.mp3")
 assert len(ws) == 3, ws
 PY
 grep -q "tentativa 2 falhou" err.txt && test -s r.mp3
-if VE_TTS_ESPERA=0 VE_STUB_EDGE_FALHAS=5 PYTHONPATH="$ROOT:$ROOT/tests/stub" python3 -c "
+if VE_TTS_ESPERA=0 VE_STUB_EDGE_FALHAS=5 PYTHONPATH="$ROOT$SEP$ROOT/tests/stub" python3 -c "
 from video_editores.modelos.tts_edge import EdgeTTS; EdgeTTS().sintetizar('a', mp3='r2.mp3')" 2>/dev/null; then echo "devia falhar"; exit 1; fi
 pass "tts_edge: repete 3 vezes em NoAudioReceived e desiste com erro claro"
 
