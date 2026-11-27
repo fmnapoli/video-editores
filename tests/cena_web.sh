@@ -3,8 +3,10 @@
 # Uso: tests/cena_web.sh   (ffmpeg, python3, uv e um Chrome/Chromium; sem navegador, o teste é pulado)
 #      VE_TESTE_REDE=1 tests/cena_web.sh   também baixa Three.js e GSAP do npm e renderiza os dois modelos
 set -euo pipefail
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
+# shellcheck source=tests/_plataforma.sh
+. "$(dirname "$0")/_plataforma.sh"
+ROOT="$(caminho "$(cd "$(dirname "$0")/.." && pwd)")"
+T="$(tmpdir)"; trap 'rm -rf "$T"' EXIT
 cd "$T"
 pass() { printf '  \033[32m✔\033[0m %s\n' "$1"; }
 WEB=(uv run --quiet --with playwright python "$ROOT/scripts/cena_web.py")
@@ -63,7 +65,7 @@ pass "cena_web.py: --alpha exige .mov; erro da cena aponta o quadro; cena sem ve
 
 # sem --rede nada sai da máquina: imagem, fetch, WebSocket e janela aberta pela cena não chegam a um servidor local,
 # e o render termina com o aviso de cada endereço (recurso bloqueado não derruba o vídeo)
-python3 - <<'PYOUVE' &
+command python3 - <<'PYOUVE' &
 import os, socket
 s = socket.socket(); s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1); s.bind(("127.0.0.1", 0)); s.listen(8)
 open("porta.tmp", "w").write(str(s.getsockname()[1])); os.replace("porta.tmp", "porta.txt"); s.settimeout(60)

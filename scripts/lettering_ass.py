@@ -36,12 +36,6 @@ def probe(path):
     return (h, w) if abs(rot) % 180 == 90 else (w, h)
 
 
-def ffesc(p):
-    """Escapa um caminho para uso dentro de opções de filtro do ffmpeg."""
-    return (p.replace("\\", "\\\\").replace("'", "\\'").replace(":", "\\:")
-             .replace(",", "\\,").replace("[", "\\[").replace("]", "\\]"))
-
-
 def t(s):
     cs = int(round(s * 100))
     h, cs = divmod(cs, 360000)
@@ -141,7 +135,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
     if a.burn:
         subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", a.video,
-                        "-vf", f"ass=filename='{ffesc(out_ass)}'{marca_cli.fontsdir(m)}", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
+                        "-vf", f"ass=filename={marca_cli.ffesc(out_ass)}{marca_cli.fontsdir(m)}", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
                         "-c:a", "copy", a.burn], check=True)
         print(f"ok -> {a.burn}")
 

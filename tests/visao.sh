@@ -5,9 +5,11 @@
 # Os modelos de IA (rosto, OCR) entram por backends falsos de tests/stub/modelos_falsos.py: o que se testa aqui é
 # a lógica dos scripts (zona livre, conferência por diferença de pixels, busca de texto, formas ASS no lugar).
 set -euo pipefail
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck source=tests/_plataforma.sh
+. "$(dirname "$0")/_plataforma.sh"
+ROOT="$(caminho "$(cd "$(dirname "$0")/.." && pwd)")"
 S="$ROOT/scripts"
-T="$(mktemp -d)"
+T="$(tmpdir)"
 STUB_PID=""
 trap '[[ -n "$STUB_PID" ]] && kill "$STUB_PID" 2>/dev/null || true; rm -rf "$T"' EXIT
 cd "$T"

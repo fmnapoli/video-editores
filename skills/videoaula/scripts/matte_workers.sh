@@ -8,19 +8,21 @@ set -euo pipefail
 CFG="$1"; N="${2:-2}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 PLUG="$(cd "$HERE/../../.." && pwd)"
+# shellcheck source=../../../scripts/_py.sh
+. "$PLUG/scripts/_py.sh"   # VE_PY, py e sonda (python3 ou python; saída sem \r no Windows)
 export VE_PKG_DIR="${VE_PKG_DIR:-$PLUG}"   # onde o matte.py acha o pacote video_editores
 # pacotes do backend de segmentação configurado (VE_SEG/VE_DEVICE), um --with por pacote
-mapfile -t WITHS < <(PYTHONPATH="$VE_PKG_DIR" python3 -c "
+mapfile -t WITHS < <(PYTHONPATH="$VE_PKG_DIR" py -c "
 from video_editores import modelos
 for p in modelos.deps('seg'): print('--with'); print(p)")
 cd "$(dirname "$CFG")"; CFG="$(basename "$CFG")"
-read -r CUT FUNDO MATTES LOCUTOR < <(python3 -c "
-import json,sys; c=json.load(open(sys.argv[1])); print(c['corte'], c['identidade']+'/fundo.png', c.get('mattes','mattes'), c.get('modos',{}).get('locutor','locutor'))" "$CFG")
+read -r CUT FUNDO MATTES LOCUTOR < <(py -c "
+import json,sys; c=json.load(open(sys.argv[1], encoding='utf-8')); print(c['corte'], c['identidade']+'/fundo.png', c.get('mattes','mattes'), c.get('modos',{}).get('locutor','locutor'))" "$CFG")
 mkdir -p "$MATTES"
-python3 - "$CFG" "$N" "$MATTES" "$LOCUTOR" > "$MATTES/lista.txt" <<'PY'
+py - "$CFG" "$N" "$MATTES" "$LOCUTOR" > "$MATTES/lista.txt" <<'PY'
 import json, sys
 cfg, n, mattes, kind = sys.argv[1], int(sys.argv[2]), sys.argv[3], sys.argv[4]
-c = json.load(open(cfg)); cenas = [x for x in json.load(open(c["cenas_corte"])) if x["kind"] == kind]
+c = json.load(open(cfg, encoding="utf-8")); cenas = [x for x in json.load(open(c["cenas_corte"], encoding="utf-8")) if x["kind"] == kind]
 cenas.sort(key=lambda x: -x["cut_len"]); w = [[] for _ in range(n)]; d = [0.0] * n
 for x in cenas:
     i = d.index(min(d)); w[i].append(x); d[i] += x["cut_len"]

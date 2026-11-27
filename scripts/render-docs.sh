@@ -13,11 +13,12 @@ command -v uv >/dev/null      || die "uv não encontrado (https://docs.astral.sh
 command -v ffmpeg >/dev/null  || die "ffmpeg não encontrado"
 command -v ffprobe >/dev/null || die "ffprobe não encontrado"
 grep -qE '^ ... (ass|subtitles) ' <<<"$(ffmpeg -hide_banner -filters 2>/dev/null)" \
-  || die "este ffmpeg não tem libass (filtros ass/subtitles). Linux: ffmpeg do apt. macOS: brew install ffmpeg-full e use \$(brew --prefix ffmpeg-full)/bin/ffmpeg."
+  || die "este ffmpeg não tem libass (filtros ass/subtitles). Linux: ffmpeg do apt. Windows: winget install Gyan.FFmpeg. macOS: brew install ffmpeg-full e use \$(brew --prefix ffmpeg-full)/bin/ffmpeg."
 if command -v fc-list >/dev/null; then
   # here-string, não pipe: com pipefail, o grep -q fecha o pipe cedo e o fc-list morre de SIGPIPE (falso "ausente")
   grep -qi "DejaVuSans-Bold\|DejaVu Sans:style=Bold" <<<"$(fc-list 2>/dev/null)" \
     || die "fonte DejaVu Sans Bold ausente: apt install fonts-dejavu-core | brew install --cask font-dejavu"
 fi
+export PYTHONUTF8="${PYTHONUTF8:-1}"   # Windows: roteiro e legenda em UTF-8, não em cp1252
 
 uv run --quiet --with edge-tts --with pillow python "$BUILD" "$1"

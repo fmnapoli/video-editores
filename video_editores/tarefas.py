@@ -2,16 +2,48 @@
 
 Cada tarefa é um processo detached (sessão própria, sobrevive ao fim do cliente) com log e um JSON de estado
 em <raiz>/.video-editores/tarefas/<id>.json. Usado pelo servidor MCP e pela CLI (`--fundo`).
+
+No Windows não há sessão nem grupo de processos POSIX: a tarefa nasce em grupo próprio e sem janela, o
+cancelamento é `taskkill /T` (a árvore inteira) e "está vivo?" pergunta ao sistema pelo código de saída.
 """
 import json
 import os
 import signal
 import subprocess
+import sys
 import time
 import uuid
 from pathlib import Path
 
 PASTA = ".video-editores/tarefas"
+WINDOWS = os.name == "nt"
+
+# Invólucro que grava o código de saída em $VE_RC. É Python, e não `bash -c`, porque o servidor MCP pode ser
+# iniciado por um agente fora do Git Bash, sem bash no PATH. Comando inexistente sai com 127, como no shell.
+_ENVOLTORIO = """
+import os, subprocess, sys
+try:
+    rc = subprocess.call(sys.argv[1:])
+except OSError as e:
+    print(f"video-editores: {e}", file=sys.stderr)
+    rc = 127
+with open(os.environ["VE_RC"], "w", encoding="ascii") as f:
+    f.write(str(rc))
+sys.exit(rc)
+"""
+
+
+def _vivo_windows(pid) -> bool:
+    import ctypes
+    k = ctypes.windll.kernel32
+    h = k.OpenProcess(0x1000, False, int(pid))        # PROCESS_QUERY_LIMITED_INFORMATION
+    if not h:
+        return False
+    try:
+        codigo = ctypes.c_ulong()
+        return bool(k.GetExitCodeProcess(h, ctypes.byref(codigo))) and codigo.value == 259   # STILL_ACTIVE
+    finally:
+        k.CloseHandle(h)
 
 
 class Tarefas:
@@ -35,12 +67,14 @@ class Tarefas:
         e = dict(os.environ)
         e.update(env or {})
         e["VE_RC"] = str(rc_arq)
-        # Um bash fino grava o código de saída em .rc: assim qualquer processo (outra sessão do servidor, a CLI
-        # `tarefas`) sabe se a tarefa terminou bem, não só quem a iniciou.
-        envolto = ["bash", "-c", '"$@"; echo $? > "$VE_RC"', "video-editores", *cmd]
+        # Um invólucro fino grava o código de saída em .rc: assim qualquer processo (outra sessão do servidor, a
+        # CLI `tarefas`) sabe se a tarefa terminou bem, não só quem a iniciou.
+        envolto = [sys.executable, "-c", _ENVOLTORIO, *cmd]
+        solta = ({"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW} if WINDOWS
+                 else {"start_new_session": True})
         with open(log, "wb") as lf:
             p = subprocess.Popen(envolto, cwd=cwd, stdout=lf, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
-                                 start_new_session=True, env=e)
+                                 env=e, **solta)
         t = {"id": tid, "nome": nome, "cmd": cmd, "cwd": cwd, "pid": p.pid, "inicio": time.time(),
              "estado": "rodando", "rc": None, "fim": None, "log": str(log), "rc_arq": str(rc_arq)}
         self._procs[tid] = p
@@ -48,6 +82,8 @@ class Tarefas:
         return t
 
     def _vivo(self, pid):
+        if WINDOWS:   # lá `os.kill(pid, 0)` não testa nada: 0 é CTRL_C_EVENT, e o sinal seria entregue
+            return _vivo_windows(pid)
         try:
             os.kill(pid, 0)
             return True
@@ -66,8 +102,8 @@ class Tarefas:
             if p is not None:
                 p.poll()
             rc_arq = Path(t.get("rc_arq", ""))
-            if rc_arq.is_file() and rc_arq.read_text().strip():
-                rc = int(rc_arq.read_text().strip())
+            if rc_arq.is_file() and rc_arq.read_text(encoding="ascii").strip():
+                rc = int(rc_arq.read_text(encoding="ascii").strip())
                 t.update(estado="ok" if rc == 0 else "erro", rc=rc, fim=rc_arq.stat().st_mtime)
             elif p is None and not self._vivo(t["pid"]):
                 t.update(estado="terminada", fim=time.time())  # morreu sem gravar o rc (kill -9, queda)
@@ -94,10 +130,13 @@ class Tarefas:
     def cancelar(self, tid) -> dict:
         t = self.status(tid)
         if t["estado"] == "rodando":
-            try:
-                os.killpg(t["pid"], signal.SIGTERM)
-            except ProcessLookupError:
-                pass
+            if WINDOWS:
+                subprocess.run(["taskkill", "/T", "/F", "/PID", str(t["pid"])], capture_output=True)
+            else:
+                try:
+                    os.killpg(t["pid"], signal.SIGTERM)
+                except ProcessLookupError:
+                    pass
             t.update(estado="cancelada", fim=time.time())
             self._grava(t)
         return t

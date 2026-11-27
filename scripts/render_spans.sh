@@ -5,9 +5,11 @@
 # gravava 25 fps (um vídeo de 30 fps perdia 1 quadro em cada 6).
 set -euo pipefail
 IN="$1"; SPANS="$2"; OUT="$3"
-HAS_AUDIO=$(ffprobe -v error -select_streams a -show_entries stream=index -of csv=p=0 "$IN" | head -1)
-TAXA=$(ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of csv=p=0 "$IN" | head -1 | tr -d ',')
-FILTER=$(python3 - "$SPANS" "$TAXA" "${HAS_AUDIO:+1}" <<'PY'
+# shellcheck source=scripts/_py.sh
+. "$(cd "$(dirname "$0")" && pwd)/_py.sh"   # VE_PY, py e sonda (python3 ou python; saída sem \r no Windows)
+HAS_AUDIO=$(sonda -v error -select_streams a -show_entries stream=index -of csv=p=0 "$IN" | head -1)
+TAXA=$(sonda -v error -select_streams v:0 -show_entries stream=r_frame_rate -of csv=p=0 "$IN" | head -1 | tr -d ',')
+FILTER=$(py - "$SPANS" "$TAXA" "${HAS_AUDIO:+1}" <<'PY'
 import json, math, sys
 from fractions import Fraction
 k = json.load(open(sys.argv[1], encoding="utf-8")).get("keep") or []

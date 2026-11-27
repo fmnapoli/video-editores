@@ -63,7 +63,8 @@ def fonte_padrao(peso="700"):
     senão a fonte do Pillow."""
     cands = [_marca("fonte", "bold") or "", os.path.expanduser(f"~/.local/share/fonts/inter/Inter-{peso}.ttf"),
              "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-             "/Library/Fonts/Arial Bold.ttf", "/System/Library/Fonts/Supplemental/Arial Bold.ttf"]
+             "/Library/Fonts/Arial Bold.ttf", "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+             os.path.join(os.environ.get("WINDIR", r"C:\Windows"), "Fonts", "DejaVuSans-Bold.ttf"), os.path.join(os.environ.get("WINDIR", r"C:\Windows"), "Fonts", "arialbd.ttf")]
     for c in cands:
         if os.path.exists(c):
             return c

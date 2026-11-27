@@ -53,3 +53,39 @@ jobs:
         run: bash tests/visao.sh
       - name: cena-web (cena HTML no Chrome sem janela do runner; pulado se não houver navegador)
         run: bash tests/cena_web.sh
+  windows:
+    # Windows nativo: os comandos rodam no Git Bash (é o que o Claude Code usa lá), com Python e ffmpeg nativos
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    env:
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - name: ffmpeg (build com libass) e fonte DejaVu
+        run: |
+          choco install -y --no-progress ffmpeg dejavufonts
+          ffmpeg -hide_banner -filters | grep -E ' (ass|subtitles) '
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v5
+      - name: python3 (o mesmo atalho que o doctor indica quando só existe `python`)
+        run: |
+          python3 -c '' 2>/dev/null || cp "$(command -v python)" "$(dirname "$(command -v python)")/python3.exe"
+          python3 --version
+      - name: doctor (informativo; as CLIs opcionais não estão instaladas no runner)
+        run: bash scripts/doctor.sh || true
+      - name: smoke
+        run: bash tests/smoke.sh
+      - name: núcleo (CLI, modelos, tarefas, MCP em processo)
+        run: bash tests/nucleo.sh
+      - name: video-docs offline (stub de edge-tts)
+        run: bash tests/docs_offline.sh
+      - name: partitura (Verovio + resvg + síntese, via uv)
+        run: bash tests/partitura.sh
+      - name: visão (rastreamento com OpenCV; rosto, OCR e banco com backends falsos)
+        run: bash tests/visao.sh
+      - name: cena-web (cena HTML no Chrome sem janela do runner; pulado se não houver navegador)
+        run: bash tests/cena_web.sh

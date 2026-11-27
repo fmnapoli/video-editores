@@ -155,7 +155,36 @@ def ambiente() -> dict:
     import os
     from pathlib import Path
     pkg_dir = str(Path(__file__).resolve().parents[2])
-    return {"VE_PKG_DIR": os.environ.get("VE_PKG_DIR") or pkg_dir}
+    amb = {"VE_PKG_DIR": os.environ.get("VE_PKG_DIR") or pkg_dir}
+    if os.name == "nt":   # arquivos e saída em UTF-8: o padrão do Windows é cp1252 e os acentos sairiam trocados
+        amb["PYTHONUTF8"] = os.environ.get("PYTHONUTF8") or "1"
+    return amb
+
+
+def bash() -> str:
+    """O bash que roda os scripts .sh. No Windows é o do Git for Windows, procurado de propósito: `bash` sozinho
+    pode resolver para C:\\Windows\\System32\\bash.exe, que é o lançador do WSL e não enxerga estes caminhos.
+    $VE_BASH aponta outro."""
+    import os
+    if os.environ.get("VE_BASH"):
+        return os.environ["VE_BASH"]
+    if os.name != "nt":
+        return "bash"
+    achado = shutil.which("bash")
+    if achado and "system32" not in achado.lower():
+        return achado
+    cands = []
+    git = shutil.which("git")
+    if git:   # <Git>\cmd\git.exe ou <Git>\bin\git.exe -> <Git>\bin\bash.exe
+        cands.append(os.path.join(os.path.dirname(os.path.dirname(git)), "bin", "bash.exe"))
+    for base in (os.environ.get("ProgramFiles"), os.environ.get("ProgramFiles(x86)"), os.environ.get("LOCALAPPDATA")):
+        if base:
+            cands += [os.path.join(base, "Git", "bin", "bash.exe"), os.path.join(base, "Programs", "Git", "bin", "bash.exe")]
+    for c in cands:
+        if os.path.isfile(c):
+            return c
+    raise SystemExit("bash não encontrado: instale o Git for Windows (https://git-scm.com/download/win) "
+                     "ou aponte VE_BASH para o bash.exe")
 
 
 def comando(nome: str, args, device=None, direto=False) -> list:
@@ -164,7 +193,7 @@ def comando(nome: str, args, device=None, direto=False) -> list:
     op = operacao(nome)
     p = str(op.caminho)
     if p.endswith(".sh"):
-        return ["bash", p, *args]
+        return [bash(), p, *args]
     pk = op.pacotes(device)
     if pk and not direto and shutil.which("uv"):
         withs = [x for pkg in pk for x in ("--with", pkg)]
