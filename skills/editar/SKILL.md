@@ -33,6 +33,7 @@ Se faltar algo que muda o resultado (ex.: música sim ou não), pergunte **uma**
 | destaca um botão ou uma frase da tela / "onde está escrito X" / tarja em e-mail, CPF, token | ler-tela |
 | "falta imagem aqui" / B-roll de banco (só se o usuário pedir imagem de fora e tiver a chave) | banco (opcional) |
 | melhores momentos / resumo / "aula de 2 h em 10 min" / "tira N reels" | destaques |
+| "com começo, meio e fim" / "formato Backbone" / "confere o arco" / "o que falta nesse vídeo" | destaques (arco narrativo) |
 | música / trilha / "onde não falo põe música" | trilha |
 | efeitos sonoros / whoosh | efeitos |
 | igual esse vídeo | referencia primeiro |

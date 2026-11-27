@@ -13,6 +13,7 @@ Siga `${CLAUDE_PLUGIN_ROOT}/docs/convencoes.md` (pastas, nomes de saída, loudne
    - a **promessa** (o que a pessoa ganha assistindo);
    - o **trecho mais forte** já gravado (número surpreendente, resultado, frase polêmica, antes/depois);
    - o público (pergunte se não estiver claro).
+   Se o vídeo passou pelo arco do `/destaques` (`IN.backbone.json`), comece pelos blocos de etapa `desafio`: o gancho nasce do problema e do que mostra que ele incomoda.
 3. Entregue **5 ganchos**, cada um com um padrão diferente, máx. ~12 palavras (≈3 s de fala):
    | Padrão | Exemplo de forma |
    |---|---|

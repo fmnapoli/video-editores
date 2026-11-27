@@ -41,6 +41,8 @@ Lê o pedido, escolhe os skills pela tabela de estilos (igual à do catálogo em
 ## /destaques
 `highlights.py` divide a fala em blocos por pausas (`--gap`), pontua por palavras-chave, números, perguntas e marcadores de ênfase, penaliza muletas, e escolhe por pontuação/segundo até o `--target` (ou `--reels N --reel-len S`). Blocos maiores que ~40% do alvo são divididos. Saída `.md` com todos os blocos para o Claude e o usuário refinarem.
 
+**Arco narrativo (Backbone).** Para vídeo que ensina ou convence, `backbone.py` trabalha com sete etapas: desafio, identificação, causa, solução, método, motivação e conclusão (estrutura de Letícia Pacheco, @leticiapachecovoz). `blocos` divide a fala e sugere a etapa de cada bloco; o agente lê e preenche `etapa` (ou `fora`); `relatorio` mostra etapas ausentes, tempo por etapa, ordem de aparição e desequilíbrio; `montar` gera o `keep` com pelo menos um bloco de cada etapa presente, repartindo o alvo por etapa. A ordem padrão é a da gravação; `--reordenar` segue o arco e avisa cada inversão. Não se aplica a tutorial de tela nem a documentação.
+
 ## /checklist
 `checklist_ass.py` acha o instante de cada item pela primeira palavra-gatilho na transcrição (sem acento/caixa, a partir do item anterior) ou por `at`, e desenha moldura + itens com ✓ entrando um a um. `--side right` quando a pessoa está à esquerda.
 

@@ -32,6 +32,8 @@ Copie, cole no Claude Code e troque o que estiver entre `< >`. Cada pedido acion
 |---|---|
 | "Transforma essa aula de 2 horas num vídeo de 10 minutos pro YouTube" | destaques → corte → legenda → prova |
 | "Tira dessa aula três Reels de 45 segundos" | destaques (modo reels) → lettering → legenda |
+| "Corta essa aula em 90 segundos, mas com começo, meio e fim" | destaques (arco narrativo: blocos → etapas → relatório → montar) → ganchos → legenda |
+| "Esse vídeo convence? O que está faltando nele?" | destaques (arco narrativo, só o relatório) |
 | "Só limpa a aula: tira pausas e erros, mantém tudo" | tomada → corte |
 | "Faz um checklist dos passos que eu explico" | checklist |
 | "Refaz essa videoaula com cenário novo, troca o Excalidraw por diagramas animados, põe abertura e separadores, mantém o professor na tela" | videoaula (referencia → corte com remap → identidade → recorte IA → Manim → piloto → lote) |

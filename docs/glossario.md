@@ -9,6 +9,7 @@ Para quem não edita e quer saber pedir. Cada termo com o que significa e a skil
 | **Easing** | O jeito de acelerar e frear entre dois quadros-chave; é o que separa movimento de robô de movimento com vida | `/animacao` (tabela de `rate_func`), `anim: pop` do `/lettering` |
 | **Renderizar** | Transformar a descrição da cena (código) no arquivo de vídeo | Manim, Blender, Chrome sem janela (`/cena-web`) e ffmpeg, conforme a skill |
 | **Transcrição** | O texto da fala com o instante de cada palavra; é por ela que o corte cai entre palavras | `/tomada`, `/legenda`, `/destaques` (`transcribe.py`) |
+| **Arco narrativo (Backbone)** | A ordem em que um vídeo que ensina ou convence conduz quem assiste: desafio, identificação, causa, solução, método, motivação, conclusão | `/destaques` (`backbone.py`) |
 | **EDL** (lista de cortes) | A lista de trechos que ficam, com início e fim; o vídeo é montado a partir dela | `/tomada` (`.takes.json`), `/corte` (`--export`), `/videoaula` |
 | **Jump cut** | O salto que aparece quando se tira um pedaço do meio de uma fala gravada no mesmo enquadramento | `/camera` troca o plano em cada corte para o salto virar mudança de enquadramento |
 | **Punch-in** | Zoom curto e rápido numa palavra, para dar ênfase | `/camera` (`--punches`) |
