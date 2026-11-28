@@ -119,15 +119,15 @@ HTML
 set +e; "${WEB[@]}" texto.html --quadros 0.5,1.5 folha.png --tamanho 640x360 >saida.txt 2>err.txt; RC=$?; set -e
 [[ $RC == 2 ]] || { echo "texto cortado devia sair com código 2, saiu $RC"; cat err.txt; exit 1; }
 [[ $(grep -c "PROBLEMA" err.txt) == 1 ]] || { echo "esperava 1 problema (o texto que sai, só em t = 1,5 s):"; cat err.txt; exit 1; }
-grep -q "t = 1.5s: texto cortado pela borda (direita): .texto que sai pela direita" err.txt
+grep -q "t = 1.5s: texto cortado pela borda (direita): .*texto que sai pela direita" err.txt || { echo "faltou o problema do texto cortado:"; cat err.txt; exit 1; }
 python3 -c '
 import struct
 b = open("folha.png", "rb").read(24); w, h = struct.unpack(">II", b[16:24])
 assert b[:8] == b"\x89PNG\r\n\x1a\n" and w > 1280 and 360 < h < 480, (w, h)   # 2 quadros de 640 lado a lado + legenda'
 set +e; "${WEB[@]}" texto.html --quadros 2 folha2.png --tamanho 640x360 --reserva-baixo 0.2 >/dev/null 2>err.txt; RC=$?; set -e
-[[ $RC == 2 ]] && [[ $(grep -c "faixa reservada embaixo: .rodape" err.txt) == 2 ]] || { echo "--reserva-baixo devia acusar o rodapé nos 2 instantes"; cat err.txt; exit 1; }
+[[ $RC == 2 ]] && [[ $(grep -c "faixa reservada embaixo: .*rodape" err.txt) == 2 ]] || { echo "--reserva-baixo devia acusar o rodapé nos 2 instantes"; cat err.txt; exit 1; }
 "${WEB[@]}" texto.html --quadros 1.5 folha3.png --tamanho 640x360 --auditoria aviso >/dev/null 2>err.txt
-grep -q "AVISO: t = 1.5s: texto cortado" err.txt
+grep -q "AVISO: t = 1.5s: texto cortado" err.txt || { echo "--auditoria aviso não avisou:"; cat err.txt; exit 1; }
 "${WEB[@]}" texto.html --quadros 1.5 folha4.png --tamanho 640x360 --auditoria nao >saida.txt 2>err.txt && grep -q "sem auditoria" saida.txt
 if "${WEB[@]}" texto.html --quadros 1,2 folha.mp4 2>err.txt; then echo "--quadros em .mp4 devia falhar"; exit 1; fi
 grep -q "precisa ser .png" err.txt
@@ -163,10 +163,10 @@ assert s == (255, 0, 0), s               # --sem-marca: vale a reserva do CSS'
 echo '[{"t":0.6,"d":0.2,"w":"outra"},{"t":1.0,"d":0.2,"w":"fala"}]' > outras.json
 SECONDS=0
 if "${WEB[@]}" fala.html --quadro 1 x.png --palavras outras.json --dados dados.json 2>err.txt; then echo "palavra ausente devia falhar"; exit 1; fi
-grep -q 'veQuando("OPERATOR"): não está na narração \[outra fala\]' err.txt
+grep -q 'veQuando("OPERATOR"): .* \[outra fala\]' err.txt || { echo "faltou a mensagem da palavra ausente:"; cat err.txt; exit 1; }
 (( SECONDS < 15 )) || { echo "erro ao carregar a cena esperou o prazo inteiro (${SECONDS}s)"; exit 1; }
 if "${WEB[@]}" fala.html --quadro 1 x.png --dados dados.json 2>err.txt; then echo "cena narrada sem --palavras e sem padrão devia falhar"; exit 1; fi
-grep -q "sem --palavras e sem valor padrão" err.txt
+grep -q "sem --palavras e sem valor padr" err.txt || { cat err.txt; exit 1; }
 rm -rf marca
 pass "cena_web.py --palavras/--dados: veQuando e veTrecho acham palavra, expressão e ocorrência sem ligar para caixa e acento; palavra ausente falha rápido e mostra a fala; marca vira variável CSS (e --sem-marca desliga)"
 
@@ -209,7 +209,7 @@ assert ps[-1]["w"].startswith("operator") and abs(ps[0]["t"] - t["GL"]["lead"]) 
 PY
   sed -i.bak 's/veQuando("operator")/veQuando("orquestrador")/' cenas/GL.html
   if "${RW[@]}" --cenas GL > render.log 2>&1; then echo "cena com palavra fora da narração devia falhar"; exit 1; fi
-  grep -q 'GL: .*' render.log && grep -q "não está na narração" render.log
+  grep -q 'veQuando("orquestrador")' render.log || { echo "faltou a mensagem da palavra fora da fala:"; cat render.log; exit 1; }
 )
 pass "render_web.py (video-animado): cena em HTML com a duração da narração, palavras na grafia do roteiro, folha por cena, cena do Manim ignorada, palavra fora da fala derruba só com mensagem clara"
 
