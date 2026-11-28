@@ -185,7 +185,7 @@ uv run --with pillow --with fonttools --with pypdf python scripts/extrair_marca.
 Gera N variações de uma imagem a partir de um prompt no backend de imagem (padrão: servidor ComfyUI, ADR-15), uma por semente, e grava `<out>/<id>-<semente>.png`, a folha de escolha `<out>/<id>.folha.png` e o registro `<out>/<id>.json`. O registro soma uma rodada por execução, com prompt, negativo, tamanho, passos, sementes, workflow (com sha256), modelo, licença e versão do servidor. Largura e altura em múltiplos de 16. Para regenerar uma escolhida: o mesmo prompt com `--semente S --variacoes 1`.
 ```bash
 VE_COMFYUI_URL=http://gpu:8188 uv run --with pillow python scripts/gerar_imagem.py "fundo abstrato azul, luz suave" --id fundo-abertura --out trabalho/aula01/gerados
-uv run python scripts/gerar_imagem.py --conferir     # servidor no ar e checkpoint presente
+uv run python scripts/gerar_imagem.py --conferir     # servidor no ar, workflow compatível com os nós dele e checkpoint presente
 ```
 
 ## cena_web.py

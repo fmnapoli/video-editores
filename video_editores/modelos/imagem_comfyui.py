@@ -110,9 +110,43 @@ class ComfyUI(Backend):
     def checkpoint(self) -> str:
         return os.environ.get("VE_COMFYUI_CHECKPOINT") or self.meta.get("arquivo", "")
 
+    def validar_workflow(self) -> list:
+        """Confere cada nó contra o /object_info do servidor: a classe existe, as entradas obrigatórias estão lá,
+        nenhuma entrada é desconhecida e cada ligação aponta para uma saída que existe. Pega nó renomeado numa
+        versão nova do ComfyUI antes de gastar GPU. Devolve a lista de problemas (vazia = ok)."""
+        probs, infos = [], {}
+        for cls in sorted({n.get("class_type", "?") for n in self.workflow.values()}):
+            infos[cls] = self._json(f"/object_info/{urllib.parse.quote(cls)}").get(cls)
+            if not infos[cls]:
+                probs.append(f"nó {cls} não existe neste servidor (renomeado nesta versão, ou é nó de terceiro)")
+        for nid, no in self.workflow.items():
+            cls = no.get("class_type", "?")
+            info = infos.get(cls)
+            if not info:
+                continue
+            ent = info.get("input", {})
+            req, opc = ent.get("required", {}), ent.get("optional", {})
+            dado = no.get("inputs", {})
+            probs += [f"nó {nid} ({cls}): falta a entrada obrigatória {k!r}" for k in req if k not in dado]
+            for k, v in dado.items():
+                if k not in req and k not in opc:
+                    probs.append(f"nó {nid} ({cls}): entrada {k!r} não existe neste servidor")
+                if isinstance(v, list) and len(v) == 2 and isinstance(v[0], str) and isinstance(v[1], int):
+                    alvo = self.workflow.get(v[0])
+                    if alvo is None:
+                        probs.append(f"nó {nid} ({cls}): {k!r} liga no nó {v[0]}, que não está no workflow")
+                    elif infos.get(alvo.get("class_type")) and v[1] >= len(infos[alvo["class_type"]].get("output", [])):
+                        probs.append(f"nó {nid} ({cls}): {k!r} usa a saída {v[1]} de {alvo['class_type']}, que não existe")
+        return probs
+
     def conferir(self, timeout=30) -> dict:
-        """Servidor no ar e checkpoint do workflow presente nele. Devolve a info do servidor; erro diz onde baixar."""
+        """Servidor no ar, workflow compatível com os nós dele e checkpoint presente. Devolve a info do servidor;
+        o erro diz o que está errado e, para checkpoint, onde baixar."""
         info = self.servidor(timeout=timeout)
+        probs = self.validar_workflow()
+        if probs:
+            raise RuntimeError(f"workflow {self.workflow_arq.stem} incompatível com o ComfyUI {info['versao']} em {self.url}:\n  "
+                               + "\n  ".join(probs))
         ck = self.checkpoint()
         if ck and "{{checkpoint}}" in json.dumps(self.workflow):
             disp = self.checkpoints()

@@ -20,6 +20,17 @@ CHECKPOINT = "flux1-schnell-fp8.safetensors"
 SEM_CK = "--sem-checkpoint" in sys.argv
 FALHAR = "--falhar" in sys.argv
 JOBS, CONSULTAS, RECEBIDOS = {}, {}, []
+_I = ["INT", {}]
+NOS = {  # entradas obrigatórias e saídas dos nós nativos que os workflows do plugin usam (ComfyUI 0.45)
+    "CheckpointLoaderSimple": ({}, ["MODEL", "CLIP", "VAE"]),
+    "CLIPTextEncode": ({"text": ["STRING", {}], "clip": ["CLIP"]}, ["CONDITIONING"]),
+    "EmptySD3LatentImage": ({"width": _I, "height": _I, "batch_size": _I}, ["LATENT"]),
+    "EmptyLatentImage": ({"width": _I, "height": _I, "batch_size": _I}, ["LATENT"]),
+    "KSampler": ({k: ["*"] for k in ("model", "seed", "steps", "cfg", "sampler_name", "scheduler", "positive",
+                                      "negative", "latent_image", "denoise")}, ["LATENT"]),
+    "VAEDecode": ({"samples": ["LATENT"], "vae": ["VAE"]}, ["IMAGE"]),
+    "SaveImage": ({"images": ["IMAGE"], "filename_prefix": ["STRING", {}]}, []),
+}
 
 
 def png(w, h, cor):
@@ -47,9 +58,14 @@ class H(BaseHTTPRequestHandler):
         if u.path == "/system_stats":
             return self._resp(200, {"system": {"comfyui_version": "0.0.0-stub"},
                                     "devices": [{"name": "stub", "type": "cpu", "vram_total": 0}]})
-        if u.path == "/object_info/CheckpointLoaderSimple":
-            ops = [] if SEM_CK else [CHECKPOINT]
-            return self._resp(200, {"CheckpointLoaderSimple": {"input": {"required": {"ckpt_name": ["COMBO", {"options": ops}]}}}})
+        if u.path.startswith("/object_info/"):
+            cls = u.path.rsplit("/", 1)[1]
+            if cls not in NOS:
+                return self._resp(200, {})  # como o ComfyUI real: classe desconhecida responde vazio
+            req, saidas = NOS[cls]
+            if cls == "CheckpointLoaderSimple":
+                req = {"ckpt_name": ["COMBO", {"options": [] if SEM_CK else [CHECKPOINT]}]}
+            return self._resp(200, {cls: {"input": {"required": req}, "output": saidas}})
         if u.path.startswith("/history/"):
             pid = u.path.rsplit("/", 1)[1]
             CONSULTAS[pid] = CONSULTAS.get(pid, 0) + 1

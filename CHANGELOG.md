@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.19.0 — 2026-11-28
+Geração de imagem: o workflow é conferido contra o servidor antes de gerar, e o backend `comfyui` foi rodado pela primeira vez contra um ComfyUI de verdade (primeira metade da fase 1b do ADR-15).
+- **`ComfyUI.validar_workflow()`** (`video_editores/modelos/imagem_comfyui.py`): confere cada nó do workflow contra o `/object_info` do servidor. Acusa classe que não existe (nó renomeado numa versão nova, ou nó de terceiro), entrada obrigatória ausente, entrada desconhecida e ligação para uma saída ou um nó que não existe.
+- **`gerar-imagem --conferir`** e toda geração passam por essa checagem antes do checkpoint: workflow incompatível falha na hora, com a lista do que está errado e a versão do servidor, em vez de falhar no meio do job.
+- **`tests/comfyui_real.sh`** (manual, fora do CI e do `make test`): valida o `flux-schnell` contra os nós do servidor apontado por `VE_COMFYUI_URL`, mesmo sem o checkpoint dele, e gera de ponta a ponta com `tests/comfyui/sd15-cpu.json` (Stable Diffusion 1.5 fp16, ~2 GB, roda em CPU): variações, folha, registro, e mesma semente = mesmo PNG.
+- **Servidor falso** (`tests/stub/comfyui_servidor.py`): responde `/object_info/<classe>` para os nós que os workflows do plugin usam, e vazio para classe desconhecida, como o ComfyUI real. `tests/nucleo.sh` ganhou o caso de workflow incompatível (nó renomeado, entrada obrigatória ausente, saída inexistente).
+- Validação em servidor real: ComfyUI 0.46.4 em CPU. O `flux-schnell` tem todos os nós, entradas e ligações; com o `sd15-cpu`, duas variações de 256×256 saíram em 50 s e a semente 42 regenerou o mesmo arquivo.
+- Limites: continua sem validação em GPU. Tempo, VRAM e qualidade do `flux-schnell` não foram medidos, e a skill `/gerar` segue pendente disso (segunda metade da fase 1b). O servidor falso descreve os nós como eram no ComfyUI 0.45.
+
 ## 0.18.0 — 2026-11-27
 Arco narrativo em sete etapas no `/destaques` (ADR-22): o corte de um vídeo que ensina ou convence passa a ter começo, meio e fim, e o agente sabe dizer o que falta nele.
 - **`scripts/backbone.py`** (operação `backbone`): trabalha com as etapas desafio, identificação, causa, solução, método, motivação e conclusão. A estrutura ("Backbone") é de Letícia Pacheco (@leticiapachecovoz); as perguntas de cada etapa foram escritas aqui.
