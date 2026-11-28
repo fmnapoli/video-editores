@@ -71,5 +71,6 @@ Os níveis são ponto de partida calculado, não mixagem final: ajuste pelo ouvi
 ## Regras
 - Nunca sobrescreva a entrada; saída sempre `trabalho/<slug>/<slug>_efeitos.mp4`.
 - Efeitos entram depois da `/trilha` e antes da `/prova`: cortes mudam o tempo, então o áudio é o último passo.
+- A ocorrência (`n`) conta no vídeo **inteiro**, não na cena: se "corte" é dito na cena 2 e na cena 3, o da cena 3 é `"n": 2`. Confira na lista do plano se o tempo de cada som é o da cena esperada.
 - Palavra que não está na fala fica sem som, com o motivo na lista: a transcrição pode ter escrito diferente (confira no `.transcript.json`) ou a fala mudou. Não troque por um `t` chutado sem olhar.
 - Som que falta não se força: deixe o evento sem som e diga ao usuário qual categoria faria falta na pasta.

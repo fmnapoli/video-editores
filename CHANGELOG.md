@@ -8,7 +8,8 @@ Biblioteca de cenas HTML narradas: quatro modelos novos na `/cena-web`, preenchi
 - **`cena-citacao.html`**: as palavras da frase acendem acompanhando um trecho da fala (ou a fala inteira), com palavra em destaque e autor no fim.
 - Todos sem biblioteca externa, em função de `t`, com as cores e a fonte da marca. Abrem soltos com valores de exemplo, funcionam em 16:9 e 9:16 (a comparação empilha e a linha do tempo corre de cima para baixo) e deixam livres os 21% de baixo. Palavra de `quando` que não está na narração interrompe o render, como no `veQuando()`.
 - `/cena-web` ganha a tabela "Modelos"; no `/video-animado`, a cena aponta o modelo em `"html"` e passa o conteúdo em `"dados"`, sem editar HTML.
-- Limites: conferidos pela folha de quadros-chave com os textos de exemplo e com narração sintética; texto bem mais longo que o exemplo pode estourar a área, e a conferência acusa. Na citação as palavras repartem o trecho por igual, sem seguir cada palavra falada. Falta um vídeo real feito com eles.
+- Limites: conferidos pela folha de quadros-chave com os textos de exemplo e com narração sintética; texto bem mais longo que o exemplo pode estourar a área, e a conferência acusa. Na citação as palavras repartem o trecho por igual, sem seguir cada palavra falada.
+- Validação: um vídeo de demonstração de 33 s com quatro desses modelos, narração real (edge-tts), legenda e oito efeitos sonoros na palavra (0.21.0), do `tts_cenas.py` ao `efeitos.py`. As entradas caíram nas palavras e nenhuma folha acusou texto cortado. Achado: no `/efeitos` a ocorrência de uma palavra conta no vídeo inteiro, não na cena (documentado na skill). Os níveis dos efeitos não foram ouvidos por uma pessoa.
 
 ## 0.21.0 — 2026-11-28
 Efeito sonoro na palavra falada: o `/efeitos` passa a aceitar a palavra no lugar do tempo.
