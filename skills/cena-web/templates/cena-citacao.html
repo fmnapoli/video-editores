@@ -4,7 +4,7 @@
      Conteúdo pelo campo "dados" da cena (ou edite PADRAO):
        {"texto": "Simples é melhor que complexo.", "autor": "Tim Peters", "destaque": "simples",
         "quando": "simples é melhor que complexo"}
-     "quando" é o trecho da narração que a frase acompanha: as palavras acendem do início ao fim dele. Sem "quando",
+     "quando" é o trecho da narração que a frase acompanha: cada palavra acende no instante em que é falada. Sem "quando",
      a frase acompanha a fala inteira da cena. "destaque" (opcional) é uma palavra ou expressão da frase que fica com
      a cor de destaque. Cores e fonte da marca (--ve-*), com reserva. Conteúdo acima dos 21% de baixo (legenda). -->
 <html lang="pt-BR">
@@ -63,9 +63,24 @@ for (let i = 0; alvo.length && i + alvo.length <= palavras.length; i++) {
     break;
   }
 }
-// cada palavra acende na sua vez, repartindo o trecho por igual (a última termina de acender junto com a fala)
+// cada palavra acende quando é falada: casa, em ordem, as palavras da frase com as da narração dentro do trecho.
+// Palavra da frase que não foi dita assim (número por extenso, sigla) fica entre as vizinhas; sem narração, ou se
+// nada casar, o trecho é repartido por igual.
+const ditas = (window.vePalavras || []).filter((p) => p.t >= trecho.ini - 0.01 && p.t < trecho.fim)
+  .flatMap((p) => norm(p.w).split(" ").filter(Boolean).map((k) => ({ k, t: p.t })));
+let j = 0;
+for (const p of palavras) {
+  const i = ditas.findIndex((x, idx) => idx >= j && x.k === p.chave);
+  if (i >= 0) { p.t = ditas[i].t; j = i + 1; }
+}
 const passo = (trecho.fim - trecho.ini) / palavras.length;
-palavras.forEach((p, i) => { p.t = trecho.ini + i * passo; });
+palavras.forEach((p, i) => {
+  if (p.t !== undefined) return;
+  const a = palavras.slice(0, i).reverse().find((x) => x.t !== undefined);       // já resolvida: casada ou interpolada
+  const kb = palavras.findIndex((x, idx) => idx > i && x.t !== undefined);
+  if (a && kb > 0) p.t = a.t + (palavras[kb].t - a.t) / (kb - palavras.indexOf(a));
+  else p.t = Math.max(a ? a.t : -Infinity, Math.min(trecho.ini + i * passo, kb > 0 ? palavras[kb].t : Infinity));
+});
 document.getElementById("autor").textContent = d.autor || "";
 if (!d.autor) document.getElementById("autor").style.display = "none";
 

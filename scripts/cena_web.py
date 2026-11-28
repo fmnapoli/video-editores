@@ -25,7 +25,8 @@ vira `window.vePalavras`, e a cena pergunta o instante de uma palavra em vez de 
 A comparação ignora maiúsculas, acentos e pontuação. Palavra que não está na narração é erro e interrompe o
 render: a narração mudou e a cena precisa acompanhar. Sem --palavras, `veQuando(termo, n, padrao)` devolve
 `padrao` (para abrir a cena solta); sem `padrao`, é erro. `--dados ARQ.json` entrega qualquer JSON em
-`window.veDados`.
+`window.veDados`. `--marcas ARQ.json` grava o que a cena consultou ao carregar (`[{termo, n, ini, fim}]`, no
+tempo da cena): é de onde o /video-animado tira a sugestão de efeitos sonoros.
 
 Marca: havendo `marca/marca.json` (ou $VE_MARCA, ou --marca), a página recebe `window.veMarca` ({nome, cores,
 fonte, logo}), as variáveis CSS `--ve-<papel>` (`--ve-fundo`, `--ve-acento`, `--ve-texto`...) e `--ve-fonte`, e os
@@ -128,6 +129,7 @@ INICIO_JS = r"""
 (() => {
   const d = __DADOS__;
   window.veDados = d.dados;
+  window.veMarcas = [];
   window.veMarca = d.marca;
   window.vePalavras = d.palavras;
   const norm = (s) => String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
@@ -144,6 +146,7 @@ INICIO_JS = r"""
     for (let i = 0; alvo.length && i + alvo.length <= toks.length; i++) {
       if (alvo.every((k, j) => toks[i + j][0] === k) && ++visto === n) {
         const a = ps[toks[i][1]], b = ps[toks[i + alvo.length - 1][1]];
+        window.veMarcas.push({ termo: String(termo), n, ini: a.t, fim: b.t + b.d });
         return { ini: a.t, fim: b.t + b.d };
       }
     }
@@ -364,6 +367,7 @@ def main():
     ap.add_argument("--auditoria", choices=("erro", "aviso", "nao"), default="erro", help="com --quadros: problema de texto encerra com código 2 (padrão), só avisa, ou não confere")
     ap.add_argument("--palavras", metavar="ARQ.json", help="mapa de palavras da narração, no tempo da cena: window.vePalavras, veQuando(), veTrecho()")
     ap.add_argument("--dados", metavar="ARQ.json", help="JSON qualquer entregue à cena em window.veDados")
+    ap.add_argument("--marcas", metavar="ARQ.json", help="grava as palavras que a cena consultou ao carregar: [{termo, n, ini, fim}]")
     ap.add_argument("--marca", metavar="ARQ", help="marca.json a usar (padrão: $VE_MARCA ou marca/marca.json)")
     ap.add_argument("--sem-marca", action="store_true")
     ap.add_argument("--rede", action="store_true")
@@ -442,6 +446,9 @@ def main():
                           inicio["marca"]["fonte"])
         page.evaluate("document.fonts ? document.fonts.ready.then(() => 0) : 0")
         dur = a.dur if a.dur is not None else page.evaluate("window.veDuracao || 0")
+        if a.marcas:   # o que a cena perguntou ao carregar: cada veQuando/veTrecho, com o instante que recebeu
+            with open(a.marcas, "w", encoding="utf-8") as f:
+                json.dump(page.evaluate("window.veMarcas || []"), f, ensure_ascii=False)
         ESPERA = "() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))"
 
         def desenha(t):

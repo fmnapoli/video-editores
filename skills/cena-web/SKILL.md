@@ -51,7 +51,7 @@ Copie o mais próximo e ajuste, ou use direto: os narrados leem o conteúdo de `
 | `cena-numero.html` | número grande que conta até o valor quando é falado | `numero`, `prefixo`, `sufixo`, `decimais`, `de`, `rotulo`, `quando` |
 | `cena-comparacao.html` | antes e depois, A contra B | `lados[]`: `rotulo`, `quando`, `itens[]` (texto ou `{texto, quando}`) |
 | `cena-linha-tempo.html` | linha do tempo ou etapas (3 a 5 marcos) | `marcos[]`: `rotulo`, `texto`, `quando` |
-| `cena-citacao.html` | citação ou frase de impacto que acende com a fala | `texto`, `autor`, `destaque`, `quando` (trecho da fala) |
+| `cena-citacao.html` | citação ou frase de impacto; cada palavra acende quando é falada | `texto`, `autor`, `destaque`, `quando` (trecho da fala) |
 | `cena-three.html` | letreiro 3D com câmera, luz e sombra (Three.js) | editar no HTML |
 | `cena-gsap.html` | cartela em CSS com linha do tempo GSAP | editar no HTML |
 
@@ -102,6 +102,7 @@ Sem GSAP dá para fazer tudo em função de `t` (o `cena-three.html` traz as cur
 | `--reserva-baixo` | 0 | com `--quadros`: fração de baixo onde texto é problema (0,21 = legenda de 2 linhas) |
 | `--auditoria` | `erro` | `aviso` não derruba o comando; `nao` desliga a conferência |
 | `--palavras` / `--dados` | — | mapa de palavras da narração e JSON livre para a cena |
+| `--marcas ARQ.json` | — | grava o que a cena consultou ao carregar (`veQuando`/`veTrecho`): termo, ocorrência, início e fim |
 
 ## Regras
 - Texto em 3D: desenhe num `<canvas>` e use como textura (o modelo faz isso), com fonte do sistema ou da marca. Não baixe fonte em tempo de render.
