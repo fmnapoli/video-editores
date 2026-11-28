@@ -11,9 +11,33 @@ A cena NÃO anima por relógio (sem requestAnimationFrame livre, setTimeout, CSS
 faça `veQuadro = t => tl.seek(t)`. Modelos prontos em skills/cena-web/templates/.
 
 Uso: cena_web.py CENA.html SAIDA.mp4|SAIDA.mov [--dur S] [--fps 30] [--tamanho 1920x1080] [--alpha] [--escala 1]
-       [--rede] [--espera-quadro]
+       [--rede] [--espera-quadro] [--palavras ARQ.json] [--dados ARQ.json] [--marca ARQ|--sem-marca]
      cena_web.py CENA.html --quadro T SAIDA.png [--tamanho ...] [--alpha]     um quadro só, para a prova
+     cena_web.py CENA.html --quadros T1,T2,...|N FOLHA.png [--reserva-baixo 0.2] [--auditoria erro|aviso|nao]
+                                                                               folha de quadros-chave + auditoria
      cena_web.py --libs                                                        baixa e mostra as bibliotecas
+
+Sincronia com a narração (--palavras): um JSON [{"t": início, "d": duração, "w": palavra}, ...] no tempo da cena
+vira `window.vePalavras`, e a cena pergunta o instante de uma palavra em vez de chutar o segundo:
+  const t0 = veQuando("Blender");          // início da 1ª vez que a palavra é dita (aceita expressão: "três minutos")
+  const t1 = veQuando("Blender", 2);       // 2ª ocorrência
+  const { ini, fim } = veTrecho("na ordem certa");
+A comparação ignora maiúsculas, acentos e pontuação. Palavra que não está na narração é erro e interrompe o
+render: a narração mudou e a cena precisa acompanhar. Sem --palavras, `veQuando(termo, n, padrao)` devolve
+`padrao` (para abrir a cena solta); sem `padrao`, é erro. `--dados ARQ.json` entrega qualquer JSON em
+`window.veDados`.
+
+Marca: havendo `marca/marca.json` (ou $VE_MARCA, ou --marca), a página recebe `window.veMarca` ({nome, cores,
+fonte, logo}), as variáveis CSS `--ve-<papel>` (`--ve-fundo`, `--ve-acento`, `--ve-texto`...) e `--ve-fonte`, e os
+TTF da marca ficam registrados com o nome da família. Escreva `color: var(--ve-acento, #FFD43B)`: sem marca,
+vale o valor depois da vírgula. `--sem-marca` desliga.
+
+Quadros-chave (--quadros): desenha os instantes pedidos (lista `0.5,2,3.5`, ou um inteiro N para N instantes
+espalhados pela duração), grava uma folha com todos e confere o texto da página em cada um: texto visível
+cortado pela borda do quadro e, com `--reserva-baixo F`, texto dentro da fração F de baixo (a faixa da
+legenda). Havendo problema, a folha é gravada, a lista sai no stderr e o código de saída é 2
+(`--auditoria aviso` só avisa; `nao` desliga). Elemento que sangra de propósito: atributo `data-ve-sangra`.
+A auditoria lê o DOM: texto desenhado em <canvas> (ex.: textura do Three.js) não é visto, confira na folha.
 
   .mp4  vídeo opaco no codificador configurado (VE_ENCODER).   .mov  ProRes 4444; com --alpha, fundo transparente
   para sobrepor (a página precisa ter fundo transparente e, em WebGL, `alpha: true`).
@@ -32,11 +56,14 @@ Navegador: o Chrome instalado (ou `VE_CHROME=/caminho`); sem ele, o Chromium do 
 Dependências: `uv run --with playwright` (ou `video-editores cena-web ...`, que resolve sozinho).
 """
 import argparse
+import base64
 import hashlib
 import io
+import json
 import mimetypes
 import os
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
@@ -96,13 +123,172 @@ def pasta_lib(nome: str) -> pathlib.Path:
     return alvo
 
 
+# Roda antes de qualquer script da página: dados, marca e o mapa de palavras da narração.
+INICIO_JS = r"""
+(() => {
+  const d = __DADOS__;
+  window.veDados = d.dados;
+  window.veMarca = d.marca;
+  window.vePalavras = d.palavras;
+  const norm = (s) => String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+  window.veTrecho = (termo, n = 1, padrao) => {
+    const ps = window.vePalavras;
+    if (!ps) {
+      if (padrao !== undefined) return typeof padrao === "number" ? { ini: padrao, fim: padrao } : padrao;
+      throw new Error(`veQuando("${termo}"): a cena foi renderizada sem --palavras e sem valor padrão`);
+    }
+    const alvo = norm(termo).split(" ").filter(Boolean), toks = [];
+    ps.forEach((p, i) => norm(p.w).split(" ").filter(Boolean).forEach((k) => toks.push([k, i])));
+    let visto = 0;
+    for (let i = 0; alvo.length && i + alvo.length <= toks.length; i++) {
+      if (alvo.every((k, j) => toks[i + j][0] === k) && ++visto === n) {
+        const a = ps[toks[i][1]], b = ps[toks[i + alvo.length - 1][1]];
+        return { ini: a.t, fim: b.t + b.d };
+      }
+    }
+    throw new Error(`veQuando("${termo}"${n > 1 ? ", " + n : ""}): ` + (visto
+      ? `a narração só tem ${visto} ocorrência(s)` : "não está na narração") + ` [${ps.map((p) => p.w).join(" ")}]`);
+  };
+  window.veQuando = (termo, n = 1, padrao) => window.veTrecho(termo, n, padrao).ini;
+  if (d.marca) {
+    const aplica = () => {
+      const r = document.documentElement;
+      if (!r) return false;
+      for (const [k, v] of Object.entries(d.marca.cores)) r.style.setProperty("--ve-" + k, v);
+      r.style.setProperty("--ve-fonte", `"${d.marca.fonte}"`);
+      const faces = Object.entries(d.marca.fontes || {}).map(([peso, url]) =>
+        `@font-face { font-family: "${d.marca.fonte}"; src: url("${url}"); font-weight: ${peso === "bold" ? 700 : 400}; }`);
+      if (faces.length) {
+        const st = document.createElement("style");
+        st.textContent = faces.join("\n");
+        r.appendChild(st);
+      }
+      return true;
+    };
+    if (!aplica()) new MutationObserver((_, o) => { if (aplica()) o.disconnect(); }).observe(document, { childList: true });
+  }
+})();
+"""
+
+# Texto visível cortado pela borda do quadro, ou dentro da faixa reservada embaixo. Mede os retângulos do
+# próprio texto (Range), não a caixa do elemento. Texto inteiro fora do quadro (ainda não entrou) não conta.
+AUDITA_JS = r"""
+(reserva) => {
+  const W = innerWidth, H = innerHeight, tol = 1.5, out = [], visto = new Set();
+  const visivel = (el) => {
+    for (let e = el; e && e.nodeType === 1; e = e.parentElement) {
+      const s = getComputedStyle(e);
+      if (s.display === "none" || s.visibility === "hidden" || +s.opacity < 0.05) return false;
+    }
+    return true;
+  };
+  const w = document.createTreeWalker(document.body || document.documentElement, NodeFilter.SHOW_TEXT);
+  for (let n = w.nextNode(); n; n = w.nextNode()) {
+    const el = n.parentElement, txt = n.nodeValue.replace(/\s+/g, " ").trim();
+    if (!txt || !el || el.closest("script, style, noscript, template, [data-ve-sangra]") || !visivel(el)) continue;
+    const r = document.createRange();
+    r.selectNodeContents(n);
+    for (const b of r.getClientRects()) {
+      if (b.width < 1 || b.height < 1) continue;
+      if (b.right <= 0 || b.left >= W || b.bottom <= 0 || b.top >= H) continue;
+      const lados = [];
+      if (b.left < -tol) lados.push("esquerda");
+      if (b.right > W + tol) lados.push("direita");
+      if (b.top < -tol) lados.push("cima");
+      if (b.bottom > H + tol) lados.push("baixo");
+      let tipo = lados.length ? "cortado pela borda (" + lados.join(", ") + ")" : null;
+      if (!tipo && reserva > 0 && b.bottom > H * (1 - reserva) + tol) tipo = "dentro da faixa reservada embaixo";
+      const chave = tipo + "|" + txt;
+      if (tipo && !visto.has(chave)) {
+        visto.add(chave);
+        out.push({ tipo, texto: txt.length > 48 ? txt.slice(0, 47) + "…" : txt });
+      }
+    }
+  }
+  return out;
+}
+"""
+
+
+def dados_marca(explicito):
+    """(dados para window.veMarca, pasta da marca) ou (None, None) quando o projeto não define marca."""
+    from video_editores.nucleo import marca as mm
+    m = mm.carregar(explicito, estrito=False)
+    if not m.definida:
+        return None, None
+    pasta = pathlib.Path(m.pasta).resolve()
+
+    def url(rel):
+        arq = m.caminho(rel)
+        if not arq or not os.path.isfile(arq):
+            return None
+        try:
+            return "/_ve/marca/" + urllib.parse.quote(pathlib.Path(arq).resolve().relative_to(pasta).as_posix())
+        except ValueError:   # arquivo fora da pasta da marca: a página não alcança
+            return None
+    fontes = {peso: url(rel) for peso, rel in (m.dados["fonte"].get("arquivos") or {}).items()}
+    logo = {tipo: url(rel) for tipo, rel in (m.dados.get("logo") or {}).items() if isinstance(rel, str)}
+    return {"nome": m.nome, "cores": dict(m.cores), "fonte": m.fonte,
+            "fontes": {k: v for k, v in fontes.items() if v}, "logo": {k: v for k, v in logo.items() if v}}, pasta
+
+
+def ler_palavras(arq):
+    try:
+        ps = json.load(open(arq, encoding="utf-8"))
+        return [{"t": float(x["t"]), "d": float(x.get("d", 0)), "w": str(x["w"])} for x in ps]
+    except (OSError, ValueError, KeyError, TypeError) as e:
+        sys.exit(f'--palavras {arq}: esperava [{{"t": início, "d": duração, "w": palavra}}, ...] ({e})')
+
+
+def instantes(txt, dur):
+    """`0.5,2,3.5` -> esses instantes; um inteiro N -> N instantes espalhados pela duração (centro de cada fatia)."""
+    try:
+        if re.fullmatch(r"\d+", txt.strip()):
+            n = int(txt)
+            if n < 1 or not dur or dur <= 0:
+                raise ValueError
+            return [round((i + 0.5) * dur / n, 3) for i in range(n)]
+        ts = [float(v) for v in txt.split(",") if v.strip()]
+        if not ts or min(ts) < 0:
+            raise ValueError
+        return ts
+    except ValueError:
+        sys.exit("--quadros: lista de instantes em segundos (0.5,2,3.5) ou um inteiro N (N quadros espalhados pela "
+                 "duração, que precisa estar em --dur ou em window.veDuracao)")
+
+
+def folha(ctx, itens, w, h):
+    """PNG com os quadros lado a lado (até 3 por linha), o instante embaixo de cada um e a contagem de problemas."""
+    cols, cel = min(len(itens), 3), 640
+    cels = []
+    for t, png, probs in itens:
+        nota = f'<b>{len(probs)} problema(s)</b>' if probs else ""
+        cels.append(f'<figure class="{"ruim" if probs else ""}"><img src="data:image/png;base64,{base64.b64encode(png).decode()}">'
+                    f'<figcaption>t = {t:g} s {nota}</figcaption></figure>')
+    pagina = f"""<!doctype html><meta charset="utf-8"><style>
+      body {{ margin: 0; padding: 8px; background: #2B2F36; font: 20px sans-serif; color: #E5E7EB;
+             display: grid; grid-template-columns: repeat({cols}, {cel}px); gap: 8px; width: max-content; }}
+      figure {{ margin: 0; border: 3px solid transparent; }} figure.ruim {{ border-color: #EF4444; }}
+      img {{ display: block; width: {cel}px; height: {round(cel * h / w)}px;
+            background: repeating-conic-gradient(#555 0% 25%, #777 0% 50%) 0 0 / 24px 24px; }}
+      figcaption {{ padding: 4px 6px; }} b {{ color: #F87171; margin-left: 12px; }}
+    </style>{"".join(cels)}"""
+    pg = ctx.new_page()
+    pg.set_viewport_size({"width": cols * cel + 16 + 8 * (cols - 1), "height": 200})
+    pg.set_content(pagina, wait_until="load")
+    png = pg.locator("body").screenshot(type="png")
+    pg.close()
+    return png
+
+
 def _dentro(base: pathlib.Path, rel: str):
     """Arquivo `rel` dentro de `base`, ou None se sair da pasta ou não existir."""
     p = (base / rel.lstrip("/")).resolve()
     return p if p.is_file() and base.resolve() in p.parents else None
 
 
-def rotear(ctx, pasta_cena: pathlib.Path, rede: bool, avisos: list):
+def rotear(ctx, pasta_cena: pathlib.Path, rede: bool, avisos: list, pasta_marca=None):
     """Roteia no CONTEXTO, não na página: janela aberta pela cena (`window.open`) passa pelo mesmo bloqueio. Sem
     --rede, WebSocket é fechado na hora (não passa por `route`) e o Chrome sobe sem resolver nomes (ver `abrir`)."""
     def trata(route):
@@ -119,6 +305,8 @@ def rotear(ctx, pasta_cena: pathlib.Path, rede: bool, avisos: list):
             nome, _, resto = caminho[len("/_ve/"):].partition("/")
             if nome in LIBS:
                 arq = _dentro(pasta_lib(nome), resto)
+            elif nome == "marca" and pasta_marca:
+                arq = _dentro(pasta_marca, resto)
         else:
             arq = _dentro(pasta_cena, caminho)
         if arq is None:
@@ -171,6 +359,13 @@ def main():
     ap.add_argument("--escala", type=float, default=1, help="densidade de pixels (2 = renderiza com o dobro de pixels)")
     ap.add_argument("--alpha", action="store_true", help="fundo transparente (saída .mov ProRes 4444 ou .png)")
     ap.add_argument("--quadro", type=float, default=None, metavar="T", help="grava só o quadro do instante T em SAIDA.png")
+    ap.add_argument("--quadros", metavar="T1,T2|N", help="folha com esses instantes (ou N instantes espalhados) em SAIDA.png, com auditoria do texto")
+    ap.add_argument("--reserva-baixo", type=float, default=0, metavar="F", help="com --quadros: acusa texto na fração F de baixo do quadro (faixa da legenda)")
+    ap.add_argument("--auditoria", choices=("erro", "aviso", "nao"), default="erro", help="com --quadros: problema de texto encerra com código 2 (padrão), só avisa, ou não confere")
+    ap.add_argument("--palavras", metavar="ARQ.json", help="mapa de palavras da narração, no tempo da cena: window.vePalavras, veQuando(), veTrecho()")
+    ap.add_argument("--dados", metavar="ARQ.json", help="JSON qualquer entregue à cena em window.veDados")
+    ap.add_argument("--marca", metavar="ARQ", help="marca.json a usar (padrão: $VE_MARCA ou marca/marca.json)")
+    ap.add_argument("--sem-marca", action="store_true")
     ap.add_argument("--rede", action="store_true")
     ap.add_argument("--espera-quadro", action="store_true")
     ap.add_argument("--libs", action="store_true", help="baixa as bibliotecas para o cache e mostra versão, licença e pasta")
@@ -192,10 +387,24 @@ def main():
     if a.fps <= 0 or a.escala <= 0:
         sys.exit("--fps e --escala precisam ser maiores que zero")
     ext = saida.suffix.lower()
-    if a.quadro is None and ext not in (".mp4", ".mov"):
+    um_png = a.quadro is not None or a.quadros is not None
+    if a.quadro is not None and a.quadros is not None:
+        sys.exit("--quadro (um instante) ou --quadros (folha): escolha um")
+    if a.quadros is not None and ext != ".png":
+        sys.exit("--quadros grava uma folha: a saída precisa ser .png")
+    if not 0 <= a.reserva_baixo < 1:
+        sys.exit("--reserva-baixo é uma fração do quadro, entre 0 e 1 (0.2 = os 20% de baixo)")
+    if not um_png and ext not in (".mp4", ".mov"):
         sys.exit("saída .mp4 (opaco) ou .mov (ProRes 4444; com --alpha, transparente)")
-    if a.quadro is None and a.alpha and ext != ".mov":
+    if not um_png and a.alpha and ext != ".mov":
         sys.exit("--alpha pede saída .mov (ProRes 4444): o H.264 do .mp4 não guarda transparência")
+    inicio = {"dados": None, "palavras": ler_palavras(a.palavras) if a.palavras else None}
+    if a.dados:
+        try:
+            inicio["dados"] = json.load(open(a.dados, encoding="utf-8"))
+        except (OSError, ValueError) as e:
+            sys.exit(f"--dados {a.dados}: {e}")
+    inicio["marca"], pasta_marca = dados_marca(False if a.sem_marca else a.marca)
     try:
         from playwright.sync_api import sync_playwright
     except ImportError:
@@ -208,15 +417,29 @@ def main():
         nav, ctx, page = abrir(p, w, h, a.escala, a.rede)
         page.on("pageerror", lambda e: erros.append(str(e)))
         page.on("console", lambda m: console.append(m.text) if m.type == "error" else None)
-        rotear(ctx, cena.parent, a.rede, avisos)
+        rotear(ctx, cena.parent, a.rede, avisos, pasta_marca)
+        # </ dentro de um <script> fecharia a tag: o JSON vai com a barra escapada
+        ctx.add_init_script(INICIO_JS.replace("__DADOS__", json.dumps(inicio, ensure_ascii=False).replace("</", "<\\/")))
         page.goto(f"{ORIGEM}/{urllib.request.pathname2url(cena.name)}", wait_until="load")
         espera = float(os.environ.get("VE_ESPERA_CENA", "20"))
-        try:
-            page.wait_for_function("typeof window.veQuadro === 'function'", timeout=espera * 1000)
-        except Exception:
+        # exceção ao carregar (ex.: veQuando de palavra que não está na narração) não espera o prazo inteiro:
+        # meio segundo depois do erro, sem veQuadro, a cena não vai mais se definir
+        pronta, restam, com_erro = False, espera, 0
+        while not pronta and restam > 0 and com_erro < 2:
+            try:
+                page.wait_for_function("typeof window.veQuadro === 'function'", timeout=min(0.5, restam) * 1000)
+                pronta = True
+            except Exception:
+                restam -= 0.5
+                com_erro += 1 if erros else 0
+        if not pronta:
             nav.close()
             det = "\n  ".join(dict.fromkeys(erros + console + [f"não carregou: {u}" for u in avisos]))
-            sys.exit(f"a cena não definiu window.veQuadro(t) em {espera:g} s." + (f"\n  {det}" if det else ""))
+            motivo = "a cena falhou ao carregar e" if erros else "a cena"
+            sys.exit(f"{motivo} não definiu window.veQuadro(t) em {espera - restam:g} s." + (f"\n  {det}" if det else ""))
+        if inicio["marca"] and inicio["marca"]["fontes"]:   # fonte só usada em <canvas> não carrega sozinha
+            page.evaluate("f => Promise.all([400, 700].map(p => document.fonts.load(`${p} 16px \"${f}\"`))).then(() => 0, () => 0)",
+                          inicio["marca"]["fonte"])
         page.evaluate("document.fonts ? document.fonts.ready.then(() => 0) : 0")
         dur = a.dur if a.dur is not None else page.evaluate("window.veDuracao || 0")
         ESPERA = "() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))"
@@ -238,10 +461,28 @@ def main():
                         raise
                     page.wait_for_timeout(200)
 
+        problemas = []
         if a.quadro is not None:
             saida.write_bytes(desenha(a.quadro))
             nav.close()
+            if erros:
+                sys.exit(f"erro na cena em t = {a.quadro:g}s: {erros[0]}")
             print(f"ok -> {saida} (t = {a.quadro:g}s)")
+        elif a.quadros is not None:
+            itens = []
+            for t in instantes(a.quadros, dur):
+                png = desenha(t)
+                if erros:
+                    nav.close()
+                    sys.exit(f"erro na cena em t = {t:g}s: {erros[0]}")
+                probs = [] if a.auditoria == "nao" else page.evaluate(AUDITA_JS, a.reserva_baixo)
+                problemas += [f"t = {t:g}s: texto {x['tipo']}: “{x['texto']}”" for x in probs]
+                itens.append((t, png, probs))
+            saida.parent.mkdir(parents=True, exist_ok=True)
+            saida.write_bytes(folha(ctx, itens, w, h))
+            nav.close()
+            conf = "sem auditoria" if a.auditoria == "nao" else f"{len(problemas)} problema(s) de texto"
+            print(f"ok -> {saida} ({len(itens)} quadros: {', '.join(f'{t:g}s' for t, _, _ in itens)}; {conf})")
         else:
             if not dur or dur <= 0:
                 nav.close()
@@ -282,6 +523,10 @@ def main():
         print(f"AVISO: recurso não entregue: {u}" + ("" if u.startswith(ORIGEM) else "  (rede bloqueada; use --rede se for de propósito)"), file=sys.stderr)
     for e in dict.fromkeys(erros + console):
         print(f"AVISO (console da página): {e}", file=sys.stderr)
+    for x in problemas:
+        print(f"{'AVISO' if a.auditoria == 'aviso' else 'PROBLEMA'}: {x}", file=sys.stderr)
+    if problemas and a.auditoria == "erro":
+        sys.exit(2)
 
 
 if __name__ == "__main__":

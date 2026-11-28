@@ -82,6 +82,7 @@ Copie, cole no Claude Code e troque o que estiver entre `< >`. Cada pedido acion
 | "Abertura em 3D com as letras do título, câmera girando" / "um objeto 3D simples com sombra" | cena-web (Three.js) |
 | "Cartela com quatro cartões em duas colunas, entrando um por vez" / "lista com quebra de linha automática" | cena-web (CSS, com ou sem GSAP) |
 | "Um selo girando no canto, por cima do vídeo" | cena-web `--alpha` (camada `.mov`) + overlay do ffmpeg |
+| "Faz os cartões entrarem na hora em que eu falo cada item" / "o nome aparece quando a narração diz" | cena-web com `--palavras` (no `/video-animado`: cena com `"html"`) |
 
 ## Marcar o que está na imagem
 
