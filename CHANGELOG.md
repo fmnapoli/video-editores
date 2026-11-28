@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.21.0 — 2026-11-28
+Efeito sonoro na palavra falada: o `/efeitos` passa a aceitar a palavra no lugar do tempo.
+- **`efeitos.py --palavras ARQ`** e eventos com `"quando"`: `{"quando": "Blender", "som": "pop"}` põe o som no instante em que a palavra é dita. `"n"` escolhe a ocorrência, `"no_fim"` usa o fim da palavra ou expressão (`"quando": "na ordem certa"`), `"desloca"` soma segundos. A busca ignora maiúsculas, acentos e pontuação, pela mesma regra do `veQuando()` da `/cena-web` (0.20.0): o som cai na mesma palavra em que o elemento entra na tela.
+- `--palavras` aceita o `<nome>.transcript.json` do `transcribe.py`, o `palavras.transcript.json` que o `montar_cenas.py` do `/video-animado` grava (mapa do vídeo final) e a lista `[{"t", "d", "w"}]` do `tts_cenas.py`.
+- Palavra que não está na fala não ganha som e aparece na lista com o motivo, como os outros eventos pulados. Evento com `"quando"` sem `--palavras` é erro.
+- Eventos por palavra são pedidos explícitos: entram sempre, sem o `--intervalo` dos automáticos.
+- Limites: o instante é o do mapa de palavras, então numa gravação real depende da precisão da transcrição (dezenas de milissegundos no começo da palavra). Testado com mapa sintético; falta ouvir num vídeo real.
+
 ## 0.20.0 — 2026-11-28
 Cena em HTML sincronizada com a narração e conferida por quadros-chave antes do render (ADR-23). Cena que não usa nada disso renderiza como antes.
 - **`cena_web.py --palavras ARQ.json`**: o mapa de palavras da narração chega à página em `window.vePalavras`, e a cena pergunta o instante em vez de fixar o segundo: `veQuando("Blender")`, `veQuando("Blender", 2)` (segunda ocorrência), `veTrecho("na ordem certa")` (início e fim de uma expressão). A comparação ignora maiúsculas, acentos e pontuação. Palavra que não está na narração interrompe o render com a fala inteira na mensagem; sem `--palavras`, vale o terceiro argumento (`veQuando(termo, n, padrao)`), para abrir a cena solta. `--dados ARQ.json` entrega qualquer JSON em `window.veDados`.

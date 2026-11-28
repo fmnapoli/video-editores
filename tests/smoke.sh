@@ -186,6 +186,38 @@ test "$(ffprobe -v error -count_packets -select_streams v:0 -show_entries stream
 ! python3 "$S/efeitos.py" cam_mudo.mp4 2>/dev/null
 pass "efeitos.py: pico do whoosh, do impacto e do riser no evento; pop começa nele; eventos sem som com motivo; vídeo copiado"
 
+# efeitos.py --palavras: "quando" no lugar de "t" (palavra, expressão, ocorrência, fim, deslocamento, palavra ausente)
+cat > fala.json <<'JSON'
+[{"t":0.5,"d":0.3,"w":"Olha"},{"t":1.0,"d":0.4,"w":"só:"},{"t":2.0,"d":0.5,"w":"Ação!"},{"t":3.0,"d":0.2,"w":"na"},
+ {"t":3.2,"d":0.3,"w":"ordem"},{"t":3.5,"d":0.4,"w":"certa,"},{"t":4.5,"d":0.5,"w":"acao"}]
+JSON
+cat > quando.json <<'JSON'
+[{"quando":"acao","som":"pop"},{"quando":"AÇÃO","n":2,"som":"pop"},{"quando":"na ordem certa","no_fim":true,"som":"ding"},
+ {"quando":"olha","desloca":0.25,"som":"clique"},{"quando":"blender","som":"pop"},{"quando":"acao","n":3,"som":"pop"}]
+JSON
+python3 "$S/efeitos.py" cam_mudo.mp4 --eventos quando.json --palavras fala.json --out q.sfx.json > q.txt || { cat q.txt; exit 1; }
+python3 - <<'PY'
+import json
+d = json.load(open("q.sfx.json", encoding="utf-8"))
+assert [(x["som"], x["t"]) for x in d["itens"]] == [("clique", 0.75), ("pop", 2.0), ("ding", 3.9), ("pop", 4.5)], d["itens"]
+assert d["itens"][1]["origem"] == '"acao"' and d["itens"][3]["origem"].startswith('"A'), d["itens"]
+m = sorted(p["motivo"] for p in d["pulados"])
+assert len(m) == 2 and "blender" in m[0] and "2 ocorr" in m[1], m
+PY
+# o mesmo mapa no formato do transcribe.py / montar_cenas.py
+python3 - <<'PY'
+import json
+ps = json.load(open("fala.json", encoding="utf-8"))
+json.dump({"segments": [{"words": [{"start": p["t"], "end": p["t"] + p["d"], "word": p["w"]} for p in ps]}]}, open("fala.transcript.json", "w", encoding="utf-8"))
+PY
+python3 "$S/efeitos.py" cam_mudo.mp4 --eventos quando.json --palavras fala.transcript.json --out q2.sfx.json >/dev/null
+python3 -c "
+import json
+a, b = (json.load(open(f, encoding='utf-8'))['itens'] for f in ('q.sfx.json', 'q2.sfx.json'))
+assert [(x['t'], x['som']) for x in a] == [(x['t'], x['som']) for x in b]"
+! python3 "$S/efeitos.py" cam_mudo.mp4 --eventos quando.json --out q3.sfx.json 2>/dev/null     # "quando" sem --palavras
+pass "efeitos.py --palavras: som na palavra falada (ocorrência, expressão, fim, deslocamento), palavra ausente com motivo"
+
 # rotação de celular: lettering deve usar 1080x1920 exibido
 ffmpeg -v error -y -f lavfi -i "testsrc2=size=1920x1080:rate=30:duration=1" -c:v libx264 -pix_fmt yuv420p -display_rotation 90 rot.mp4 2>/dev/null \
   || ffmpeg -v error -y -f lavfi -i "testsrc2=size=1920x1080:rate=30:duration=1" -c:v libx264 -pix_fmt yuv420p -metadata:s:v rotate=90 rot.mp4

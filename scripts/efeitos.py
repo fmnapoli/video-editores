@@ -5,12 +5,20 @@ Dois passos, com um arquivo revisável no meio:
 
 1. Planejar: junta os eventos, escolhe um som para cada um e grava <nome>.sfx.json (sfx01, sfx02…).
 
-     efeitos.py VIDEO --eventos ARQ [--eventos ARQ2 ...] [--sons PASTA] [--intervalo 2.0] [--ganho 0] [--out ARQ.sfx.json]
+     efeitos.py VIDEO --eventos ARQ [--eventos ARQ2 ...] [--palavras ARQ] [--sons PASTA] [--intervalo 2.0] [--ganho 0]
+                [--out ARQ.sfx.json]
 
    --eventos aceita: o .camera.json do camera.py (corte com troca de plano → whoosh; punch → impacto), o
    textos.json do /lettering (entrada de cada texto → pop) e uma lista própria:
      [{"t": 12.3, "som": "riser", "forca": "leve|media|forte", "ganho": -3, "alinhar": "pico|inicio"}]
    Tempos sempre no relógio de VIDEO.
+
+   Na lista própria, "quando" no lugar de "t" põe o som na palavra falada (pede --palavras):
+     [{"quando": "Blender", "som": "pop"}, {"quando": "na ordem certa", "n": 2, "no_fim": true, "som": "ding"}]
+   "n" escolhe a ocorrência (padrão 1), "no_fim" usa o fim da palavra ou expressão e "desloca" soma segundos.
+   A comparação ignora maiúsculas, acentos e pontuação. Palavra que não está na fala não ganha som e aparece
+   na lista com o motivo. --palavras aceita o <nome>.transcript.json do transcribe.py, o palavras.transcript.json
+   do montar_cenas.py e a lista [{"t": início, "d": duração, "w": palavra}] do tts_cenas.py.
 
 2. Aplicar: mixa os sons do .sfx.json sobre o áudio do vídeo (vídeo copiado, sem recodificar).
 
@@ -26,8 +34,10 @@ import json
 import math
 import os
 import pathlib
+import re
 import subprocess
 import sys
+import unicodedata
 
 
 def _raiz_pacote(arquivo):
@@ -127,7 +137,41 @@ def biblioteca(pasta):
     return lib
 
 
-def ler_eventos(arquivos):
+def ler_palavras(arq):
+    """[(início, fim, palavra)] de um transcript.json (segments[].words[]) ou de uma lista [{t, d, w}]."""
+    try:
+        doc = json.loads(pathlib.Path(arq).read_text(encoding="utf-8"))
+        if isinstance(doc, dict) and "segments" in doc:
+            ps = [(float(w["start"]), float(w["end"]), str(w["word"])) for s in doc["segments"] for w in s.get("words", [])]
+        else:
+            ps = [(float(x["t"]), float(x["t"]) + float(x.get("d", 0)), str(x["w"])) for x in doc]
+    except (ValueError, KeyError, TypeError) as e:
+        sys.exit(f'--palavras {arq}: esperava um transcript.json (segments[].words[]) ou [{{"t", "d", "w"}}, ...] ({e})')
+    if not ps:
+        sys.exit(f"--palavras {arq}: nenhuma palavra com tempo (transcreva com o transcribe.py)")
+    return ps
+
+
+def _norm(s):
+    s = "".join(c for c in unicodedata.normalize("NFD", str(s)) if not unicodedata.combining(c))
+    return re.sub(r"[\W_]+", " ", s.lower()).strip()
+
+
+def achar(palavras, termo, n=1):
+    """(início, fim) da n-ésima ocorrência de `termo` (palavra ou expressão) na fala; ValueError com o motivo.
+    Mesma regra do veQuando() do cena_web.py: sem maiúsculas, acentos nem pontuação."""
+    alvo = _norm(termo).split()
+    toks = [(k, i) for i, p in enumerate(palavras) for k in _norm(p[2]).split()]
+    visto = 0
+    for i in range(len(toks) - len(alvo) + 1 if alvo else 0):
+        if all(toks[i + j][0] == k for j, k in enumerate(alvo)):
+            visto += 1
+            if visto == n:
+                return palavras[toks[i][1]][0], palavras[toks[i + len(alvo) - 1][1]][1]
+    raise ValueError(f"a fala só tem {visto} ocorrência(s) de {termo!r}" if visto else f"{termo!r} não está na fala")
+
+
+def ler_eventos(arquivos, palavras=None):
     evs = []
     for arq in arquivos:
         doc = json.loads(pathlib.Path(arq).read_text(encoding="utf-8"))
@@ -140,8 +184,18 @@ def ler_eventos(arquivos):
         else:
             sys.exit(f"{arq}: não reconheço o formato (esperado .camera.json, textos.json ou lista de eventos com t)")
     for e in evs:
+        if "quando" in e and "t" not in e:
+            if palavras is None:
+                sys.exit(f'evento com "quando" pede o mapa de palavras: --palavras ARQ ({e["quando"]!r})')
+            if e.get("origem") == "plano":
+                e["origem"] = f'"{e["quando"]}"' + (f' ({e["n"]}ª)' if int(e.get("n", 1)) > 1 else "")
+            try:
+                ini, fim = achar(palavras, e["quando"], int(e.get("n", 1)))
+                e["t"] = round((fim if e.get("no_fim") else ini) + float(e.get("desloca", 0.0)), 3)
+            except ValueError as err:
+                e["t"], e["falta"] = 0.0, str(err)
         if "t" not in e:
-            sys.exit(f"evento sem t: {e}")
+            sys.exit(f'evento sem t (nem "quando"): {e}')
         e["t"] = float(e["t"])
     return sorted(evs, key=lambda e: e["t"])
 
@@ -161,10 +215,13 @@ def planejar(a):
     pasta_sint = out.parent / "sfx"
     medidas, itens, pulados, ultimo_uso, ultimo_auto, rodizio = {}, [], [], {}, {}, {}
 
-    for e in ler_eventos(a.eventos):
+    palavras = ler_palavras(a.palavras) if a.palavras else None
+    for e in ler_eventos(a.eventos, palavras):
         som = (e.get("som") or DE_TIPO.get(e.get("tipo", ""), "")).lower()
         motivo = None
-        if e.get("visivel") is False:
+        if e.get("falta"):
+            motivo = e["falta"]
+        elif e.get("visivel") is False:
             motivo = "evento marcado como não visível"
         elif not som:
             motivo = f"tipo {e.get('tipo')!r} sem som associado (diga \"som\")"
@@ -263,13 +320,14 @@ def main():
     ap.add_argument("video")
     ap.add_argument("saida", nargs="?", help="vídeo de saída (só com --aplicar)")
     ap.add_argument("--eventos", action="append", default=[], metavar="ARQ", help=".camera.json, textos.json ou lista de eventos")
+    ap.add_argument("--palavras", default=None, metavar="ARQ", help='mapa de palavras da fala, para eventos com "quando" (transcript.json ou [{t, d, w}])')
     ap.add_argument("--sons", default=None, metavar="PASTA", help="biblioteca própria, por categoria")
     ap.add_argument("--intervalo", type=float, default=2.0, help="mínimo entre dois sons automáticos do mesmo tipo (s)")
     ap.add_argument("--ganho", type=float, default=0.0, help="ajuste geral em dB sobre o nível calculado")
     ap.add_argument("--out", default=None, help="caminho do .sfx.json")
     ap.add_argument("--aplicar", default=None, metavar="ARQ.sfx.json")
     a = ap.parse_args()
-    for arq in [a.video, a.aplicar, *a.eventos]:
+    for arq in [a.video, a.aplicar, a.palavras, *a.eventos]:
         if arq and not pathlib.Path(arq).is_file():
             sys.exit(f"arquivo não encontrado: {arq}")
     if a.aplicar:
