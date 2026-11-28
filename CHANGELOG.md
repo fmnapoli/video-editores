@@ -5,6 +5,7 @@ Mais dois modelos de cena HTML narrada na `/cena-web`.
 - **`cena-barras.html`**: de 2 a 6 barras horizontais; cada uma cresce, com o valor contando, na palavra em que é falada. `destaque` marca a barra principal; `sufixo`, `prefixo`, `decimais` e `maximo` formatam. Gráfico com eixos ou séries segue sendo caso do Manim.
 - **`cena-abertura.html`**: cartela de abertura, separador de capítulo (`capitulo`) e encerramento. Logo da marca (`logo.svg` ou `logo.png` do `marca/marca.json`), título palavra por palavra, linha de destaque e subtítulo. Com `"fica": true` o conteúdo permanece até o último quadro, para o vídeo não terminar em fundo vazio.
 - Como os outros: sem biblioteca externa, 16:9 e 9:16, cores e fonte da marca, faixa da legenda livre, conteúdo pelo campo `"dados"` da cena.
+- Render paralelo de uma cena só: prototipado, medido e não adotado (registro no ADR-23). O ganho foi de 5% na cena 3D e negativo na cena CSS; o paralelismo segue sendo entre cenas.
 - Limites: conferidos pela folha de quadros-chave com textos de exemplo e narração sintética; o logo foi testado com um SVG de teste, não com o pacote de uma marca real.
 
 ## 0.23.0 — 2026-11-28
