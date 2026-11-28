@@ -256,11 +256,22 @@ grep -q "flux1-schnell-fp8.safetensors' não está no servidor" err.txt && grep 
 sobe_stub falha --falhar
 if VE_COMFYUI_URL=$URL python3 -m video_editores.cli gerar-imagem x --out g3 --variacoes 1 2>err.txt; then echo "devia falhar"; exit 1; fi
 grep -q "falhou na semente .*CUDA out of memory" err.txt
+python3 - "$ROOT/video_editores/modelos/workflows/comfyui/flux-schnell.json" <<'PY'
+import json, sys
+w = json.load(open(sys.argv[1]))
+w["5"]["class_type"] = "KSamplerNovo"          # nó renomeado numa versão futura
+del w["4"]["inputs"]["batch_size"]              # entrada obrigatória ausente
+w["6"]["inputs"]["vae"] = ["1", 5]              # saída que não existe
+json.dump(w, open("wf-velho.json", "w"))
+PY
+if VE_COMFYUI_URL=$URL VE_COMFYUI_WORKFLOW=wf-velho.json python3 -m video_editores.cli gerar-imagem --conferir 2>err.txt; then echo "devia falhar"; exit 1; fi
+grep -q "KSamplerNovo não existe neste servidor" err.txt && grep -q "falta a entrada obrigatória 'batch_size'" err.txt \
+  && grep -q "usa a saída 5 de CheckpointLoaderSimple" err.txt
 if VE_COMFYUI_URL=http://127.0.0.1:9 python3 -m video_editores.cli gerar-imagem x 2>err.txt; then echo "devia falhar"; exit 1; fi
 grep -q "ComfyUI fora do ar em http://127.0.0.1:9" err.txt
 if VE_COMFYUI_URL=$URL python3 -m video_editores.cli gerar-imagem x --largura 1000 2>err.txt; then echo "devia falhar"; exit 1; fi
 grep -q "múltiplo de 16" err.txt
-pass "gerar-imagem: erros claros (checkpoint ausente com onde baixar, falha do job, servidor fora, tamanho)"
+pass "gerar-imagem: erros claros (workflow incompatível com o servidor, checkpoint ausente com onde baixar, falha do job, servidor fora, tamanho)"
 
 ffmpeg -v error -y -f lavfi -i "testsrc2=size=320x180:rate=30:duration=4" -f lavfi -i "sine=f=300:d=4" -shortest -c:v libx264 -pix_fmt yuv420p -c:a aac in.mp4
 python3 -m video_editores.cli prova in.mp4 4 >/dev/null && test -s in.proof.txt

@@ -67,7 +67,7 @@ O ComfyUI (github.com/comfy-org/ComfyUI) é o backend de referência dos papéis
 
 1. **Imagem**: papel `imagem`, um backend local e `/gerar` só para imagem. Validar nos três usos de fundo acima.
    - **1a, feita em 0.13.0:** papel `imagem`, backend `comfyui`, workflow `flux-schnell`, operação `gerar-imagem` (variações por semente, folha de escolha, registro por rodada), checagem no `doctor.sh`, testes contra um servidor ComfyUI falso (`tests/stub/comfyui_servidor.py`).
-   - **1b, pendente de GPU:** rodar contra um ComfyUI real, medir tempo e VRAM, ajustar prompt-base e tamanho para os três usos, e só então escrever a skill `/gerar` com os gates. Sem essa validação, as instruções da skill seriam palpite.
+   - **1b, em parte feita em 0.19.0:** o backend rodou contra um ComfyUI real (0.46.4, em CPU, com o workflow de teste `tests/comfyui/sd15-cpu.json` e o roteiro `tests/comfyui_real.sh`), e o workflow passou a ser conferido contra os nós do servidor antes de gerar. **Segue pendente de GPU:** medir tempo e VRAM, ajustar prompt-base e tamanho para os três usos, e só então escrever a skill `/gerar` com os gates. Sem essa validação, as instruções da skill seriam palpite.
 2. **Vídeo curto** (depois): papel `video`, image-to-video a partir de imagem aprovada, 3–6 s, 24 ou 30 fps, upscale/interpolação por ffmpeg se o modelo entregar menos.
 3. Fora do plano: geração de voz clonada, avatar falante, vídeo longo gerado.
 

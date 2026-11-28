@@ -1,0 +1,21 @@
+{
+  "_ve": {
+    "modelo": "Stable Diffusion 1.5 (fp16, checkpoint único)",
+    "licenca": "CreativeML OpenRAIL-M",
+    "arquivo": "v1-5-pruned-emaonly-fp16.safetensors",
+    "pasta": "ComfyUI/models/checkpoints/",
+    "fonte": "https://huggingface.co/Comfy-Org/stable-diffusion-v1-5-archive",
+    "passos": 6,
+    "vram_gb": 0,
+    "nota": "só para validar a integração com um ComfyUI real em CPU (tests/comfyui_real.sh); não é workflow de produção"
+  },
+  "1": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": "{{checkpoint}}"}},
+  "2": {"class_type": "CLIPTextEncode", "inputs": {"text": "{{prompt}}", "clip": ["1", 1]}},
+  "3": {"class_type": "CLIPTextEncode", "inputs": {"text": "{{negativo}}", "clip": ["1", 1]}},
+  "4": {"class_type": "EmptyLatentImage", "inputs": {"width": "{{largura}}", "height": "{{altura}}", "batch_size": 1}},
+  "5": {"class_type": "KSampler", "inputs": {
+    "model": ["1", 0], "positive": ["2", 0], "negative": ["3", 0], "latent_image": ["4", 0],
+    "seed": "{{semente}}", "steps": "{{passos}}", "cfg": 7.0, "sampler_name": "euler", "scheduler": "normal", "denoise": 1.0}},
+  "6": {"class_type": "VAEDecode", "inputs": {"samples": ["5", 0], "vae": ["1", 2]}},
+  "7": {"class_type": "SaveImage", "inputs": {"images": ["6", 0], "filename_prefix": "{{prefixo}}"}}
+}
