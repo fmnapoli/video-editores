@@ -43,7 +43,7 @@ Scripts desta skill em `${CLAUDE_PLUGIN_ROOT}/skills/video-animado/scripts/`; mo
 
 Cenas HTML prontas (número que conta, comparação, linha do tempo, citação): tabela "Modelos" da `/cena-web`; o conteúdo vai no campo `"dados"` da cena.
 
-Som na palavra (opcional, depois do lote): o `montar_cenas.py` grava `trabalho/<slug>/montagem/palavras.transcript.json`, o mapa de palavras do vídeo final. Com ele, o `/efeitos` põe um pop ou um ding na mesma palavra em que a cena HTML faz o elemento entrar (`{"quando": "palavra", "som": "pop"}` com `--palavras`).
+Som na palavra (opcional, depois do lote): havendo cena em HTML, o `montar_cenas.py` grava `trabalho/<slug>/montagem/sons.sugeridos.json`, um `pop` em cada entrada que a cena marcou por palavra, já no tempo do vídeo final. Passe ao `/efeitos` (`--eventos .../sons.sugeridos.json`), mostre a lista e corte o excesso: nem toda entrada pede som, e o intervalo mínimo de 2 s já tira as coladas. Para escolher à mão, o `montar_cenas.py` também grava `trabalho/<slug>/montagem/palavras.transcript.json`, o mapa de palavras do vídeo final. Com ele, o `/efeitos` põe um pop ou um ding na mesma palavra em que a cena HTML faz o elemento entrar (`{"quando": "palavra", "som": "pop"}` com `--palavras`).
 
 ## Parâmetros
 

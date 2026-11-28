@@ -23,6 +23,7 @@ Script: `${CLAUDE_PLUGIN_ROOT}/scripts/efeitos.py` (só biblioteca padrão + ffm
      ```json
      [{"t": 2.4, "som": "riser", "forca": "leve"}, {"t": 31.0, "som": "ding"}]
      ```
+   - **Cenas HTML do `/video-animado`**: `trabalho/<slug>/montagem/sons.sugeridos.json` (um `pop` por entrada marcada na cena; vale como automático, com `--intervalo`). Troque `som` nos que pedem outro e apague os que sobram.
    - **Palavra falada**: na lista própria, `"quando"` no lugar de `"t"` põe o som no instante em que a palavra é dita. Pede `--palavras` com o mapa de palavras do vídeo **final** (o tempo é o do vídeo que vai receber o som):
      ```json
      [{"quando": "Blender", "som": "pop"}, {"quando": "três vezes mais rápido", "som": "riser"},

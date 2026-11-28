@@ -19,6 +19,9 @@ Uso:
   frase a frase, sem linha órfã.
 - `trabalho/<slug>/montagem/palavras.transcript.json`: as mesmas palavras, com a grafia original e o tempo
   no vídeo final, entrada direta do `scripts/legenda_palavra.py` (legenda palavra a palavra).
+- `trabalho/<slug>/montagem/sons.sugeridos.json`: havendo cena em HTML, o instante de cada entrada marcada por
+  palavra (as marcas do render_web.py), já no tempo do vídeo final, como eventos `pop` para o `scripts/efeitos.py`.
+  São sugestões ("sugerido": true): o efeitos.py aplica a elas o intervalo mínimo entre sons do mesmo tipo.
 - Saída: libx264 crf 18, aac 192k a 48 kHz, `.srt` em pasta separada do `.mp4`.
 """
 import argparse
@@ -217,7 +220,7 @@ def main():
     enc = ffm.codec_video(crf=16, preset="veryfast")   # bloco intermediário; a codificação final é a de baixo
 
     # 1) duração de cada bloco (narração, no grid de quadros) e legenda nos tempos finais
-    plano, srt, por_cena, segs, n, t0 = [], [], {}, [], 1, 0.0
+    plano, srt, por_cena, segs, n, t0, sons = [], [], {}, [], 1, 0.0, []
     for c in cenas:
         cid = c["id"]
         mp4 = os.path.abspath(c["video"] if c.get("video") else os.path.join(a.pasta, f"{cid}.mp4"))
@@ -241,6 +244,10 @@ def main():
                 ib = max(ib, ia + 0.9)
                 srt.append(f"{n}\n{srt_time(ia)} --> {srt_time(ib)}\n" + "\n".join(linhas) + "\n")
                 n += 1
+        marcas = os.path.join(a.pasta, "web", f"{cid}.marcas.json")
+        if c.get("html") and os.path.isfile(marcas):   # entradas da cena HTML, no tempo do vídeo final
+            for m in json.load(open(marcas, encoding="utf-8")):
+                sons.append({"t": round(t0 + m["ini"], 3), "som": "pop", "sugerido": True, "origem": f'{cid} "{m["termo"]}"'})
         plano.append((cid, mp4, d, info))
         print(f"{cid}: bloco {d:6.2f}s  (narração {info['total']:.2f}s)")
         t0 += d
@@ -259,6 +266,13 @@ def main():
     srt_local = os.path.join(trab, "legenda.srt")
     with open(os.path.join(trab, "palavras.transcript.json"), "w", encoding="utf-8") as f:
         json.dump({"segments": segs}, f, ensure_ascii=False)
+    arq_sons = os.path.join(trab, "sons.sugeridos.json")
+    if sons:
+        with open(arq_sons, "w", encoding="utf-8") as f:
+            json.dump(sons, f, ensure_ascii=False, indent=1)
+        print(f"sons sugeridos: {len(sons)} entrada(s) de cena HTML -> {arq_sons} (para o efeitos.py --eventos)")
+    elif os.path.exists(arq_sons):
+        os.remove(arq_sons)
 
     # 3) concat (vídeo copiado, áudio contínuo), normalização e codificação final
     video = os.path.join(trab, "_video.mp4"); narr = os.path.join(trab, "narracao.wav"); norm = os.path.join(trab, "narracao_norm.wav")

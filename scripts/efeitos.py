@@ -15,7 +15,8 @@ Dois passos, com um arquivo revisável no meio:
 
    Na lista própria, "quando" no lugar de "t" põe o som na palavra falada (pede --palavras):
      [{"quando": "Blender", "som": "pop"}, {"quando": "na ordem certa", "n": 2, "no_fim": true, "som": "ding"}]
-   "n" escolhe a ocorrência (padrão 1), "no_fim" usa o fim da palavra ou expressão e "desloca" soma segundos.
+   "sugerido": true faz o evento valer como automático (respeita --intervalo); é o que o sons.sugeridos.json do
+   montar_cenas.py traz. "n" escolhe a ocorrência (padrão 1), "no_fim" usa o fim da palavra ou expressão e "desloca" soma segundos.
    A comparação ignora maiúsculas, acentos e pontuação. Palavra que não está na fala não ganha som e aparece
    na lista com o motivo. --palavras aceita o <nome>.transcript.json do transcribe.py, o palavras.transcript.json
    do montar_cenas.py e a lista [{"t": início, "d": duração, "w": palavra}] do tts_cenas.py.
@@ -180,7 +181,7 @@ def ler_eventos(arquivos, palavras=None):
         elif isinstance(doc, list) and doc and all("start" in x for x in doc):   # textos.json do lettering
             evs += [{"t": float(x["start"]), "tipo": "texto", "origem": str(x.get("text", ""))[:30].replace("\\N", " ")} for x in doc]
         elif isinstance(doc, list):
-            evs += [dict(e, origem=e.get("origem", "plano"), pedido=True) for e in doc]
+            evs += [dict(e, origem=e.get("origem", "plano"), pedido=not e.get("sugerido")) for e in doc]
         else:
             sys.exit(f"{arq}: não reconheço o formato (esperado .camera.json, textos.json ou lista de eventos com t)")
     for e in evs:

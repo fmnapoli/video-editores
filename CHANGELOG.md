@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.23.0 — 2026-11-28
+A cena HTML passa a dizer onde entram os sons, e a citação segue cada palavra falada.
+- **Sons sugeridos pela cena**: `cena_web.py --marcas ARQ.json` grava cada `veQuando`/`veTrecho` que a cena fez ao carregar (termo, ocorrência, início e fim). O `render_web.py` guarda isso por cena (`PASTA/web/<id>.marcas.json`) e o `montar_cenas.py` leva para o tempo do vídeo final em `trabalho/<slug>/montagem/sons.sugeridos.json`: um `pop` por entrada, pronto para `efeitos.py --eventos`. Dispensa escrever a lista à mão e o erro de ocorrência (a mesma palavra dita em duas cenas).
+- **`efeitos.py`**: item de lista com `"sugerido": true` vale como automático e respeita `--intervalo` (2 s entre sons do mesmo tipo), em vez de entrar sempre como pedido explícito.
+- **`cena-citacao.html`**: cada palavra da frase acende no instante em que é falada, casando em ordem com a narração dentro do trecho. Palavra da frase que não foi dita igual fica entre as vizinhas; sem narração, o trecho continua repartido por igual.
+- Limites: só entram nas marcas as consultas feitas ao carregar a cena (as feitas dentro de `veQuadro` não); toda sugestão é `pop`, e escolher o som e cortar o excesso segue sendo decisão de quem revisa a lista. Cena do Manim não gera sugestão.
+
 ## 0.22.0 — 2026-11-28
 Biblioteca de cenas HTML narradas: quatro modelos novos na `/cena-web`, preenchidos pelo campo `"dados"` da cena.
 - **`cena-numero.html`**: número grande que conta até o valor no instante em que é falado, com prefixo, sufixo, casas decimais e rótulo.

@@ -15,6 +15,8 @@ A cena recebe do cena_web.py:
                       o termo de glossário falado "operêitor" chega como "operator", e veQuando("operator") acha
   window.veDados      {id, titulo, narracao, total, fala: {ini, fim}, dados: <campo "dados" da cena, se houver>}
 Use `window.veDuracao = veDados.total` e marque as entradas com `veQuando("palavra")`.
+As palavras que cada cena consultou ficam em PASTA/web/<id>.marcas.json; o montar_cenas.py as leva para o tempo do
+vídeo final e grava a sugestão de efeitos sonoros (sons.sugeridos.json).
 
 --folha grava PASTA/<id>.folha.png (N instantes espalhados, padrão 4) e confere texto cortado pela borda ou dentro
 da faixa da legenda (--reserva-baixo, padrão 0,21: a legenda de 2 linhas do montar_cenas.py). Código de saída 2 se
@@ -50,7 +52,7 @@ def prepara(c, info, tts_dir, gloss, trab):
              "fala": {"ini": lead, "fim": round(lead + info.get("fala", 0), 3)}, "dados": c.get("dados")}
     arq_d = os.path.join(trab, f"{cid}.dados.json")
     json.dump(dados, open(arq_d, "w", encoding="utf-8"), ensure_ascii=False)
-    args = ["--dados", arq_d, "--dur", f"{info['total']:.3f}"]
+    args = ["--dados", arq_d, "--dur", f"{info['total']:.3f}", "--marcas", os.path.join(trab, f"{cid}.marcas.json")]
     words = os.path.join(tts_dir, f"{cid}.words.json")
     if c.get("narracao") and os.path.exists(words):
         ws = json.load(open(words, encoding="utf-8"))

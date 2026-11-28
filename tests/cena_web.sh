@@ -204,14 +204,32 @@ for cid in ("EX", "GL"):
     n = int(subprocess.run(["ffprobe", "-v", "error", "-count_frames", "-select_streams", "v:0", "-show_entries",
                             "stream=nb_read_frames", "-of", "csv=p=0", f"mp4/{cid}.mp4"], capture_output=True, text=True).stdout.strip())
     assert n == round(t[cid]["total"] * 30), (cid, n, t[cid])
+ms = json.load(open("mp4/web/GL.marcas.json"))
+assert [m["termo"] for m in ms] == ["operator"] and abs(ms[0]["ini"] - json.load(open("mp4/web/GL.palavras.json"))[-1]["t"]) < 1e-6, ms
+assert len(json.load(open("mp4/web/EX.marcas.json"))) == 3
 ps = json.load(open("mp4/web/GL.palavras.json"))
 assert ps[-1]["w"].startswith("operator") and abs(ps[0]["t"] - t["GL"]["lead"]) < 1e-6, ps
+PY
+  # montagem: as marcas das cenas HTML viram sugestão de sons no tempo do vídeo final, e o efeitos.py as trata como automáticas
+  python3 "$VA/montar_cenas.py" cenas/va.json mp4 --cenas EX,GL --saida saida/va.mp4 > montar.log 2>&1 || { echo "montar_cenas falhou:"; cat montar.log; exit 1; }
+  python3 "$ROOT/scripts/efeitos.py" saida/va.mp4 --eventos trabalho/va/montagem/sons.sugeridos.json --out va.sfx.json > sfx.log || { cat sfx.log; exit 1; }
+  python3 - <<'PY'
+import json
+t = json.load(open("trabalho/va/tts/tempos.json"))
+s = json.load(open("trabalho/va/montagem/sons.sugeridos.json"))
+m = json.load(open("mp4/web/GL.marcas.json"))[0]
+assert len(s) == 4 and all(x["som"] == "pop" and x["sugerido"] for x in s), s
+assert s[-1]["origem"] == 'GL "operator"' and abs(s[-1]["t"] - (round(t["EX"]["total"] * 30) / 30 + m["ini"])) < 0.002, (s[-1], t["EX"], m)
+d = json.load(open("va.sfx.json"))
+ts = [x["t"] for x in d["itens"]]
+assert d["itens"] and all(b - a >= 2.0 for a, b in zip(ts, ts[1:])), ts          # sugeridos respeitam --intervalo
+assert len(d["itens"]) + len(d["pulados"]) == 4
 PY
   sed -i.bak 's/veQuando("operator")/veQuando("orquestrador")/' cenas/GL.html
   if "${RW[@]}" --cenas GL > render.log 2>&1; then echo "cena com palavra fora da narração devia falhar"; exit 1; fi
   grep -q 'veQuando("orquestrador")' render.log || { echo "faltou a mensagem da palavra fora da fala:"; cat render.log; exit 1; }
 )
-pass "render_web.py (video-animado): cena em HTML com a duração da narração, palavras na grafia do roteiro, folha por cena, cena do Manim ignorada, palavra fora da fala derruba só com mensagem clara"
+pass "render_web.py (video-animado): cena em HTML com a duração da narração, palavras na grafia do roteiro, folha por cena, cena do Manim ignorada, marcas e sons sugeridos no tempo do vídeo final, palavra fora da fala derruba só com mensagem clara"
 
 # biblioteca de modelos sem biblioteca externa: cada um abre solto (valores de exemplo), aceita "dados" e "quando",
 # passa na conferência de texto com a faixa da legenda reservada, em horizontal e em vertical
@@ -247,6 +265,21 @@ for m in numero comparacao linha-tempo citacao; do
   if "${WEB[@]}" "$M" --quadro 1 x.png --palavras bib.palavras.json --dados bib.falta.json 2>err.txt >/dev/null; then echo "cena-$m: palavra ausente devia falhar"; exit 1; fi
   grep -q "ontem" err.txt || { cat err.txt; exit 1; }
 done
+# citação: cada palavra acende quando é falada ("simples" a 3,0 s, "é" a 3,4 s, "melhor" a 3,7 s), não por divisão igual
+cp "$ROOT/skills/cena-web/templates/cena-citacao.html" cit2.html
+python3 - <<'PY'
+import pathlib
+p = pathlib.Path("cit2.html"); s = p.read_text(encoding="utf-8")
+# escreve o instante calculado de cada palavra no lugar do autor; a conferência de texto (faixa reservada) devolve o texto
+s = s.replace('document.getElementById("autor").textContent = d.autor || "";',
+              'document.getElementById("autor").textContent = "T=" + palavras.map((p) => p.t.toFixed(2)).join("/");')
+p.write_text(s, encoding="utf-8")
+PY
+sed 's/"autor":""/"autor":"x"/' bib.citacao.json > cit.json
+"${WEB[@]}" cit2.html --quadros 5.5 cit.png --tamanho 640x360 --palavras bib.palavras.json --dados cit.json --reserva-baixo 0.9 --auditoria aviso >/dev/null 2>cit.err
+grep -q "T=3.00/3.40/3.70" cit.err || { echo "citação: instantes das palavras:"; cat cit.err; exit 1; }
+pass "cena-citacao: cada palavra da frase acende no instante em que é falada"
+
 pass "modelos cena-numero, cena-comparacao, cena-linha-tempo e cena-citacao: soltos e narrados, horizontal e vertical, sem texto cortado nem na faixa da legenda; palavra ausente falha"
 
 if [[ "${VE_TESTE_REDE:-}" == 1 ]]; then
