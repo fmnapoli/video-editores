@@ -193,9 +193,20 @@ Renderiza uma cena HTML quadro a quadro (Playwright dirigindo o Chrome instalado
 ```bash
 uv run --with playwright python scripts/cena_web.py CENA.html SAIDA.mp4|SAIDA.mov [--dur S] [--fps 30] [--tamanho 1920x1080] [--escala 1] [--alpha] [--rede] [--espera-quadro]
 uv run --with playwright python scripts/cena_web.py CENA.html --quadro T SAIDA.png
+uv run --with playwright python scripts/cena_web.py CENA.html --quadros T1,T2,...|N FOLHA.png [--reserva-baixo 0.21] [--auditoria erro|aviso|nao]
+uv run --with playwright python scripts/cena_web.py CENA.html SAIDA.mp4 --palavras ARQ.json [--dados ARQ.json] [--marca ARQ|--sem-marca]
 uv run --with playwright python scripts/cena_web.py --libs
 ```
 Contrato da cena: `window.veQuadro = (t) => {...}` (obrigatório; pode devolver `Promise`, e só `Promise` de verdade é esperada: a timeline do GSAP tem `.then()` e travaria o render) e `window.veDuracao` (ou `--dur`). A página é servida de `http://cena.local/` por interceptação de requisição, sem abrir porta: arquivos ao lado do `.html` e as bibliotecas em `/_ve/three/` e `/_ve/gsap/`, baixadas do registro do npm na versão fixada, conferidas por sha256 e guardadas em `~/.cache/video-editores/web/`. Qualquer outra origem é bloqueada e vira `AVISO` no fim (`--rede` libera). Erro de JavaScript na cena encerra o render dizendo o quadro. `.mov` sai em ProRes 4444 (`yuva444p` com `--alpha`); `.mp4` usa `VE_ENCODER`. WebGL roda por software (SwiftShader). `VE_ESPERA_CENA` muda os 20 s de espera pelo `veQuadro`.
+
+`--palavras` entrega o mapa de palavras da narração (`[{"t", "d", "w"}]`, no tempo da cena) e as funções `veQuando(termo, n, padrao)` e `veTrecho(termo, n)`; palavra ausente interrompe o render. `--quadros` grava a folha de quadros-chave e confere o texto do DOM em cada instante (cortado pela borda; dentro da faixa de `--reserva-baixo`), com código de saída 2 se houver problema. Com `marca/marca.json`, a página recebe `window.veMarca`, as variáveis `--ve-*` e os TTF da marca.
+
+## render_web.py (video-animado)
+```bash
+uv run --with playwright python skills/video-animado/scripts/render_web.py cenas/<slug>.json PASTA_MP4 [--cenas A,B] [--tamanho 1920x1080] [--fps 30] [--jobs 2]
+uv run --with playwright python skills/video-animado/scripts/render_web.py cenas/<slug>.json PASTA_MP4 --folha [N] [--reserva-baixo 0.21]
+```
+Renderiza as cenas do spec que têm `"html"` em `PASTA_MP4/<id>.mp4`, com a duração do `tempos.json` e as palavras da narração na grafia do roteiro, já deslocadas pelo silêncio inicial. `--folha` grava `PASTA_MP4/<id>.folha.png` por cena e sai com código 2 se alguma tiver texto cortado ou na faixa da legenda.
 
 ## camera.py
 Câmera sobre o vídeo cortado, em dois passos. Planejar usa só a biblioteca padrão; aplicar usa OpenCV.

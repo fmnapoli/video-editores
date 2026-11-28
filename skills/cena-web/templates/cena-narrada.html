@@ -1,0 +1,76 @@
+<!doctype html>
+<!-- Modelo de cena sincronizada com a narração para o cena_web.py (--palavras) e o render_web.py do /video-animado.
+     Cada cartão entra no instante em que a palavra dele é dita: veQuando("palavra", ocorrência, padrão).
+     O terceiro argumento é o instante usado quando a cena é aberta sem narração (prévia solta); com narração,
+     palavra que não está na fala é erro. Sem biblioteca: tudo é função de t.
+     Cores e fonte vêm da marca (variáveis --ve-*), com o valor depois da vírgula quando o projeto não tem marca.
+     O conteúdo fica acima dos 21% de baixo, que são da legenda. -->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<style>
+  html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+  body { background: var(--ve-fundo, #0B1220); color: var(--ve-texto, #F1F5F9);
+         font-family: var(--ve-fonte, "DejaVu Sans"), "DejaVu Sans", Inter, Arial, sans-serif; }
+  main { position: absolute; left: 8vw; right: 8vw; top: 12vh; }
+  h1 { font-size: 5.2vw; line-height: 1.08; margin: 0 0 1.2vw; }
+  h1 span { display: inline-block; }
+  .linha { height: 0.35vw; background: var(--ve-acento, #FFD43B); transform-origin: left center; margin-bottom: 3vw; }
+  ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.6vw; }
+  li { background: var(--ve-fundo2, #1E293B); border-radius: 0.9vw; padding: 2vw 2vw 2.6vw; font-size: 2.5vw; line-height: 1.25; min-height: 13vw;
+       box-shadow: 0 0.6vw 1.8vw rgba(0, 0, 0, .35); border-top: 0.4vw solid transparent; }
+  li b { display: block; font-size: 4.6vw; color: var(--ve-acento, #FFD43B); margin-bottom: 0.5vw; }
+</style>
+</head>
+<body>
+<main>
+  <h1 id="titulo"></h1>
+  <div class="linha" id="linha"></div>
+  <ul>
+    <!-- data-quando: a palavra da narração que faz o cartão entrar; data-padrao: o instante na prévia sem narração -->
+    <li data-quando="primeira" data-padrao="1.2"><b>1</b>A primeira ideia aparece logo no começo</li>
+    <li data-quando="segunda" data-padrao="3.2"><b>2</b>A segunda entra no meio da fala</li>
+    <li data-quando="terceira" data-padrao="5.2"><b>3</b>E a terceira fecha a cena</li>
+  </ul>
+</main>
+<script>
+const dados = window.veDados || {};
+window.veDuracao = dados.total || 8;
+const FIM = window.veDuracao - 0.45;                       // os últimos 0,45 s desvanecem o conteúdo sobre o fundo
+
+const prende = (x) => Math.min(1, Math.max(0, x));
+const sai = (x) => 1 - Math.pow(1 - prende(x), 3);         // desacelera no fim (ease-out cúbico)
+const volta = (x) => { x = prende(x); const c = 1.70158; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+
+// título: uma palavra por vez, a partir de 0,2 s
+const titulo = document.getElementById("titulo");
+const palavras = (dados.titulo || "Três ideias em uma cena").split(/\s+/).map((p, i) => {
+  const s = document.createElement("span");
+  s.textContent = p;
+  titulo.append(s, " ");
+  return { el: s, t: 0.2 + i * 0.12 };
+});
+const linha = document.getElementById("linha");
+const cartoes = [...document.querySelectorAll("li")].map((el) =>
+  ({ el, t: veQuando(el.dataset.quando, 1, Number(el.dataset.padrao)) }));
+
+window.veQuadro = (t) => {
+  for (const p of palavras) {
+    const k = sai((t - p.t) / 0.4);
+    p.el.style.opacity = k;
+    p.el.style.transform = `translateY(${(1 - k) * 0.8}em)`;
+  }
+  linha.style.transform = `scaleX(${sai((t - 0.5) / 0.7)})`;
+  cartoes.forEach((c, i) => {
+    const k = prende((t - c.t) / 0.45);
+    c.el.style.opacity = sai(k * 2);
+    c.el.style.transform = `translateY(${(1 - volta(k)) * 2.5}vw) scale(${0.94 + 0.06 * volta(k)})`;
+    // o cartão da vez fica marcado até o próximo entrar
+    const proximo = cartoes[i + 1] ? cartoes[i + 1].t : Infinity;
+    c.el.style.borderTopColor = t >= c.t && t < proximo ? "var(--ve-acento, #FFD43B)" : "transparent";
+  });
+  document.querySelector("main").style.opacity = 1 - prende((t - FIM) / 0.45);
+};
+</script>
+</body>
+</html>

@@ -99,6 +99,120 @@ if "${WEB[@]}" cena.html z.mp4 --fps 0 2>err.txt; then echo "--fps 0 devia falha
 grep -q "maiores que zero" err.txt
 pass "cena_web.py: sem --rede, imagem, fetch, WebSocket e window.open não saem da máquina e viram aviso; ffmpeg que falha e --fps 0 dão erro claro, sem vídeo pela metade"
 
+# quadros-chave: folha + auditoria do texto do DOM. "sai" passa da borda direita; "rodape" está na faixa de baixo;
+# "decorativo" sangra de propósito (data-ve-sangra); "longe" está inteiro fora do quadro e "oculto" tem opacidade 0
+cat > texto.html <<'HTML'
+<!doctype html><meta charset="utf-8">
+<style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;color:#fff;font:24px sans-serif}
+div{position:absolute;white-space:nowrap}</style>
+<div style="left:20px;top:20px">cabe inteiro</div>
+<div id="sai" style="left:85%;top:80px">texto que sai pela direita do quadro</div>
+<div style="left:20px;bottom:6px">rodape</div>
+<div style="right:-60px;top:140px" data-ve-sangra>decorativo sangrando</div>
+<div style="left:-900px;top:200px">longe</div>
+<div style="left:95%;top:240px;opacity:0">oculto mas tambem passaria da borda</div>
+<script>
+window.veDuracao = 2;
+window.veQuadro = (t) => { document.getElementById("sai").style.left = t < 1 ? "20px" : "85%"; };
+</script>
+HTML
+set +e; "${WEB[@]}" texto.html --quadros 0.5,1.5 folha.png --tamanho 640x360 >saida.txt 2>err.txt; RC=$?; set -e
+[[ $RC == 2 ]] || { echo "texto cortado devia sair com código 2, saiu $RC"; cat err.txt; exit 1; }
+[[ $(grep -c "PROBLEMA" err.txt) == 1 ]] || { echo "esperava 1 problema (o texto que sai, só em t = 1,5 s):"; cat err.txt; exit 1; }
+grep -q "t = 1.5s: texto cortado pela borda (direita): .*texto que sai pela direita" err.txt || { echo "faltou o problema do texto cortado:"; cat err.txt; exit 1; }
+python3 -c '
+import struct
+b = open("folha.png", "rb").read(24); w, h = struct.unpack(">II", b[16:24])
+assert b[:8] == b"\x89PNG\r\n\x1a\n" and w > 1280 and 360 < h < 480, (w, h)   # 2 quadros de 640 lado a lado + legenda'
+set +e; "${WEB[@]}" texto.html --quadros 2 folha2.png --tamanho 640x360 --reserva-baixo 0.2 >/dev/null 2>err.txt; RC=$?; set -e
+[[ $RC == 2 ]] && [[ $(grep -c "faixa reservada embaixo: .*rodape" err.txt) == 2 ]] || { echo "--reserva-baixo devia acusar o rodapé nos 2 instantes"; cat err.txt; exit 1; }
+"${WEB[@]}" texto.html --quadros 1.5 folha3.png --tamanho 640x360 --auditoria aviso >/dev/null 2>err.txt
+grep -q "AVISO: t = 1.5s: texto cortado" err.txt || { echo "--auditoria aviso não avisou:"; cat err.txt; exit 1; }
+"${WEB[@]}" texto.html --quadros 1.5 folha4.png --tamanho 640x360 --auditoria nao >saida.txt 2>err.txt && grep -q "sem auditoria" saida.txt
+if "${WEB[@]}" texto.html --quadros 1,2 folha.mp4 2>err.txt; then echo "--quadros em .mp4 devia falhar"; exit 1; fi
+grep -q "precisa ser .png" err.txt
+pass "cena_web.py --quadros: folha com os instantes, código 2 e lista quando o texto é cortado pela borda ou cai na faixa reservada; sangria marcada, texto fora do quadro e invisível não contam"
+
+# mapa de palavras e marca: o quadrado só aparece quando "operator" é dito (t = 1,0 s) e tem a cor de acento da marca
+cat > fala.html <<'HTML'
+<!doctype html><meta charset="utf-8">
+<style>html,body{margin:0;width:100%;height:100%;background:var(--ve-fundo,#000)}
+#q{position:absolute;left:40%;top:40%;width:20%;height:20%;background:var(--ve-acento,#f00)}</style>
+<div id="q"></div>
+<script>
+const t0 = veQuando("OPERATOR"), tr = veTrecho("três minutos"), t2 = veQuando("o", 2);
+if (Math.abs(tr.ini - 2.0) > 1e-9 || Math.abs(tr.fim - 2.9) > 1e-9 || t2 !== 1.6 || veDados.id !== "B1") throw new Error("mapa errado " + JSON.stringify([tr, t2, veDados]));
+window.veDuracao = 3;
+window.veQuadro = (t) => { document.getElementById("q").style.opacity = t >= t0 ? 1 : 0; };
+</script>
+HTML
+echo '[{"t":0.6,"d":0.2,"w":"O"},{"t":1.0,"d":0.4,"w":"operator,"},{"t":1.6,"d":0.1,"w":"o"},{"t":2.0,"d":0.3,"w":"Três"},{"t":2.4,"d":0.5,"w":"minutos."}]' > palavras.json
+echo '{"id": "B1"}' > dados.json
+mkdir -p marca && echo '{"nome":"Acme","cores":{"fundo":"#102030","acento":"#00FF88","texto":"#FFFFFF"},"fonte":{"familia":"DejaVu Sans"}}' > marca/marca.json
+for t in 0.5 1.5; do
+  "${WEB[@]}" fala.html --quadro $t "f$t.png" --tamanho 320x180 --palavras palavras.json --dados dados.json >/dev/null
+  ffmpeg -v error -y -i "f$t.png" -vf "crop=20:20:150:80,scale=1:1" -frames:v 1 -f rawvideo -pix_fmt rgb24 "f$t.rgb"
+done
+"${WEB[@]}" fala.html --quadro 1.5 sm.png --tamanho 320x180 --palavras palavras.json --dados dados.json --sem-marca >/dev/null
+ffmpeg -v error -y -i sm.png -vf "crop=20:20:150:80,scale=1:1" -frames:v 1 -f rawvideo -pix_fmt rgb24 sm.rgb
+python3 -c '
+a, d, s = (tuple(open(f, "rb").read()) for f in ("f0.5.rgb", "f1.5.rgb", "sm.rgb"))
+assert a == (0x10, 0x20, 0x30), a        # antes da palavra: só o fundo da marca
+assert d == (0x00, 0xFF, 0x88), d        # depois: o quadrado, na cor de acento da marca
+assert s == (255, 0, 0), s               # --sem-marca: vale a reserva do CSS'
+echo '[{"t":0.6,"d":0.2,"w":"outra"},{"t":1.0,"d":0.2,"w":"fala"}]' > outras.json
+SECONDS=0
+if "${WEB[@]}" fala.html --quadro 1 x.png --palavras outras.json --dados dados.json 2>err.txt; then echo "palavra ausente devia falhar"; exit 1; fi
+grep -q 'veQuando("OPERATOR"): .* \[outra fala\]' err.txt || { echo "faltou a mensagem da palavra ausente:"; cat err.txt; exit 1; }
+(( SECONDS < 15 )) || { echo "erro ao carregar a cena esperou o prazo inteiro (${SECONDS}s)"; exit 1; }
+if "${WEB[@]}" fala.html --quadro 1 x.png --dados dados.json 2>err.txt; then echo "cena narrada sem --palavras e sem padrão devia falhar"; exit 1; fi
+grep -q "sem --palavras e sem valor padr" err.txt || { cat err.txt; exit 1; }
+rm -rf marca
+pass "cena_web.py --palavras/--dados: veQuando e veTrecho acham palavra, expressão e ocorrência sem ligar para caixa e acento; palavra ausente falha rápido e mostra a fala; marca vira variável CSS (e --sem-marca desliga)"
+
+# /video-animado com cena em HTML: a duração vem da narração (stub), o termo do glossário chega com a grafia do roteiro
+VA="$ROOT/skills/video-animado/scripts"
+mkdir -p va/cenas && cp "$ROOT/skills/cena-web/templates/cena-narrada.html" va/cenas/EX.html
+cat > va/cenas/GL.html <<'HTML'
+<!doctype html><meta charset="utf-8"><body style="margin:0;background:#000">
+<script>
+const t0 = veQuando("operator");
+if (!(t0 > veDados.fala.ini) || veDados.id !== "GL") throw new Error("dados errados");
+window.veDuracao = veDados.total;
+window.veQuadro = (t) => { document.body.style.background = t >= t0 ? "#fff" : "#000"; };
+</script>
+HTML
+cat > va/cenas/va.json <<'JSON'
+{"slug": "va", "voice": "pt-BR-ThalitaMultilingualNeural", "glossary": {"operator": "operêitor"},
+ "cenas": [{"id": "EX", "html": "cenas/EX.html", "titulo": "Três ideias em uma cena",
+            "narracao": "A primeira ideia aparece logo no começo. A segunda entra no meio. E a terceira fecha a cena."},
+           {"id": "GL", "html": "cenas/GL.html", "narracao": "Quem monta tudo é o operator."},
+           {"id": "M1", "classe": "M1", "narracao": "Esta cena é do Manim."}]}
+JSON
+(
+  cd va
+  PYTHONPATH="$ROOT/tests/stub" python3 "$VA/tts_cenas.py" cenas/va.json >/dev/null
+  RW=(uv run --quiet --with playwright python "$VA/render_web.py" cenas/va.json mp4 --tamanho 640x360)
+  "${RW[@]}" --folha 3 > folha.log 2> folha.err || { echo "render_web --folha falhou:"; cat folha.log folha.err; exit 1; }
+  test -s mp4/EX.folha.png && test -s mp4/GL.folha.png && test ! -e mp4/M1.folha.png
+  grep -q "EX: ok -> .*0 problema(s) de texto" folha.log
+  "${RW[@]}" > render.log 2> render.err || { echo "render_web falhou:"; cat render.log render.err; exit 1; }
+  python3 - <<'PY'
+import json, subprocess
+t = json.load(open("trabalho/va/tts/tempos.json"))
+for cid in ("EX", "GL"):
+    n = int(subprocess.run(["ffprobe", "-v", "error", "-count_frames", "-select_streams", "v:0", "-show_entries",
+                            "stream=nb_read_frames", "-of", "csv=p=0", f"mp4/{cid}.mp4"], capture_output=True, text=True).stdout.strip())
+    assert n == round(t[cid]["total"] * 30), (cid, n, t[cid])
+ps = json.load(open("mp4/web/GL.palavras.json"))
+assert ps[-1]["w"].startswith("operator") and abs(ps[0]["t"] - t["GL"]["lead"]) < 1e-6, ps
+PY
+  sed -i.bak 's/veQuando("operator")/veQuando("orquestrador")/' cenas/GL.html
+  if "${RW[@]}" --cenas GL > render.log 2>&1; then echo "cena com palavra fora da narração devia falhar"; exit 1; fi
+  grep -q 'veQuando("orquestrador")' render.log || { echo "faltou a mensagem da palavra fora da fala:"; cat render.log; exit 1; }
+)
+pass "render_web.py (video-animado): cena em HTML com a duração da narração, palavras na grafia do roteiro, folha por cena, cena do Manim ignorada, palavra fora da fala derruba só com mensagem clara"
+
 if [[ "${VE_TESTE_REDE:-}" == 1 ]]; then
   for m in cena-three cena-gsap; do
     "${WEB[@]}" "$ROOT/skills/cena-web/templates/$m.html" "$m.png" --quadro 3.5 --tamanho 960x540 2>aviso.txt >/dev/null

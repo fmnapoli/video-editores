@@ -20,6 +20,12 @@ Scripts desta skill em `${CLAUDE_PLUGIN_ROOT}/skills/video-animado/scripts/`; mo
    uv run --with edge-tts python "${CLAUDE_PLUGIN_ROOT}/skills/video-animado/scripts/tts_cenas.py" cenas/<slug>.json --glossario glossario.json
    ```
    Gera `trabalho/<slug>/tts/<id>.mp3`, `.words.json` e `tempos.json` (fala, total, lead). Antes do lote, ouça os termos do domínio: `testar_pronuncia.py` do video-docs com a frase que concentra os termos. Mesmo a voz multilíngue erra alguns ("Operator", "Orchestrator"): o glossário troca só a fala, a legenda mantém a grafia.
+   **Cena em HTML no lugar do Manim** (layout de página, cartões, tipografia, 3D com Three.js): troque `classe` por `"html": "cenas/<ID>.html"` e escreva a cena pelo `/cena-web`, a partir de `skills/cena-web/templates/cena-narrada.html`. As entradas são marcadas pela palavra falada (`veQuando("palavra")`), com a grafia do roteiro, e a duração vem de `veDados.total`. Folha de quadros-chave primeiro (confere texto cortado e texto na faixa da legenda), depois o render, na mesma pasta dos mp4 do Manim:
+   ```bash
+   uv run --with playwright python "${CLAUDE_PLUGIN_ROOT}/skills/video-animado/scripts/render_web.py" cenas/<slug>.json media/videos/video/1080p30 --folha
+   uv run --with playwright python "${CLAUDE_PLUGIN_ROOT}/skills/video-animado/scripts/render_web.py" cenas/<slug>.json media/videos/video/1080p30 --jobs 3
+   ```
+   Olhe cada `<ID>.folha.png` com Read. Daí em diante (piloto, montagem, `/prova`) a cena em HTML é tratada como as outras. Manim continua o padrão para diagrama, gráfico e equação.
 4. **Cenas em Manim.** Copie `templates/cena_base.py` para `trabalho/<slug>/video.py` e escreva uma classe por cena herdando de `Base`: `abre()` (título com fade e, se houver, fade do fundo anterior), `q(0.4)` (espera até 40 % da fala), `p(anim, rt=…)` (play que contabiliza o tempo), `fim()` (desvanece tudo menos fundo, grafismo e logo). O relógio da base conta no grid de quadros, como o renderer: a cena fecha em `total` com ±1 quadro; use sempre `p()`/`w()`, nunca `self.play`/`self.wait` direto. Conteúdo acima da faixa da legenda (y > −2,3 em unidades do Manim, com legenda de 2 linhas em 1080p). Teste em baixa:
    ```bash
    manim -ql -r 960,540 --fps 30 video.py <Classe> -o <ID>.mp4
@@ -44,6 +50,7 @@ Scripts desta skill em `${CLAUDE_PLUGIN_ROOT}/skills/video-animado/scripts/`; mo
 | `--tamanho` / `--margem` | 15 / 22 (escala 288 = ~56 px e 82 px em 1080p) | legenda maior exige subir o conteúdo das cenas |
 | `--loudness` / `--tp` | −16 LUFS / −1,5 dBTP | −14 para redes; o pico real nunca sobe |
 | `--jobs` | 2 | blocos em paralelo na montagem (um ffmpeg por cena) |
+| `render_web.py --folha N` / `--reserva-baixo` | 4 / 0,21 | mais instantes numa cena cheia; legenda maior exige reserva maior |
 | `Base.BG_ANTES` | nenhum | cena que abre um ato com fundo diferente do anterior |
 | `fim(fade=0.45)` | 0,45 s | vinheta final sobrescreve `fim()` para terminar no logo |
 
