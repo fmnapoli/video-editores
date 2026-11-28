@@ -213,6 +213,42 @@ PY
 )
 pass "render_web.py (video-animado): cena em HTML com a duração da narração, palavras na grafia do roteiro, folha por cena, cena do Manim ignorada, palavra fora da fala derruba só com mensagem clara"
 
+# biblioteca de modelos sem biblioteca externa: cada um abre solto (valores de exemplo), aceita "dados" e "quando",
+# passa na conferência de texto com a faixa da legenda reservada, em horizontal e em vertical
+cat > bib.palavras.json <<'JSON'
+[{"t":0.6,"d":0.3,"w":"Antes"},{"t":1.4,"d":0.4,"w":"setenta"},{"t":2.2,"d":0.3,"w":"agora,"},{"t":3.0,"d":0.3,"w":"simples"},
+ {"t":3.4,"d":0.2,"w":"é"},{"t":3.7,"d":0.4,"w":"melhor."},{"t":4.4,"d":0.3,"w":"Hoje"}]
+JSON
+cat > bib.numero.json <<'JSON'
+{"titulo":"Acessos","total":6,"dados":{"numero":1234.5,"decimais":1,"prefixo":"R$ ","sufixo":"","rotulo":"por mês","quando":"setenta"}}
+JSON
+cat > bib.comparacao.json <<'JSON'
+{"titulo":"O que mudou","total":6,"dados":{"lados":[{"rotulo":"Antes","quando":"antes","itens":["Manual"]},
+ {"rotulo":"Depois","quando":"agora","itens":["Um comando",{"texto":"Na hora","quando":"hoje"}]}]}}
+JSON
+cat > bib.linha-tempo.json <<'JSON'
+{"titulo":"Trajeto","total":6,"dados":{"marcos":[{"rotulo":"2019","texto":"Início","quando":"antes"},
+ {"rotulo":"2022","texto":"Aberto","quando":"agora"},{"rotulo":"Hoje","texto":"Três mil","quando":"hoje"}]}}
+JSON
+cat > bib.citacao.json <<'JSON'
+{"total":6,"fala":{"ini":0.6,"fim":4.7},"dados":{"texto":"Simples é melhor.","autor":"","destaque":"melhor","quando":"simples é melhor"}}
+JSON
+for m in numero comparacao linha-tempo citacao; do
+  M="$ROOT/skills/cena-web/templates/cena-$m.html"
+  for tam in 640x360 360x640; do
+    "${WEB[@]}" "$M" --quadros 3 "bib-$m-$tam.png" --reserva-baixo 0.21 --tamanho "$tam" >/dev/null 2>err.txt || { echo "cena-$m $tam (solta):"; cat err.txt; exit 1; }
+    "${WEB[@]}" "$M" --quadros 2.9,5 "bib-$m-$tam-n.png" --reserva-baixo 0.21 --tamanho "$tam" --palavras bib.palavras.json --dados "bib.$m.json" \
+      >/dev/null 2>err.txt || { echo "cena-$m $tam (narrada):"; cat err.txt; exit 1; }
+  done
+  # o quadro tem conteúdo, e a palavra que não está na fala derruba a cena
+  ffmpeg -v error -y -i "bib-$m-640x360-n.png" -vf "scale=16:16,format=gray" -f rawvideo - > bib.g
+  python3 -c "b = open('bib.g','rb').read(); assert max(b) - min(b) > 40, ('$m: folha sem conteúdo', min(b), max(b))"
+  sed 's/"antes"/"ontem"/; s/"setenta"/"ontem"/; s/"simples é melhor"/"ontem"/' "bib.$m.json" > bib.falta.json
+  if "${WEB[@]}" "$M" --quadro 1 x.png --palavras bib.palavras.json --dados bib.falta.json 2>err.txt >/dev/null; then echo "cena-$m: palavra ausente devia falhar"; exit 1; fi
+  grep -q "ontem" err.txt || { cat err.txt; exit 1; }
+done
+pass "modelos cena-numero, cena-comparacao, cena-linha-tempo e cena-citacao: soltos e narrados, horizontal e vertical, sem texto cortado nem na faixa da legenda; palavra ausente falha"
+
 if [[ "${VE_TESTE_REDE:-}" == 1 ]]; then
   for m in cena-three cena-gsap; do
     "${WEB[@]}" "$ROOT/skills/cena-web/templates/$m.html" "$m.png" --quadro 3.5 --tamanho 960x540 2>aviso.txt >/dev/null

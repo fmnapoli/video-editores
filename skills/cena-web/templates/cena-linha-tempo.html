@@ -1,0 +1,102 @@
+<!doctype html>
+<!-- Modelo: linha do tempo (ou etapas de um processo). A linha cresce até cada marco no instante em que ele é
+     falado; o marco da vez fica com a cor de destaque. De 3 a 5 marcos.
+     Para o cena_web.py (--palavras, --dados) e o render_web.py do /video-animado. Sem biblioteca: tudo é função de t.
+     Conteúdo pelo campo "dados" da cena (ou edite PADRAO):
+       {"marcos": [{"rotulo": "2019", "texto": "Primeira versão", "quando": "dezenove", "padrao": 1.0},
+                   {"rotulo": "2022", "texto": "Código aberto", "quando": "vinte e dois"},
+                   {"rotulo": "Hoje", "texto": "Três mil usuários", "quando": "hoje"}]}
+     "quando" é a palavra da narração em que o marco entra; "padrao", o instante na prévia sem narração.
+     O título vem de "titulo" da cena. Em vertical a linha corre de cima para baixo.
+     Conteúdo acima dos 21% de baixo (legenda). -->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<style>
+  :root { --u: 1vw; --p: 0; }
+  @media (orientation: portrait) { :root { --u: 1.9vw; } }
+  html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+  body { background: var(--ve-fundo, #0B1220); color: var(--ve-texto, #F1F5F9);
+         font-family: var(--ve-fonte, "DejaVu Sans"), "DejaVu Sans", Inter, Arial, sans-serif; }
+  main { position: absolute; inset: 10vh 7vw 23vh; display: flex; flex-direction: column; justify-content: center; }
+  h1 { font-size: calc(var(--u) * 4); line-height: 1.1; margin: 0 0 calc(var(--u) * 4); text-wrap: balance; }
+  #trilho { position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: calc(var(--u) * 1.5); }
+  /* a linha: fundo apagado e, por cima, a parte já percorrida (--p de 0 a 1) */
+  #trilho::before, #trilho::after { content: ""; position: absolute; left: 0; right: 0; top: calc(var(--u) * 0.85);
+                                    height: calc(var(--u) * 0.3); background: var(--ve-fundo2, #1E293B); }
+  #trilho::after { background: var(--ve-acento, #FFD43B); transform-origin: left center; transform: scaleX(var(--p)); }
+  .marco { position: relative; z-index: 1; }
+  .ponto { width: calc(var(--u) * 2); height: calc(var(--u) * 2); border-radius: 50%; box-sizing: border-box;
+           background: var(--ve-fundo, #0B1220); border: calc(var(--u) * 0.4) solid var(--ve-texto2, #94A3B8); }
+  .marco.vez .ponto { background: var(--ve-acento, #FFD43B); border-color: var(--ve-acento, #FFD43B); }
+  .marco.feito .ponto { border-color: var(--ve-acento, #FFD43B); }
+  .rotulo { font-size: calc(var(--u) * 3.2); font-weight: 700; margin: calc(var(--u) * 1.2) 0 calc(var(--u) * 0.4); }
+  .marco.vez .rotulo { color: var(--ve-acento, #FFD43B); }
+  .texto { font-size: calc(var(--u) * 2.3); line-height: 1.25; color: var(--ve-texto2, #94A3B8); margin: 0; padding-right: 0.6em; }
+  .marco.vez .texto { color: var(--ve-texto, #F1F5F9); }
+  @media (orientation: portrait) {
+    #trilho { grid-auto-flow: row; gap: calc(var(--u) * 2.4); padding-left: calc(var(--u) * 3.4); }
+    #trilho::before, #trilho::after { left: calc(var(--u) * 0.85); right: auto; top: 0; bottom: 0; width: calc(var(--u) * 0.3); height: auto; }
+    #trilho::after { transform-origin: center top; transform: scaleY(var(--p)); }
+    .ponto { position: absolute; left: calc(var(--u) * -3.4); top: calc(var(--u) * 0.6); }
+    .rotulo { margin-top: 0; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1 id="titulo"></h1>
+  <div id="trilho"></div>
+</main>
+<script>
+const PADRAO = { marcos: [
+  { rotulo: "2019", texto: "Primeira versão, uso interno" },
+  { rotulo: "2022", texto: "Código aberto" },
+  { rotulo: "2024", texto: "Mil instalações" },
+  { rotulo: "Hoje", texto: "Três mil usuários por mês" }] };
+const cena = window.veDados || {};
+const d = { ...PADRAO, ...(cena.dados || {}) };
+window.veDuracao = cena.total || 8;
+const FIM = window.veDuracao - 0.45;                       // os últimos 0,45 s desvanecem o conteúdo sobre o fundo
+
+const prende = (x) => Math.min(1, Math.max(0, x));
+const sai = (x) => 1 - Math.pow(1 - prende(x), 3);         // desacelera no fim (ease-out cúbico)
+
+document.getElementById("titulo").textContent = cena.titulo || "";
+const trilho = document.getElementById("trilho");
+const n = d.marcos.length;
+const marcos = d.marcos.map((m, i) => {
+  const el = document.createElement("div");
+  el.className = "marco";
+  el.innerHTML = '<div class="ponto"></div><p class="rotulo"></p><p class="texto"></p>';
+  el.querySelector(".rotulo").textContent = m.rotulo;
+  el.querySelector(".texto").textContent = m.texto || "";
+  trilho.append(el);
+  const padrao = m.padrao ?? 1 + i * (window.veDuracao - 2.5) / n;
+  // com narração, palavra que não está na fala é erro; sem "quando", vale o instante padrão
+  return { el, t: m.quando ? veQuando(m.quando, m.n || 1, padrao) : padrao, ate: i / n };
+});
+
+window.veQuadro = (t) => {
+  document.getElementById("titulo").style.opacity = sai((t - 0.2) / 0.5);
+  let p = 0;                                               // até onde a linha já andou: chega ao marco quando ele entra
+  marcos.forEach((m, i) => {
+    const k = sai((t - m.t + 0.35) / 0.5);
+    const antes = i ? marcos[i - 1].ate : 0;
+    if (t >= m.t - 0.35) p = antes + (m.ate - antes) * k;
+    const q = sai((t - m.t) / 0.45);
+    m.el.style.opacity = q;
+    m.el.querySelector(".rotulo").style.transform = `translateY(${(1 - q) * 0.5}em)`;
+    const proximo = marcos[i + 1] ? marcos[i + 1].t : Infinity;
+    m.el.classList.toggle("vez", t >= m.t && t < proximo);
+    m.el.classList.toggle("feito", t >= proximo);
+  });
+  // depois do último marco a linha segue até o fim
+  const ultimo = marcos[n - 1];
+  if (t > ultimo.t + 0.6) p = ultimo.ate + (1 - ultimo.ate) * sai((t - ultimo.t - 0.6) / 0.8);
+  document.documentElement.style.setProperty("--p", p.toFixed(4));
+  document.querySelector("main").style.opacity = 1 - prende((t - FIM) / 0.45);
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,84 @@
+<!doctype html>
+<!-- Modelo: um número grande que conta até o valor no instante em que ele é falado, com rótulo embaixo.
+     Para o cena_web.py (--palavras, --dados) e o render_web.py do /video-animado. Sem biblioteca: tudo é função de t.
+     Conteúdo pelo campo "dados" da cena (ou edite os valores de PADRAO):
+       {"numero": 73, "sufixo": "%", "prefixo": "", "decimais": 0, "de": 0,
+        "rotulo": "dos acessos vêm do celular", "quando": "setenta", "padrao": 1.0}
+     "quando" é a palavra da narração em que a contagem começa (o número falado: "setenta"); "padrao" é o instante
+     usado na prévia sem narração. O título vem de "titulo" da cena. Cores e fonte da marca (--ve-*), com reserva.
+     O conteúdo fica centrado na área livre, acima dos 21% de baixo (legenda). -->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<style>
+  :root { --u: 1vw; }
+  @media (orientation: portrait) { :root { --u: 1.9vw; } }
+  html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+  body { background: var(--ve-fundo, #0B1220); color: var(--ve-texto, #F1F5F9);
+         font-family: var(--ve-fonte, "DejaVu Sans"), "DejaVu Sans", Inter, Arial, sans-serif; }
+  main { position: absolute; inset: 12vh 8vw 23vh; display: flex; flex-direction: column; align-items: center;
+         justify-content: center; text-align: center; }
+  h1 { font-size: calc(var(--u) * 2.6); font-weight: 400; margin: 0 0 calc(var(--u) * 1.5); color: var(--ve-texto2, #94A3B8);
+       letter-spacing: 0.04em; text-transform: uppercase; }
+  #numero { font-size: calc(var(--u) * 15); font-weight: 700; line-height: 1; color: var(--ve-acento, #FFD43B);
+            font-variant-numeric: tabular-nums; white-space: nowrap; }
+  #linha { width: calc(var(--u) * 12); height: calc(var(--u) * 0.35); background: var(--ve-texto, #F1F5F9);
+           margin: calc(var(--u) * 2) 0 calc(var(--u) * 1.6); }
+  #rotulo { font-size: calc(var(--u) * 3.4); line-height: 1.2; max-width: 22em; margin: 0; text-wrap: balance; }
+</style>
+</head>
+<body>
+<main>
+  <h1 id="titulo"></h1>
+  <div id="numero"></div>
+  <div id="linha"></div>
+  <p id="rotulo"></p>
+</main>
+<script>
+const PADRAO = { numero: 73, sufixo: "%", prefixo: "", decimais: 0, de: 0, rotulo: "dos acessos vêm do celular", quando: "", padrao: 1.0 };
+const cena = window.veDados || {};
+const d = { ...PADRAO, ...(cena.dados || {}) };
+window.veDuracao = cena.total || 6;
+const FIM = window.veDuracao - 0.45;                       // os últimos 0,45 s desvanecem o conteúdo sobre o fundo
+const CONTA = 1.2;                                         // segundos de contagem
+
+const prende = (x) => Math.min(1, Math.max(0, x));
+const sai = (x) => 1 - Math.pow(1 - prende(x), 3);         // desacelera no fim (ease-out cúbico)
+// com narração, palavra que não está na fala é erro; sem "quando", vale o instante padrão
+const T0 = d.quando ? veQuando(d.quando, d.n || 1, d.padrao) : d.padrao;
+
+const el = (id) => document.getElementById(id);
+el("titulo").textContent = cena.titulo || "";
+el("rotulo").textContent = d.rotulo;
+const escreve = (v) => d.prefixo + v.toLocaleString("pt-BR", { minimumFractionDigits: d.decimais, maximumFractionDigits: d.decimais }) + d.sufixo;
+// largura fixa pelo valor final: o texto ao redor não treme enquanto os dígitos mudam
+el("numero").textContent = escreve(d.numero);
+
+// número largo demais para a área (valor grande, vídeo vertical) encolhe até caber; medido no primeiro quadro,
+// com a fonte já carregada e o valor final escrito
+let ajustado = false;
+const ajusta = () => {
+  ajustado = true;
+  el("numero").style.transform = "none";
+  el("numero").textContent = escreve(d.numero);
+  const cabe = document.querySelector("main").clientWidth / el("numero").getBoundingClientRect().width;
+  if (cabe < 1) el("numero").style.fontSize = `calc(var(--u) * ${(15 * cabe * 0.98).toFixed(2)})`;
+};
+
+window.veQuadro = (t) => {
+  if (!ajustado) ajusta();
+  el("titulo").style.opacity = sai((t - 0.2) / 0.5);
+  const k = sai((t - T0) / CONTA);
+  const casa = Math.pow(10, d.decimais);
+  el("numero").textContent = escreve(k >= 1 ? d.numero : Math.round((d.de + (d.numero - d.de) * k) * casa) / casa);
+  el("numero").style.opacity = sai((t - T0 + 0.15) / 0.3);
+  el("numero").style.transform = `scale(${0.9 + 0.1 * sai((t - T0 + 0.15) / 0.5)})`;
+  el("linha").style.transform = `scaleX(${sai((t - T0 - CONTA * 0.6) / 0.5)})`;
+  const r = sai((t - T0 - CONTA * 0.75) / 0.5);
+  el("rotulo").style.opacity = r;
+  el("rotulo").style.transform = `translateY(${(1 - r) * 0.6}em)`;
+  document.querySelector("main").style.opacity = 1 - prende((t - FIM) / 0.45);
+};
+</script>
+</body>
+</html>

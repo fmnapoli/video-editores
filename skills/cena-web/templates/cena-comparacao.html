@@ -1,0 +1,91 @@
+<!doctype html>
+<!-- Modelo: comparação lado a lado (antes e depois, opção A e opção B). Cada lado entra na palavra em que é falado
+     e os itens dele aparecem em seguida, um por vez; o segundo lado fica com a cor de destaque.
+     Para o cena_web.py (--palavras, --dados) e o render_web.py do /video-animado. Sem biblioteca: tudo é função de t.
+     Conteúdo pelo campo "dados" da cena (ou edite PADRAO):
+       {"lados": [{"rotulo": "Antes", "quando": "antes", "padrao": 1.0, "itens": ["Planilha manual", "Dois dias"]},
+                  {"rotulo": "Depois", "quando": "agora", "padrao": 3.5, "itens": ["Um comando", "Dez minutos"]}]}
+     "quando" é a palavra da narração em que o lado entra; "padrao", o instante na prévia sem narração. Um item pode
+     ser {"texto": "...", "quando": "palavra"} para entrar na própria palavra. O título vem de "titulo" da cena.
+     Em vertical os lados ficam um sobre o outro. Conteúdo acima dos 21% de baixo (legenda). -->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<style>
+  :root { --u: 1vw; }
+  @media (orientation: portrait) { :root { --u: 1.9vw; } }
+  html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+  body { background: var(--ve-fundo, #0B1220); color: var(--ve-texto, #F1F5F9);
+         font-family: var(--ve-fonte, "DejaVu Sans"), "DejaVu Sans", Inter, Arial, sans-serif; }
+  main { position: absolute; inset: 10vh 7vw 23vh; display: flex; flex-direction: column; justify-content: center; }
+  h1 { font-size: calc(var(--u) * 4); line-height: 1.1; margin: 0 0 calc(var(--u) * 2.4); text-wrap: balance; }
+  #lados { display: grid; grid-template-columns: 1fr 1fr; gap: calc(var(--u) * 2.4); }
+  @media (orientation: portrait) { #lados { grid-template-columns: 1fr; } }
+  section { background: var(--ve-fundo2, #1E293B); border-radius: calc(var(--u) * 1); padding: calc(var(--u) * 2.2) calc(var(--u) * 2.4) calc(var(--u) * 2.6);
+            border-top: calc(var(--u) * 0.45) solid var(--ve-texto2, #94A3B8); box-shadow: 0 0.6vw 1.8vw rgba(0, 0, 0, .35); }
+  section.destaque { border-top-color: var(--ve-acento, #FFD43B); }
+  h2 { font-size: calc(var(--u) * 2.4); margin: 0 0 calc(var(--u) * 1.4); letter-spacing: 0.05em; text-transform: uppercase;
+       color: var(--ve-texto2, #94A3B8); }
+  section.destaque h2 { color: var(--ve-acento, #FFD43B); }
+  ul { list-style: none; margin: 0; padding: 0; }
+  li { font-size: calc(var(--u) * 2.9); line-height: 1.25; margin-top: calc(var(--u) * 0.9); }
+</style>
+</head>
+<body>
+<main>
+  <h1 id="titulo"></h1>
+  <div id="lados"></div>
+</main>
+<script>
+const PADRAO = { lados: [
+  { rotulo: "Antes", quando: "", padrao: 1.0, itens: ["Planilha preenchida à mão", "Dois dias para fechar", "Erro descoberto no fim"] },
+  { rotulo: "Depois", quando: "", padrao: 3.5, itens: ["Um comando", "Dez minutos", "Erro acusado na hora"] }] };
+const cena = window.veDados || {};
+const d = { ...PADRAO, ...(cena.dados || {}) };
+window.veDuracao = cena.total || 8;
+const FIM = window.veDuracao - 0.45;                       // os últimos 0,45 s desvanecem o conteúdo sobre o fundo
+const PASSO = 0.35;                                        // intervalo entre os itens de um lado
+
+const prende = (x) => Math.min(1, Math.max(0, x));
+const sai = (x) => 1 - Math.pow(1 - prende(x), 3);         // desacelera no fim (ease-out cúbico)
+// com narração, palavra que não está na fala é erro; sem "quando", vale o instante padrão
+const instante = (o, padrao) => o.quando ? veQuando(o.quando, o.n || 1, padrao) : padrao;
+
+document.getElementById("titulo").textContent = cena.titulo || "";
+const lados = d.lados.map((lado, i) => {
+  const sec = document.createElement("section");
+  if (i === d.lados.length - 1) sec.className = "destaque";
+  const h2 = document.createElement("h2");
+  h2.textContent = lado.rotulo;
+  const ul = document.createElement("ul");
+  sec.append(h2, ul);
+  document.getElementById("lados").append(sec);
+  const t0 = instante(lado, lado.padrao ?? 1 + i * 2.5);
+  const itens = (lado.itens || []).map((it, j) => {
+    const li = document.createElement("li");
+    const o = typeof it === "string" ? { texto: it } : it;
+    li.textContent = o.texto;
+    ul.append(li);
+    return { el: li, t: instante(o, t0 + 0.4 + j * PASSO) };
+  });
+  return { el: sec, t: t0, itens };
+});
+
+window.veQuadro = (t) => {
+  const tit = sai((t - 0.2) / 0.5);
+  document.getElementById("titulo").style.opacity = tit;
+  for (const lado of lados) {
+    const k = sai((t - lado.t) / 0.5);
+    lado.el.style.opacity = k;
+    lado.el.style.transform = `translateY(${(1 - k) * 2}vw)`;
+    for (const it of lado.itens) {
+      const q = sai((t - it.t) / 0.4);
+      it.el.style.opacity = q;
+      it.el.style.transform = `translateX(${(1 - q) * -1.2}vw)`;
+    }
+  }
+  document.querySelector("main").style.opacity = 1 - prende((t - FIM) / 0.45);
+};
+</script>
+</body>
+</html>

@@ -7,7 +7,7 @@ description: Cena de vídeo escrita em HTML — 3D com Three.js (câmera, luz, s
 
 Siga `${CLAUDE_PLUGIN_ROOT}/docs/convencoes.md` (pastas, nomes de saída, loudness, privacidade). Dependências: `${CLAUDE_PLUGIN_ROOT}/scripts/doctor.sh`.
 
-Script: `${CLAUDE_PLUGIN_ROOT}/scripts/cena_web.py`. Modelos: `${CLAUDE_PLUGIN_ROOT}/skills/cena-web/templates/` (`cena-three.html`, `cena-gsap.html`, `cena-narrada.html`).
+Script: `${CLAUDE_PLUGIN_ROOT}/scripts/cena_web.py`. Modelos: `${CLAUDE_PLUGIN_ROOT}/skills/cena-web/templates/` (tabela em "Modelos").
 
 ## Quando usar (e quando não)
 | O pedido | Ferramenta |
@@ -43,6 +43,26 @@ A cena HTML gera um **bloco** (abertura, separador, cartela, objeto 3D com alpha
 6. Use o bloco: como cena pronta do `/video-animado` (`"video": "abertura.mp4"`), bloco do `/videoaula`, ou sobreposto com `overlay` (o `.mov` com alpha, como no `/animacao`). Bloco sem som: o áudio da cena vem da narração ou de um efeito do `/efeitos`.
 7. `/prova` no resultado.
 
+## Modelos
+Copie o mais próximo e ajuste, ou use direto: os narrados leem o conteúdo de `veDados.dados` (o campo `"dados"` da cena no `/video-animado`, ou `--dados`), então muita cena sai sem editar HTML. Todos abrem soltos com valores de exemplo, funcionam em 16:9 e 9:16, usam as cores e a fonte da marca e deixam livres os 21% de baixo.
+| Modelo | Para | `dados` |
+|---|---|---|
+| `cena-narrada.html` | título + três cartões que entram na palavra | editar no HTML (`data-quando`) |
+| `cena-numero.html` | número grande que conta até o valor quando é falado | `numero`, `prefixo`, `sufixo`, `decimais`, `de`, `rotulo`, `quando` |
+| `cena-comparacao.html` | antes e depois, A contra B | `lados[]`: `rotulo`, `quando`, `itens[]` (texto ou `{texto, quando}`) |
+| `cena-linha-tempo.html` | linha do tempo ou etapas (3 a 5 marcos) | `marcos[]`: `rotulo`, `texto`, `quando` |
+| `cena-citacao.html` | citação ou frase de impacto que acende com a fala | `texto`, `autor`, `destaque`, `quando` (trecho da fala) |
+| `cena-three.html` | letreiro 3D com câmera, luz e sombra (Three.js) | editar no HTML |
+| `cena-gsap.html` | cartela em CSS com linha do tempo GSAP | editar no HTML |
+
+Exemplo no spec do `/video-animado` (o caminho do modelo pode ser o do plugin; copie para `cenas/` quando for mexer no desenho):
+```json
+{"id": "B3", "html": "cenas/cena-numero.html", "titulo": "Acessos pelo celular",
+ "narracao": "Hoje, setenta e três por cento dos acessos vêm do celular.",
+ "dados": {"numero": 73, "sufixo": "%", "rotulo": "dos acessos vêm do celular", "quando": "setenta"}}
+```
+`quando` é sempre uma palavra **da narração** (o número é falado por extenso: "setenta", não "73"). Todo `quando` aceita `n` (ocorrência) e `padrao` (instante na prévia sem narração). Texto longo demais para o modelo aparece na folha de quadros-chave como texto cortado: encurte ou divida em duas cenas.
+
 ## Sincronia com a narração
 Cena que acompanha uma fala não fixa segundos: recebe o mapa de palavras e pergunta. Dentro do `/video-animado` isso é automático (cena com `"html"` no spec, `render_web.py`); solta, passe `--palavras ARQ.json` (`[{"t", "d", "w"}]`, no tempo da cena).
 ```js
@@ -51,7 +71,7 @@ const tDeNovo  = veQuando("Blender", 2);         // 2ª ocorrência
 const { ini, fim } = veTrecho("na ordem certa"); // expressão: do início da primeira ao fim da última palavra
 const tPrevia  = veQuando("Blender", 1, 2.0);    // 3º argumento: instante usado quando a cena abre sem narração
 ```
-Maiúsculas, acentos e pontuação não importam. Palavra que não está na fala **interrompe o render** e a mensagem traz a fala inteira: o roteiro mudou, a cena acompanha. `window.veDados` traz o JSON de `--dados` (no `/video-animado`: `{id, titulo, narracao, total, fala: {ini, fim}, dados}`). Modelo: `cena-narrada.html`.
+Maiúsculas, acentos e pontuação não importam. Palavra que não está na fala **interrompe o render** e a mensagem traz a fala inteira: o roteiro mudou, a cena acompanha. `window.veDados` traz o JSON de `--dados` (no `/video-animado`: `{id, titulo, narracao, total, fala: {ini, fim}, dados}`). Modelos: `cena-narrada.html` e os outros narrados da tabela acima.
 
 ## Marca
 Havendo `marca/marca.json`, a página recebe as variáveis CSS `--ve-fundo`, `--ve-fundo2`, `--ve-acento`, `--ve-secundario`, `--ve-texto`, `--ve-texto2` e `--ve-fonte`, os TTF da marca registrados com o nome da família, e `window.veMarca` (`{nome, cores, fonte, logo}`; `logo.png`/`logo.svg` são URLs prontas para `<img>`). Escreva sempre com reserva, `color: var(--ve-acento, #FFD43B)`: sem marca, vale o valor depois da vírgula. Em `<canvas>`, leia de `veMarca.cores`. `--sem-marca` desliga.
