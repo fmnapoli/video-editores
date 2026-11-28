@@ -1,0 +1,93 @@
+<!doctype html>
+<!-- Modelo: gráfico de barras horizontais (de 2 a 6). Cada barra cresce e o valor conta quando ela é falada;
+     a barra marcada com "destaque" fica com a cor de destaque.
+     Para o cena_web.py (--palavras, --dados) e o render_web.py do /video-animado. Sem biblioteca: tudo é função de t.
+     Conteúdo pelo campo "dados" da cena (ou edite PADRAO):
+       {"sufixo": "%", "prefixo": "", "decimais": 0, "maximo": 100,
+        "barras": [{"rotulo": "Celular", "valor": 73, "quando": "celular", "destaque": true},
+                   {"rotulo": "Computador", "valor": 22, "quando": "computador"},
+                   {"rotulo": "Tablet", "valor": 5, "quando": "tablet"}]}
+     "quando" é a palavra da narração em que a barra cresce; "padrao", o instante na prévia sem narração.
+     "maximo" é o valor que enche a barra (padrão: o maior valor). O título vem de "titulo" da cena.
+     Gráfico com eixos, séries ou muitas categorias é caso do Manim (/animacao), não deste modelo.
+     Conteúdo acima dos 21% de baixo (legenda). -->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<style>
+  :root { --u: 1vw; }
+  @media (orientation: portrait) { :root { --u: 1.9vw; } }
+  html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+  body { background: var(--ve-fundo, #0B1220); color: var(--ve-texto, #F1F5F9);
+         font-family: var(--ve-fonte, "DejaVu Sans"), "DejaVu Sans", Inter, Arial, sans-serif; }
+  main { position: absolute; inset: 10vh 8vw 23vh; display: flex; flex-direction: column; justify-content: center; }
+  h1 { font-size: calc(var(--u) * 4); line-height: 1.1; margin: 0 0 calc(var(--u) * 3); text-wrap: balance; }
+  #barras { display: grid; grid-template-columns: max-content 1fr; column-gap: calc(var(--u) * 1.6); row-gap: calc(var(--u) * 1.5); align-items: center; }
+  .rotulo { font-size: calc(var(--u) * 2.6); text-align: right; max-width: 12em; }
+  .trilho { position: relative; height: calc(var(--u) * 3.6); }
+  .barra { position: absolute; left: 0; top: 0; bottom: 0; width: 100%; border-radius: calc(var(--u) * 0.5);
+           background: var(--ve-texto2, #94A3B8); transform-origin: left center; }
+  .destaque .barra { background: var(--ve-acento, #FFD43B); }
+  .valor { position: absolute; top: 50%; font-size: calc(var(--u) * 2.6); font-weight: 700; line-height: 1;
+           font-variant-numeric: tabular-nums; white-space: nowrap; transform: translateY(-50%); padding-left: calc(var(--u) * 0.9); }
+  .destaque .valor { color: var(--ve-acento, #FFD43B); }
+  @media (orientation: portrait) {
+    #barras { grid-template-columns: 1fr; row-gap: calc(var(--u) * 0.6); }
+    .rotulo { text-align: left; max-width: none; margin-top: calc(var(--u) * 1.2); }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1 id="titulo"></h1>
+  <div id="barras"></div>
+</main>
+<script>
+const PADRAO = { sufixo: "%", prefixo: "", decimais: 0, maximo: 0, barras: [
+  { rotulo: "Celular", valor: 73, destaque: true },
+  { rotulo: "Computador", valor: 22 },
+  { rotulo: "Tablet", valor: 5 }] };
+const cena = window.veDados || {};
+const d = { ...PADRAO, ...(cena.dados || {}) };
+window.veDuracao = cena.total || 7;
+const FIM = window.veDuracao - 0.45;                       // os últimos 0,45 s desvanecem o conteúdo sobre o fundo
+const CRESCE = 0.9;                                        // segundos para a barra chegar ao valor
+const RESERVA = 0.82;                                      // a maior barra ocupa 82% do trilho: sobra lugar para o valor
+
+const prende = (x) => Math.min(1, Math.max(0, x));
+const sai = (x) => 1 - Math.pow(1 - prende(x), 3);         // desacelera no fim (ease-out cúbico)
+const escreve = (v) => d.prefixo + v.toLocaleString("pt-BR", { minimumFractionDigits: d.decimais, maximumFractionDigits: d.decimais }) + d.sufixo;
+
+document.getElementById("titulo").textContent = cena.titulo || "";
+const maximo = d.maximo || Math.max(...d.barras.map((b) => b.valor)) || 1;
+const n = d.barras.length;
+const barras = d.barras.map((b, i) => {
+  const rot = document.createElement("div");
+  rot.className = "rotulo";
+  rot.textContent = b.rotulo;
+  const tri = document.createElement("div");
+  tri.className = "trilho" + (b.destaque ? " destaque" : "");
+  tri.innerHTML = '<div class="barra"></div><div class="valor"></div>';
+  document.getElementById("barras").append(rot, tri);
+  const padrao = b.padrao ?? 1 + i * (window.veDuracao - 3) / n;
+  // com narração, palavra que não está na fala é erro; sem "quando", vale o instante padrão
+  return { rot, barra: tri.firstChild, valor: tri.lastChild, v: b.valor, fr: prende(b.valor / maximo) * RESERVA,
+           t: b.quando ? veQuando(b.quando, b.n || 1, padrao) : padrao };
+});
+
+window.veQuadro = (t) => {
+  document.getElementById("titulo").style.opacity = sai((t - 0.2) / 0.5);
+  const casa = Math.pow(10, d.decimais);
+  for (const b of barras) {
+    const k = sai((t - b.t) / CRESCE);
+    b.rot.style.opacity = sai((t - b.t + 0.2) / 0.4);
+    b.barra.style.transform = `scaleX(${(b.fr * k).toFixed(5)})`;
+    b.valor.style.left = `${(b.fr * k * 100).toFixed(3)}%`;
+    b.valor.style.opacity = sai((t - b.t) / 0.3);
+    b.valor.textContent = escreve(k >= 1 ? b.v : Math.round(b.v * k * casa) / casa);
+  }
+  document.querySelector("main").style.opacity = 1 - prende((t - FIM) / 0.45);
+};
+</script>
+</body>
+</html>

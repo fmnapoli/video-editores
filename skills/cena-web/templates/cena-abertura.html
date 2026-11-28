@@ -1,0 +1,88 @@
+<!doctype html>
+<!-- Modelo: cartela de abertura ou de encerramento. Logo da marca (se houver), título palavra por palavra,
+     linha de destaque e subtítulo. Serve para abrir o vídeo, separar capítulos ("capitulo": "Parte 2") e fechar
+     (com "fica": true o conteúdo permanece até o último quadro, para o vídeo não terminar em fundo vazio).
+     Para o cena_web.py (--palavras, --dados) e o render_web.py do /video-animado. Sem biblioteca: tudo é função de t.
+     Conteúdo pelo campo "dados" da cena (ou edite PADRAO):
+       {"capitulo": "", "subtitulo": "Do bruto ao vídeo pronto", "quando": "", "logo": true, "fica": false}
+     O título vem de "titulo" da cena. "quando" (opcional) é a palavra da narração em que o subtítulo entra; sem ele,
+     entra depois do título. O logo vem de marca/marca.json (logo.svg ou logo.png); sem marca, a cartela sai sem logo.
+     Conteúdo centrado, acima dos 21% de baixo (legenda). -->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<style>
+  :root { --u: 1vw; }
+  @media (orientation: portrait) { :root { --u: 1.9vw; } }
+  html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+  body { background: var(--ve-fundo, #0B1220); color: var(--ve-texto, #F1F5F9);
+         font-family: var(--ve-fonte, "DejaVu Sans"), "DejaVu Sans", Inter, Arial, sans-serif; }
+  main { position: absolute; inset: 12vh 9vw 23vh; display: flex; flex-direction: column; align-items: center;
+         justify-content: center; text-align: center; }
+  #logo { height: calc(var(--u) * 6); max-width: 40%; object-fit: contain; margin-bottom: calc(var(--u) * 3); display: none; }
+  #capitulo { font-size: calc(var(--u) * 2.2); letter-spacing: 0.12em; text-transform: uppercase; margin: 0 0 calc(var(--u) * 1.4);
+              color: var(--ve-acento, #FFD43B); }
+  h1 { font-size: calc(var(--u) * 6.4); line-height: 1.08; margin: 0; text-wrap: balance; }
+  h1 span { display: inline-block; }
+  #linha { width: calc(var(--u) * 14); height: calc(var(--u) * 0.4); background: var(--ve-acento, #FFD43B);
+           margin: calc(var(--u) * 2.4) 0 calc(var(--u) * 2); }
+  #subtitulo { font-size: calc(var(--u) * 2.9); line-height: 1.25; margin: 0; max-width: 24em; text-wrap: balance;
+               color: var(--ve-texto2, #94A3B8); }
+</style>
+</head>
+<body>
+<main>
+  <img id="logo" alt="">
+  <p id="capitulo"></p>
+  <h1 id="titulo"></h1>
+  <div id="linha"></div>
+  <p id="subtitulo"></p>
+</main>
+<script>
+const PADRAO = { capitulo: "", subtitulo: "Do bruto ao vídeo pronto", quando: "", logo: true, fica: false };
+const cena = window.veDados || {};
+const d = { ...PADRAO, ...(cena.dados || {}) };
+window.veDuracao = cena.total || 5;
+const FIM = window.veDuracao - 0.45;                       // os últimos 0,45 s desvanecem o conteúdo (menos com "fica")
+
+const prende = (x) => Math.min(1, Math.max(0, x));
+const sai = (x) => 1 - Math.pow(1 - prende(x), 3);         // desacelera no fim (ease-out cúbico)
+const el = (id) => document.getElementById(id);
+
+const marca = window.veMarca || {};
+const url = d.logo && marca.logo && (marca.logo.svg || marca.logo.png);
+if (url) { el("logo").src = url; el("logo").style.display = "block"; }
+el("capitulo").textContent = d.capitulo || "";
+if (!d.capitulo) el("capitulo").style.display = "none";
+el("subtitulo").textContent = d.subtitulo || "";
+
+const T0 = url ? 0.5 : 0.2;                                // com logo, o título espera o logo assentar
+const palavras = (cena.titulo || "Título do vídeo").split(/\s+/).filter(Boolean).map((p, i) => {
+  const s = document.createElement("span");
+  s.textContent = p;
+  el("titulo").append(s, " ");
+  return { el: s, t: T0 + i * 0.12 };
+});
+const fimTitulo = T0 + palavras.length * 0.12 + 0.2;
+// com narração, palavra que não está na fala é erro; sem "quando", o subtítulo entra depois do título
+const tSub = d.quando ? veQuando(d.quando, d.n || 1, fimTitulo + 0.4) : fimTitulo + 0.4;
+
+window.veQuadro = (t) => {
+  const l = sai(t / 0.6);
+  el("logo").style.opacity = l;
+  el("logo").style.transform = `scale(${0.92 + 0.08 * l})`;
+  el("capitulo").style.opacity = sai((t - T0 + 0.1) / 0.4);
+  for (const p of palavras) {
+    const k = sai((t - p.t) / 0.4);
+    p.el.style.opacity = k;
+    p.el.style.transform = `translateY(${(1 - k) * 0.6}em)`;
+  }
+  el("linha").style.transform = `scaleX(${sai((t - fimTitulo) / 0.6)})`;
+  const s = sai((t - tSub) / 0.5);
+  el("subtitulo").style.opacity = s;
+  el("subtitulo").style.transform = `translateY(${(1 - s) * 0.5}em)`;
+  document.querySelector("main").style.opacity = d.fica ? 1 : 1 - prende((t - FIM) / 0.45);
+};
+</script>
+</body>
+</html>

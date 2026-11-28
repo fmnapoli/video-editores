@@ -251,7 +251,14 @@ JSON
 cat > bib.citacao.json <<'JSON'
 {"total":6,"fala":{"ini":0.6,"fim":4.7},"dados":{"texto":"Simples é melhor.","autor":"","destaque":"melhor","quando":"simples é melhor"}}
 JSON
-for m in numero comparacao linha-tempo citacao; do
+cat > bib.barras.json <<'JSON'
+{"titulo":"Acessos","total":6,"dados":{"sufixo":" mil","decimais":1,"barras":[{"rotulo":"Celular","valor":7.3,"quando":"antes","destaque":true},
+ {"rotulo":"Computador de mesa","valor":2.2,"quando":"agora"},{"rotulo":"Tablet","valor":0.5,"quando":"hoje"}]}}
+JSON
+cat > bib.abertura.json <<'JSON'
+{"titulo":"Edição de vídeo por código","total":6,"dados":{"capitulo":"Parte 1","subtitulo":"Do bruto ao pronto","quando":"antes","fica":true}}
+JSON
+for m in numero comparacao linha-tempo citacao barras abertura; do
   M="$ROOT/skills/cena-web/templates/cena-$m.html"
   for tam in 640x360 360x640; do
     "${WEB[@]}" "$M" --quadros 3 "bib-$m-$tam.png" --reserva-baixo 0.21 --tamanho "$tam" >/dev/null 2>err.txt || { echo "cena-$m $tam (solta):"; cat err.txt; exit 1; }
@@ -280,7 +287,22 @@ sed 's/"autor":""/"autor":"x"/' bib.citacao.json > cit.json
 grep -q "T=3.00/3.40/3.70" cit.err || { echo "citação: instantes das palavras:"; cat cit.err; exit 1; }
 pass "cena-citacao: cada palavra da frase acende no instante em que é falada"
 
-pass "modelos cena-numero, cena-comparacao, cena-linha-tempo e cena-citacao: soltos e narrados, horizontal e vertical, sem texto cortado nem na faixa da legenda; palavra ausente falha"
+# abertura: o logo da marca entra na cartela (quadrado vermelho do SVG), e "fica" mantém o conteúdo no último quadro
+mkdir -p marca && echo '{"nome":"Acme","cores":{"fundo":"#102030","acento":"#00FF88","texto":"#FFFFFF"},"fonte":{"familia":"DejaVu Sans"},"logo":{"svg":"logo.svg"}}' > marca/marca.json
+echo '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10" fill="#FF0000"/></svg>' > marca/logo.svg
+"${WEB[@]}" "$ROOT/skills/cena-web/templates/cena-abertura.html" --quadro 5.9 ab.png --tamanho 640x360 --dados bib.abertura.json >/dev/null 2>err.txt || { cat err.txt; exit 1; }
+"${WEB[@]}" "$ROOT/skills/cena-web/templates/cena-abertura.html" --quadro 5.9 ab0.png --tamanho 640x360 --dados bib.abertura.json --sem-marca >/dev/null
+rm -rf marca
+for f in ab ab0; do ffmpeg -v error -y -i "$f.png" -f rawvideo -pix_fmt rgb24 "$f.rgb"; done
+python3 -c "
+def px(f): b = open(f, 'rb').read(); return [tuple(b[i:i + 3]) for i in range(0, len(b), 3)]
+a, s = px('ab.rgb'), px('ab0.rgb')
+assert sum(p == (255, 0, 0) for p in a) > 200 and (255, 0, 0) not in s, sum(p == (255, 0, 0) for p in a)
+assert sum(p == (255, 255, 255) for p in a) > 500      # ultimo quadro com \"fica\": o titulo (texto da marca) continua na tela
+"
+pass "cena-abertura: logo da marca na cartela (sem marca, sem logo) e conteúdo mantido até o último quadro com \"fica\""
+
+pass "modelos cena-numero, cena-comparacao, cena-linha-tempo, cena-citacao, cena-barras e cena-abertura: soltos e narrados, horizontal e vertical, sem texto cortado nem na faixa da legenda; palavra ausente falha"
 
 if [[ "${VE_TESTE_REDE:-}" == 1 ]]; then
   for m in cena-three cena-gsap; do
