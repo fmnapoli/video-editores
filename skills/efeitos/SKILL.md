@@ -23,14 +23,21 @@ Script: `${CLAUDE_PLUGIN_ROOT}/scripts/efeitos.py` (só biblioteca padrão + ffm
      ```json
      [{"t": 2.4, "som": "riser", "forca": "leve"}, {"t": 31.0, "som": "ding"}]
      ```
+   - **Palavra falada**: na lista própria, `"quando"` no lugar de `"t"` põe o som no instante em que a palavra é dita. Pede `--palavras` com o mapa de palavras do vídeo **final** (o tempo é o do vídeo que vai receber o som):
+     ```json
+     [{"quando": "Blender", "som": "pop"}, {"quando": "três vezes mais rápido", "som": "riser"},
+      {"quando": "pronto", "n": 2, "no_fim": true, "som": "ding"}]
+     ```
+     `n` escolhe a ocorrência, `no_fim` usa o fim da palavra ou expressão, `desloca` soma segundos. A comparação ignora maiúsculas, acentos e pontuação. O mapa é o `<slug>.transcript.json` do `transcribe.py` (transcreva o vídeo depois dos cortes) ou, num `/video-animado`, o `trabalho/<slug>/montagem/palavras.transcript.json` que o `montar_cenas.py` grava. É a mesma regra do `veQuando()` da `/cena-web`: o som cai na mesma palavra em que o elemento entra na tela.
      Sem `/camera`, as trocas de plano vêm do `scenedetect -i IN.mp4 detect-adaptive list-scenes -f cenas.csv`: escreva um evento `whoosh` para as que importam.
 2. Planeje e **mostre a lista ao usuário antes de mixar** (gate):
    ```bash
    python3 "${CLAUDE_PLUGIN_ROOT}/scripts/efeitos.py" IN.mp4 \
      --eventos trabalho/<slug>/<slug>_corte.camera.json --eventos trabalho/<slug>/textos.json --eventos trabalho/<slug>/sons.json \
+     --palavras trabalho/<slug>/<slug>.transcript.json \
      --out trabalho/<slug>/<slug>.sfx.json
    ```
-   A lista sai numerada (`sfx01`…) com o som, o alinhamento e o ganho; os eventos sem som aparecem com o motivo.
+   (`--palavras` só quando a lista tem `"quando"`.) A lista sai numerada (`sfx01`…) com o som, o alinhamento e o ganho; os eventos sem som aparecem com o motivo, inclusive a palavra que não está na fala.
 3. Ajustes por número são edições no `.sfx.json`: `"tira": true` remove ("sfx05 tira"), `ganho_db` −3 abaixa ("sfx12 mais baixo"), `arquivo` troca o som, `inicio` desloca (1 quadro = 0,033 s a 30 fps).
 4. Mixe (o vídeo é copiado, só o áudio é refeito):
    ```bash
@@ -44,6 +51,8 @@ Script: `${CLAUDE_PLUGIN_ROOT}/scripts/efeitos.py` (só biblioteca padrão + ffm
 | `--intervalo` | 2.0 s | mínimo entre dois sons automáticos do mesmo tipo (os da sua lista entram sempre) |
 | `--ganho` | 0 dB | sobe ou desce todos os efeitos de uma vez |
 | `--sons PASTA` | — | biblioteca própria; tem preferência sobre a síntese |
+| `--palavras ARQ` | — | mapa de palavras da fala, para eventos com `"quando"` |
+| por evento: `quando` | — | palavra ou expressão falada que marca o instante (`n`, `no_fim`, `desloca`) |
 | por evento: `forca` | `media` | `leve` (−4 dB) ou `forte` (+3 dB) |
 | por evento: `alinhar` | pelo som | `pico` ou `inicio`, para forçar |
 
@@ -62,4 +71,5 @@ Os níveis são ponto de partida calculado, não mixagem final: ajuste pelo ouvi
 ## Regras
 - Nunca sobrescreva a entrada; saída sempre `trabalho/<slug>/<slug>_efeitos.mp4`.
 - Efeitos entram depois da `/trilha` e antes da `/prova`: cortes mudam o tempo, então o áudio é o último passo.
+- Palavra que não está na fala fica sem som, com o motivo na lista: a transcrição pode ter escrito diferente (confira no `.transcript.json`) ou a fala mudou. Não troque por um `t` chutado sem olhar.
 - Som que falta não se força: deixe o evento sem som e diga ao usuário qual categoria faria falta na pasta.
