@@ -41,6 +41,8 @@ Scripts desta skill em `${CLAUDE_PLUGIN_ROOT}/skills/video-animado/scripts/`; mo
    Mostre `.proof.jpg`, `.preview.mp4` e um teste de voz com os termos; **pare**.
 6. **Lote.** Todas as cenas em 1080p (em segundo plano: ~30 s a 1 min por cena), `montar_cenas.py` sem `--cenas` (e `--jobs 3`; cada bloco sai com a duração exata da narração, cena curta é completada com o último quadro, e um `AVISO` aponta cena que estourou), `/prova`, folhas a 0,55 e 0,92, mais quadros nas trocas de fundo e no último quadro (tem de terminar na vinheta, nunca em preto). Entregue `saida/<slug>.mp4`, `legendas/<slug>.srt`, `roteiros/` (design aprovado e roteiro final gerado por `--roteiro`), `README.md` do projeto com o comando de regenerar, e o resumo de 8–12 linhas para o time.
 
+Cenas HTML prontas (número que conta, comparação, linha do tempo, citação): tabela "Modelos" da `/cena-web`; o conteúdo vai no campo `"dados"` da cena.
+
 Som na palavra (opcional, depois do lote): o `montar_cenas.py` grava `trabalho/<slug>/montagem/palavras.transcript.json`, o mapa de palavras do vídeo final. Com ele, o `/efeitos` põe um pop ou um ding na mesma palavra em que a cena HTML faz o elemento entrar (`{"quando": "palavra", "som": "pop"}` com `--palavras`).
 
 ## Parâmetros

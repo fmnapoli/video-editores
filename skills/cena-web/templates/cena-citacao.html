@@ -1,0 +1,83 @@
+<!doctype html>
+<!-- Modelo: citação ou frase de impacto. As palavras acendem acompanhando a fala e o autor entra no fim.
+     Para o cena_web.py (--palavras, --dados) e o render_web.py do /video-animado. Sem biblioteca: tudo é função de t.
+     Conteúdo pelo campo "dados" da cena (ou edite PADRAO):
+       {"texto": "Simples é melhor que complexo.", "autor": "Tim Peters", "destaque": "simples",
+        "quando": "simples é melhor que complexo"}
+     "quando" é o trecho da narração que a frase acompanha: as palavras acendem do início ao fim dele. Sem "quando",
+     a frase acompanha a fala inteira da cena. "destaque" (opcional) é uma palavra ou expressão da frase que fica com
+     a cor de destaque. Cores e fonte da marca (--ve-*), com reserva. Conteúdo acima dos 21% de baixo (legenda). -->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<style>
+  :root { --u: 1vw; }
+  @media (orientation: portrait) { :root { --u: 1.8vw; } }
+  html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; }
+  body { background: var(--ve-fundo, #0B1220); color: var(--ve-texto, #F1F5F9);
+         font-family: var(--ve-fonte, "DejaVu Sans"), "DejaVu Sans", Inter, Arial, sans-serif; }
+  main { position: absolute; inset: 12vh 10vw 23vh; display: flex; flex-direction: column; justify-content: center; }
+  #aspas { font-size: calc(var(--u) * 12); line-height: 0.6; height: calc(var(--u) * 5); color: var(--ve-acento, #FFD43B); font-weight: 700; }
+  blockquote { margin: 0; font-size: calc(var(--u) * 4.6); line-height: 1.22; font-weight: 700; text-wrap: balance; }
+  blockquote span { transition: none; }
+  blockquote span.destaque { color: var(--ve-acento, #FFD43B); }
+  #autor { margin: calc(var(--u) * 2.4) 0 0; font-size: calc(var(--u) * 2.6); color: var(--ve-texto2, #94A3B8); }
+  #autor::before { content: ""; display: inline-block; width: calc(var(--u) * 3); height: calc(var(--u) * 0.3);
+                   background: var(--ve-acento, #FFD43B); vertical-align: middle; margin-right: calc(var(--u) * 1); }
+</style>
+</head>
+<body>
+<main>
+  <div id="aspas">“</div>
+  <blockquote id="frase"></blockquote>
+  <p id="autor"></p>
+</main>
+<script>
+const PADRAO = { texto: "Simples é melhor que complexo. Complexo é melhor que complicado.", autor: "Tim Peters", destaque: "simples", quando: "" };
+const cena = window.veDados || {};
+const d = { ...PADRAO, ...(cena.dados || {}) };
+window.veDuracao = cena.total || 7;
+const FIM = window.veDuracao - 0.45;                       // os últimos 0,45 s desvanecem o conteúdo sobre o fundo
+const APAGADA = 0.22;                                      // opacidade da palavra ainda não dita
+
+const prende = (x) => Math.min(1, Math.max(0, x));
+const sai = (x) => 1 - Math.pow(1 - prende(x), 3);         // desacelera no fim (ease-out cúbico)
+const norm = (s) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+
+// o trecho que a frase acompanha: o "quando" (erro se não estiver na fala), a fala inteira da cena, ou a prévia
+const previa = { ini: 0.8, fim: window.veDuracao - 2 };
+const trecho = d.quando ? veTrecho(d.quando, d.n || 1, previa) : (cena.fala && cena.fala.fim > cena.fala.ini ? cena.fala : previa);
+
+const frase = document.getElementById("frase");
+const palavras = d.texto.split(/\s+/).filter(Boolean).map((p) => {
+  const s = document.createElement("span");
+  s.textContent = p;
+  frase.append(s, " ");
+  return { el: s, chave: norm(p) };
+});
+// destaque: a primeira ocorrência da palavra ou expressão dentro da frase
+const alvo = norm(d.destaque || "").split(" ").filter(Boolean);
+for (let i = 0; alvo.length && i + alvo.length <= palavras.length; i++) {
+  if (alvo.every((k, j) => palavras[i + j].chave === k)) {
+    alvo.forEach((_, j) => palavras[i + j].el.classList.add("destaque"));
+    break;
+  }
+}
+// cada palavra acende na sua vez, repartindo o trecho por igual (a última termina de acender junto com a fala)
+const passo = (trecho.fim - trecho.ini) / palavras.length;
+palavras.forEach((p, i) => { p.t = trecho.ini + i * passo; });
+document.getElementById("autor").textContent = d.autor || "";
+if (!d.autor) document.getElementById("autor").style.display = "none";
+
+window.veQuadro = (t) => {
+  const a = sai((t - 0.2) / 0.5);
+  document.getElementById("aspas").style.opacity = a;
+  for (const p of palavras) p.el.style.opacity = a * (APAGADA + (1 - APAGADA) * sai((t - p.t) / 0.25));
+  const k = sai((t - trecho.fim - 0.2) / 0.5);
+  document.getElementById("autor").style.opacity = k;
+  document.getElementById("autor").style.transform = `translateX(${(1 - k) * -1.5}vw)`;
+  document.querySelector("main").style.opacity = 1 - prende((t - FIM) / 0.45);
+};
+</script>
+</body>
+</html>

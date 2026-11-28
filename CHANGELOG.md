@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.22.0 — 2026-11-28
+Biblioteca de cenas HTML narradas: quatro modelos novos na `/cena-web`, preenchidos pelo campo `"dados"` da cena.
+- **`cena-numero.html`**: número grande que conta até o valor no instante em que é falado, com prefixo, sufixo, casas decimais e rótulo.
+- **`cena-comparacao.html`**: dois lados (antes e depois, A contra B); cada lado entra na palavra dele e os itens aparecem em seguida. Um item pode ter a própria palavra.
+- **`cena-linha-tempo.html`**: de 3 a 5 marcos; a linha cresce até cada um quando é falado e o marco da vez fica em destaque.
+- **`cena-citacao.html`**: as palavras da frase acendem acompanhando um trecho da fala (ou a fala inteira), com palavra em destaque e autor no fim.
+- Todos sem biblioteca externa, em função de `t`, com as cores e a fonte da marca. Abrem soltos com valores de exemplo, funcionam em 16:9 e 9:16 (a comparação empilha e a linha do tempo corre de cima para baixo) e deixam livres os 21% de baixo. Palavra de `quando` que não está na narração interrompe o render, como no `veQuando()`.
+- `/cena-web` ganha a tabela "Modelos"; no `/video-animado`, a cena aponta o modelo em `"html"` e passa o conteúdo em `"dados"`, sem editar HTML.
+- Limites: conferidos pela folha de quadros-chave com os textos de exemplo e com narração sintética; texto bem mais longo que o exemplo pode estourar a área, e a conferência acusa. Na citação as palavras repartem o trecho por igual, sem seguir cada palavra falada. Falta um vídeo real feito com eles.
+
 ## 0.21.0 — 2026-11-28
 Efeito sonoro na palavra falada: o `/efeitos` passa a aceitar a palavra no lugar do tempo.
 - **`efeitos.py --palavras ARQ`** e eventos com `"quando"`: `{"quando": "Blender", "som": "pop"}` põe o som no instante em que a palavra é dita. `"n"` escolhe a ocorrência, `"no_fim"` usa o fim da palavra ou expressão (`"quando": "na ordem certa"`), `"desloca"` soma segundos. A busca ignora maiúsculas, acentos e pontuação, pela mesma regra do `veQuando()` da `/cena-web` (0.20.0): o som cai na mesma palavra em que o elemento entra na tela.
