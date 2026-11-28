@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.24.0 — 2026-11-28
+Mais dois modelos de cena HTML narrada na `/cena-web`.
+- **`cena-barras.html`**: de 2 a 6 barras horizontais; cada uma cresce, com o valor contando, na palavra em que é falada. `destaque` marca a barra principal; `sufixo`, `prefixo`, `decimais` e `maximo` formatam. Gráfico com eixos ou séries segue sendo caso do Manim.
+- **`cena-abertura.html`**: cartela de abertura, separador de capítulo (`capitulo`) e encerramento. Logo da marca (`logo.svg` ou `logo.png` do `marca/marca.json`), título palavra por palavra, linha de destaque e subtítulo. Com `"fica": true` o conteúdo permanece até o último quadro, para o vídeo não terminar em fundo vazio.
+- Como os outros: sem biblioteca externa, 16:9 e 9:16, cores e fonte da marca, faixa da legenda livre, conteúdo pelo campo `"dados"` da cena.
+- Limites: conferidos pela folha de quadros-chave com textos de exemplo e narração sintética; o logo foi testado com um SVG de teste, não com o pacote de uma marca real.
+
 ## 0.23.0 — 2026-11-28
 A cena HTML passa a dizer onde entram os sons, e a citação segue cada palavra falada.
 - **Sons sugeridos pela cena**: `cena_web.py --marcas ARQ.json` grava cada `veQuando`/`veTrecho` que a cena fez ao carregar (termo, ocorrência, início e fim). O `render_web.py` guarda isso por cena (`PASTA/web/<id>.marcas.json`) e o `montar_cenas.py` leva para o tempo do vídeo final em `trabalho/<slug>/montagem/sons.sugeridos.json`: um `pop` por entrada, pronto para `efeitos.py --eventos`. Dispensa escrever a lista à mão e o erro de ocorrência (a mesma palavra dita em duas cenas).

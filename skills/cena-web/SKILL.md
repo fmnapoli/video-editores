@@ -52,6 +52,8 @@ Copie o mais próximo e ajuste, ou use direto: os narrados leem o conteúdo de `
 | `cena-comparacao.html` | antes e depois, A contra B | `lados[]`: `rotulo`, `quando`, `itens[]` (texto ou `{texto, quando}`) |
 | `cena-linha-tempo.html` | linha do tempo ou etapas (3 a 5 marcos) | `marcos[]`: `rotulo`, `texto`, `quando` |
 | `cena-citacao.html` | citação ou frase de impacto; cada palavra acende quando é falada | `texto`, `autor`, `destaque`, `quando` (trecho da fala) |
+| `cena-barras.html` | barras horizontais (2 a 6); cada uma cresce e o valor conta quando é falada | `barras[]`: `rotulo`, `valor`, `quando`, `destaque`; `sufixo`, `prefixo`, `decimais`, `maximo` |
+| `cena-abertura.html` | abertura, separador de capítulo e encerramento, com o logo da marca | `capitulo`, `subtitulo`, `quando`, `logo`, `fica` (não desvanece: última cena) |
 | `cena-three.html` | letreiro 3D com câmera, luz e sombra (Three.js) | editar no HTML |
 | `cena-gsap.html` | cartela em CSS com linha do tempo GSAP | editar no HTML |
 
